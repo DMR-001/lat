@@ -2,10 +2,18 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { Search, Printer } from 'lucide-react';
 
+import { Payment, Fee, Student } from '@prisma/client';
+
+type PaymentWithDetails = Payment & {
+    fee: Fee & {
+        student: Student;
+    };
+};
+
 export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<{ query?: string }> }) {
     const { query } = await searchParams;
 
-    let payments = [];
+    let payments: PaymentWithDetails[] = [];
     if (query) {
         payments = await prisma.payment.findMany({
             where: {
