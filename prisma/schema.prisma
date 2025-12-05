@@ -18,6 +18,7 @@ model Student {
   address   String?
   phone     String?
   email     String?  @unique
+  parentName String?
   classId   String
   class     Class    @relation(fields: [classId], references: [id])
   attendance Attendance[]

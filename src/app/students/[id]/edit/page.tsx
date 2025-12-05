@@ -64,6 +64,10 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Email</label>
                         <input type="email" name="email" defaultValue={student.email || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Parent Name</label>
+                        <input type="text" name="parentName" defaultValue={student.parentName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
                     <div style={{ gridColumn: 'span 2' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Address</label>
                         <textarea name="address" defaultValue={student.address || ''} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}></textarea>

@@ -26,6 +26,7 @@ export async function getStudentsByClass(grade: string) {
         dob: student.dob.toISOString().split('T')[0],
         className: student.class.name,
         grade: student.class.grade,
+        parentName: student.parentName || '',
         phone: student.phone || '',
         email: student.email || '',
         address: student.address || ''

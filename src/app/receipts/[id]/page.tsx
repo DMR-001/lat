@@ -72,7 +72,7 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                         </div>
                         <div>
                             <span style={{ color: 'var(--text-secondary)' }}>Parent: </span>
-                            <span style={{ fontWeight: 'bold' }}>{student.phone || 'N/A'}</span>
+                            <span style={{ fontWeight: 'bold' }}>{student.parentName || 'N/A'}</span>
                         </div>
                     </div>
                 </div>

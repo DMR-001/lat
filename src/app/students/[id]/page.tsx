@@ -72,6 +72,10 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                             </div>
 
                             <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Parent Name</p>
+                                <p style={{ fontWeight: '500' }}>{student.parentName || '-'}</p>
+                            </div>
+                            <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Phone</p>
                                 <p style={{ fontWeight: '500' }}>{student.phone || '-'}</p>
                             </div>

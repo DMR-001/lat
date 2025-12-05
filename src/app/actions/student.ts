@@ -12,6 +12,7 @@ export async function addStudent(formData: FormData) {
     const gender = formData.get('gender') as string;
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
+    const parentName = formData.get('parentName') as string;
 
     const classId = formData.get('classId') as string;
 
@@ -45,6 +46,7 @@ export async function addStudent(formData: FormData) {
             gender,
             address,
             phone,
+            parentName,
             classId,
         },
     });
@@ -62,6 +64,7 @@ export async function updateStudent(formData: FormData) {
     const gender = formData.get('gender') as string;
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
+    const parentName = formData.get('parentName') as string;
     const classId = formData.get('classId') as string;
 
     await prisma.student.update({
@@ -74,6 +77,7 @@ export async function updateStudent(formData: FormData) {
             gender,
             address,
             phone,
+            parentName,
             classId,
         },
     });
