@@ -1,0 +1,100 @@
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  admissionNo String   @unique
+  firstName   String
+  lastName  String
+  dob       DateTime
+  gender    String
+  address   String?
+  phone     String?
+  email     String?  @unique
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  attendance Attendance[]
+  fees      Fee[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String?
+  subject   String?
+  classes   Class[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Class {
+  id        String    @id @default(cuid())
+  name      String
+  grade     String
+  teacherId String?
+  teacher   Teacher?  @relation(fields: [teacherId], references: [id])
+  students  Student[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String   // PRESENT, ABSENT, LATE
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Fee {
+  id        String    @id @default(cuid())
+  amount    Float
+  paidAmount Float    @default(0)
+  dueDate   DateTime
+  type      String    // TUITION, TRANSPORT, etc.
+  status    String    // PAID, PENDING, OVERDUE
+  studentId String
+  student   Student   @relation(fields: [studentId], references: [id])
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  receiptNo String   @unique
+  amount    Float
+  date      DateTime @default(now())
+  method    String   // CASH, CARD, ONLINE
+  feeId     String
+  fee       Fee      @relation(fields: [feeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  MANAGEMENT
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
