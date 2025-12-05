@@ -32,9 +32,9 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
             <div className="card" id="receipt" style={{ padding: '1.5rem', border: '2px solid var(--text-main)' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                    <img src="/logo.png" alt="Sprout School Logo" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
+                    <img src="/sprout-logo.png" alt="Sprout School Logo" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
                     <div style={{ flex: 1 }}>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.2', color: 'black' }}>SPROUT SCHOOL</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.2', color: 'black' }}>Receipt</h1>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad</p>
                         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             <span>Ph: +91 7032252030</span>
