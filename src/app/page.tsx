@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Users, GraduationCap, CreditCard, Wallet, AlertCircle } from 'lucide-react';
 import prisma from '@/lib/prisma';
+import PaymentDashboard from '@/components/PaymentDashboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,8 @@ export default async function Dashboard() {
           </div>
         </div>
       </div>
+
+      <PaymentDashboard />
     </div>
   );
 }

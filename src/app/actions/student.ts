@@ -95,3 +95,22 @@ export async function deleteStudent(id: string) {
     revalidatePath('/students');
     redirect('/students');
 }
+
+export async function searchStudents(query: string) {
+    if (!query || query.length < 2) return [];
+
+    const students = await prisma.student.findMany({
+        where: {
+            OR: [
+                { firstName: { contains: query, mode: 'insensitive' } },
+                { lastName: { contains: query, mode: 'insensitive' } },
+                { admissionNo: { contains: query, mode: 'insensitive' } },
+                { phone: { contains: query, mode: 'insensitive' } }
+            ]
+        },
+        take: 10,
+        orderBy: { firstName: 'asc' }
+    });
+
+    return students;
+}

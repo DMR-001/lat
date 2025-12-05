@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
+import ClientLayout from '@/components/ClientLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,17 +23,9 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
-          {session && <Sidebar />}
-          <main style={{
-            marginLeft: session ? '260px' : '0',
-            flex: 1,
-            padding: '2rem',
-            width: '100%'
-          }}>
-            {children}
-          </main>
-        </div>
+        <ClientLayout session={session} sidebar={<Sidebar />}>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

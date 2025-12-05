@@ -56,9 +56,9 @@ export default async function RecordPaymentPage({ params }: { params: Promise<{ 
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Payment Method</label>
                     <select name="method" required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
                         <option value="CASH">Cash</option>
+                        <option value="UPI">UPI</option>
                         <option value="CARD">Card</option>
                         <option value="ONLINE">Online Transfer</option>
-                        <option value="CHEQUE">Cheque</option>
                     </select>
                 </div>
 
