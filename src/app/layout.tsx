@@ -7,8 +7,8 @@ import ClientLayout from '@/components/ClientLayout';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Sprout - School Management System',
-  description: 'Professional School Management System',
+  title: 'Sprout - SMS',
+  description: 'Professional SMS',
 };
 
 import { getSession } from '@/lib/auth';
