@@ -4,26 +4,12 @@ import { Search as SearchIcon } from 'lucide-react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
 
-// Since use-debounce is not installed, I will implement a simple debounce here
-function useDebounce(callback: (...args: any[]) => void, delay: number) {
-    const timeoutRef = require('react').useRef<NodeJS.Timeout | null>(null);
-
-    return (...args: any[]) => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        timeoutRef.current = setTimeout(() => {
-            callback(...args);
-        }, delay);
-    };
-}
-
 export default function Search({ placeholder }: { placeholder: string }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { replace } = useRouter();
 
-    const handleSearch = useDebounce((term: string) => {
+    const handleSearch = useDebouncedCallback((term: string) => {
         const params = new URLSearchParams(searchParams);
         if (term) {
             params.set('query', term);
