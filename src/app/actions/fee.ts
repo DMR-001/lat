@@ -51,13 +51,31 @@ export async function recordPayment(formData: FormData) {
     }
 
     const currentYear = new Date().getFullYear();
-    // Sanitize fee type to ensure it doesn't contain slashes or weird characters
-    const sanitizedType = fee.type.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    // Helper to get short form of fee type
+    const getFeeTypeShortForm = (type: string) => {
+        const upperType = type.toUpperCase();
+        const mapping: Record<string, string> = {
+            'TRANSPORT': 'TRN',
+            'TUITION': 'TUI',
+            'ADMISSION': 'ADM',
+            'EXAM': 'EXM',
+            'LATE': 'LAT',
+            'ANNUAL': 'ANN',
+            'BOOKS': 'BKS',
+            'UNIFORM': 'UNI',
+            'APPLICATION': 'APP',
+            'REGISTRATION': 'REG'
+        };
+        return mapping[upperType] || upperType.substring(0, 3);
+    };
+
+    const shortType = getFeeTypeShortForm(fee.type);
 
     // Pad number with leading zeros, e.g., 001
     const paddedNumber = nextNumber.toString().padStart(3, '0');
 
-    const receiptNo = `SPR/${sanitizedType}/${currentYear}/${paddedNumber}`;
+    const receiptNo = `SPR/${shortType}/${currentYear}/${paddedNumber}`;
 
     await prisma.$transaction([
         prisma.payment.create({
