@@ -11,7 +11,10 @@ export default function LoginPage() {
     return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
             <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
-                <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2rem' }}>Sprout Login</h1>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <img src="/sprout-logo.png" alt="Sprout Logo" style={{ height: '60px', objectFit: 'contain' }} />
+                </div>
+                <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2rem' }}>Admin Login</h1>
 
                 <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>

@@ -43,13 +43,21 @@ export async function recordPayment(formData: FormData) {
 
     let nextNumber = 1;
     if (lastPayment && lastPayment.receiptNo) {
-        const lastNumber = parseInt(lastPayment.receiptNo.replace('REC', ''));
-        if (!isNaN(lastNumber)) {
-            nextNumber = lastNumber + 1;
+        // Try to extract number from the end of the string
+        const match = lastPayment.receiptNo.match(/(\d+)$/);
+        if (match) {
+            nextNumber = parseInt(match[1]) + 1;
         }
     }
 
-    const receiptNo = `REC${nextNumber}`;
+    const currentYear = new Date().getFullYear();
+    // Sanitize fee type to ensure it doesn't contain slashes or weird characters
+    const sanitizedType = fee.type.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    // Pad number with leading zeros, e.g., 001
+    const paddedNumber = nextNumber.toString().padStart(3, '0');
+
+    const receiptNo = `SPR/${sanitizedType}/${currentYear}/${paddedNumber}`;
 
     await prisma.$transaction([
         prisma.payment.create({

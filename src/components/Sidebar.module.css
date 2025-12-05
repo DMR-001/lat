@@ -2,28 +2,13 @@
     width: 260px;
     background-color: var(--surface);
     border-right: 1px solid var(--border);
-    height: 100vh;
+    height: calc(100vh - 64px);
     position: fixed;
     left: 0;
-    top: 0;
+    top: 64px;
     display: flex;
     flex-direction: column;
     z-index: 50;
-}
-
-.logo {
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logo h1 {
-    color: var(--primary);
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
 }
 
 .nav {

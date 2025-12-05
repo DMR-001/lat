@@ -30,9 +30,7 @@ const Sidebar = async () => {
 
     return (
         <aside className={styles.sidebar}>
-            <div className={styles.logo}>
-                <img src="/logo.png" alt="Sprout Logo" style={{ width: '150px', height: '50px', objectFit: 'contain' }} />
-            </div>
+            {/* Logo moved to Header */}
             <nav className={styles.nav}>
                 {links.map((link) => (
                     <Link
@@ -45,16 +43,7 @@ const Sidebar = async () => {
                     </Link>
                 ))}
 
-                <form action={logoutAction} style={{ marginTop: 'auto' }}>
-                    <button
-                        type="submit"
-                        className={styles.link}
-                        style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--error)' }}
-                    >
-                        <LogOut size={20} />
-                        <span>Logout</span>
-                    </button>
-                </form>
+                {/* Logout moved to Header */}
             </nav>
         </aside>
     );

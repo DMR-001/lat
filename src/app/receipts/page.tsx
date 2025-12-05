@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { Search, Printer } from 'lucide-react';
+import Search from '@/components/Search';
+import { Printer } from 'lucide-react';
 
 import { Payment, Fee, Student } from '@prisma/client';
 
@@ -49,25 +50,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>Receipts & Transactions</h1>
 
             <div className="card">
-                <form style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <Search size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                        <input
-                            type="text"
-                            name="query"
-                            defaultValue={query}
-                            placeholder="Search by Receipt No, Admission No, Name, or Phone..."
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem 1rem 0.75rem 2.5rem',
-                                borderRadius: '0.5rem',
-                                border: '1px solid var(--border)',
-                                outline: 'none'
-                            }}
-                        />
-                    </div>
-                    <button type="submit" className="btn btn-primary">Search</button>
-                </form>
+                <Search placeholder="Search by Receipt No, Admission No, Name, or Phone..." />
             </div>
 
             {query && (

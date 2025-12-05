@@ -1,11 +1,36 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
-import { Plus, Search, Download } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
+import Search from '@/components/Search';
+import ClassFilter from '@/components/ClassFilter';
+import { Prisma } from '@prisma/client';
 
-export default async function StudentsPage() {
+export default async function StudentsPage({ searchParams }: { searchParams: Promise<{ query?: string, classId?: string }> }) {
+    const { query, classId } = await searchParams;
+
+    const where: Prisma.StudentWhereInput = {};
+
+    if (query) {
+        where.OR = [
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { admissionNo: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query, mode: 'insensitive' } },
+        ];
+    }
+
+    if (classId) {
+        where.classId = classId;
+    }
+
     const students = await prisma.student.findMany({
+        where,
         include: { class: true },
         orderBy: { createdAt: 'desc' }
+    });
+
+    const classes = await prisma.class.findMany({
+        orderBy: { grade: 'asc' }
     });
 
     return (
@@ -24,24 +49,16 @@ export default async function StudentsPage() {
                 </div>
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ position: 'relative', maxWidth: '400px' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                        <input
-                            type="text"
-                            placeholder="Search students..."
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem 1rem 0.5rem 2.5rem',
-                                borderRadius: '0.5rem',
-                                border: '1px solid var(--border)',
-                                outline: 'none'
-                            }}
-                        />
-                    </div>
+            <div className="card" style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ flex: 1, maxWidth: '400px' }}>
+                    <Search placeholder="Search students..." />
                 </div>
+                <div style={{ width: '200px' }}>
+                    <ClassFilter classes={classes} />
+                </div>
+            </div>
 
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
                         <tr>
@@ -57,7 +74,7 @@ export default async function StudentsPage() {
                         {students.length === 0 ? (
                             <tr>
                                 <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    No students found. Add your first student!
+                                    No students found.
                                 </td>
                             </tr>
                         ) : (
