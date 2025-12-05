@@ -2,10 +2,12 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { Search, User } from 'lucide-react';
 
+import { Student } from '@prisma/client';
+
 export default async function CollectFeesSearchPage({ searchParams }: { searchParams: Promise<{ query?: string }> }) {
     const { query } = await searchParams;
 
-    let students = [];
+    let students: Student[] = [];
     if (query) {
         students = await prisma.student.findMany({
             where: {
