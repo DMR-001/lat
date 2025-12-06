@@ -15,12 +15,13 @@ export default function ClientLayout({
 }) {
     const pathname = usePathname();
 
+    // Check for public paths that should be standalone
+    const isPublicPage = pathname === '/pay';
     // Check if we are on a specific receipt page (e.g., /receipts/123)
-    // We want to keep sidebar on the main list /receipts, but hide on details
     const isReceiptDetailPage = pathname?.startsWith('/receipts/') && pathname.split('/').length > 2;
 
-    const showSidebar = session && !isReceiptDetailPage;
-    const showHeader = session && !isReceiptDetailPage;
+    const showSidebar = session && !isReceiptDetailPage && !isPublicPage;
+    const showHeader = session && !isReceiptDetailPage && !isPublicPage;
 
     return (
         <div style={{ minHeight: '100vh', paddingTop: showHeader ? '64px' : '0' }}>
