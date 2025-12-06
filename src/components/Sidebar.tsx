@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Users, GraduationCap, Calendar, CreditCard, Settings, LogOut, Globe } from 'lucide-react';
+import { Home, Users, GraduationCap, Calendar, CreditCard, Settings, LogOut } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 import styles from './Sidebar.module.css';
 
@@ -44,12 +44,7 @@ const Sidebar = async () => {
                 ))}
 
                 {/* Logout moved to Header */}
-                <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                    <a href="/" target="_blank" className={styles.link}>
-                        <Globe size={20} />
-                        <span>Visit Website</span>
-                    </a>
-                </div>
+
             </nav>
         </aside>
     );
