@@ -248,7 +248,7 @@ export default function PublicPaymentPage() {
                                         borderRadius: '0.5rem',
                                         padding: '1rem'
                                     }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <div className="fee-item-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
                                             <span style={{ fontWeight: '600', color: '#374151' }}>{fee.type}</span>
                                             <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Due: ₹{fee.due}</span>
                                         </div>
@@ -359,6 +359,22 @@ export default function PublicPaymentPage() {
             <div style={{ textAlign: 'center', marginTop: '2rem', color: '#9ca3af', fontSize: '0.875rem' }}>
                 &copy; {new Date().getFullYear()} Sprout School. All rights reserved.
             </div>
+
+            <style jsx global>{`
+                @media (max-width: 640px) {
+                    .container-payment {
+                        padding: 1rem !important;
+                    }
+                    .fee-item-row {
+                        flex-direction: column;
+                        align-items: flex-start !important;
+                        gap: 0.25rem;
+                    }
+                    input, select, button {
+                        font-size: 16px !important; /* Prevent iOS zoom */
+                    }
+                }
+            `}</style>
         </div>
     );
 }
