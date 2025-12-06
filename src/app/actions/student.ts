@@ -3,6 +3,152 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import Papa from 'papaparse';
+
+type ImportResult = {
+    success: boolean;
+    message?: string;
+    error?: string;
+    count?: number;
+};
+
+function parseDate(dateString: string | undefined): Date {
+    if (!dateString) return new Date();
+
+    // Try standard Date constructor
+    let date = new Date(dateString);
+    if (!isNaN(date.getTime())) return date;
+
+    // Try DD/MM/YYYY or DD-MM-YYYY (e.g. 25-12-2023)
+    const parts = dateString.split(/[-/]/);
+    if (parts.length === 3) {
+        // Assume DD-MM-YYYY
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const year = parseInt(parts[2]);
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) return date;
+        }
+    }
+
+    return new Date(); // Fallback to now
+}
+
+export async function importStudents(prevState: any, formData: FormData): Promise<ImportResult> {
+    try {
+        const file = formData.get('file') as File;
+        if (!file) {
+            return { success: false, error: 'No file uploaded' };
+        }
+
+        const text = await file.text();
+        const { data, errors } = Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+        });
+
+        if (errors.length > 0) {
+            return { success: false, error: `CSV Parsing Error: ${errors[0].message}` };
+        }
+
+        let count = 0;
+        const rows = data as any[];
+
+        for (const row of rows) {
+            if (!row.firstName || !row.className) continue; // Skip invalid rows
+
+            // 1. Find or Create Class
+            let classRecord = await prisma.class.findFirst({
+                where: { name: { equals: row.className, mode: 'insensitive' } }
+            });
+
+            if (!classRecord) {
+                // If creating a class during import, what about section?
+                // For now, we assume the CSV className is the Name. Section is null.
+                classRecord = await prisma.class.create({
+                    data: {
+                        name: row.className,
+                        section: null
+                    }
+                });
+            }
+
+            // 2. Generate Admission Number (or use provided)
+            let admissionNo = row.admissionNo;
+            if (!admissionNo) {
+                const lastStudent = await prisma.student.findFirst({ orderBy: { createdAt: 'desc' } });
+                const lastNum = lastStudent?.admissionNo ? parseInt(lastStudent.admissionNo.replace('SPR', '')) || 0 : 0;
+                admissionNo = `SPR${lastNum + 1 + count}`;
+            }
+
+            // 3. Create Student
+            const existing = await prisma.student.findUnique({ where: { admissionNo } });
+            if (!existing) {
+                const student = await prisma.student.create({
+                    data: {
+                        firstName: row.firstName,
+                        lastName: row.lastName || '',
+                        admissionNo,
+                        dob: parseDate(row.dob),
+                        gender: row.gender || 'Not Specified',
+                        address: row.address,
+                        phone: row.phone,
+                        parentName: row.parentName,
+                        classId: classRecord.id,
+                        email: row.email
+                    }
+                });
+
+                // 4. Create Fee Record (if provided)
+                if (row.feeAmount && !isNaN(parseFloat(row.feeAmount))) {
+                    const amount = parseFloat(row.feeAmount);
+                    const paidAmount = row.feePaid ? parseFloat(row.feePaid) : 0;
+                    const status = paidAmount >= amount ? 'PAID' : 'PENDING';
+
+                    const fee = await prisma.fee.create({
+                        data: {
+                            studentId: student.id,
+                            amount: amount,
+                            paidAmount: paidAmount,
+                            dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+                            type: 'TUITION',
+                            status: status
+                        }
+                    });
+
+                    // 5. Create Payment Record (if paid amount > 0)
+                    if (paidAmount > 0) {
+                        const currentYear = new Date().getFullYear();
+                        const receiptNo = `SPR/MIG/${currentYear}/${admissionNo}`; // MIG for Migration
+
+                        const existingPayment = await prisma.payment.findUnique({ where: { receiptNo } });
+
+                        if (!existingPayment) {
+                            await prisma.payment.create({
+                                data: {
+                                    feeId: fee.id,
+                                    amount: paidAmount,
+                                    method: 'CASH',
+                                    receiptNo: receiptNo,
+                                    date: new Date()
+                                }
+                            });
+                        }
+                    }
+                }
+                count++;
+            }
+        }
+
+        revalidatePath('/students');
+        return { success: true, message: 'Import completed successfully', count };
+
+    } catch (error: any) {
+        console.error('Import Error:', error);
+        return { success: false, error: error.message || 'Failed to import students' };
+    }
+}
 
 export async function addStudent(formData: FormData) {
     const firstName = formData.get('firstName') as string;
@@ -88,8 +234,36 @@ export async function updateStudent(formData: FormData) {
 }
 
 export async function deleteStudent(id: string) {
-    await prisma.student.delete({
-        where: { id }
+    await prisma.$transaction(async (tx) => {
+        // 1. Get all fees for the student to delete their payments first
+        const fees = await tx.fee.findMany({
+            where: { studentId: id },
+            select: { id: true }
+        });
+
+        const feeIds = fees.map(f => f.id);
+
+        // 2. Delete payments associated with those fees
+        if (feeIds.length > 0) {
+            await tx.payment.deleteMany({
+                where: { feeId: { in: feeIds } }
+            });
+
+            // 3. Delete the fees
+            await tx.fee.deleteMany({
+                where: { studentId: id } // or { id: { in: feeIds } }
+            });
+        }
+
+        // 4. Delete attendance records
+        await tx.attendance.deleteMany({
+            where: { studentId: id }
+        });
+
+        // 5. Delete the student
+        await tx.student.delete({
+            where: { id }
+        });
     });
 
     revalidatePath('/students');

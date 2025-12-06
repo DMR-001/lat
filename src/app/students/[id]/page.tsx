@@ -60,7 +60,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                         <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
                             <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Class</p>
-                                <p style={{ fontWeight: '500' }}>{student.class.name} (Grade {student.class.grade})</p>
+                                <p style={{ fontWeight: '500' }}>{student.class.name} {student.class.section ? `(Section ${student.class.section})` : ''}</p>
                             </div>
                             <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Date of Birth</p>

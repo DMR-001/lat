@@ -1,32 +1,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPendingFeesByClass } from '@/app/actions/export';
+import { getAllFeesByClass } from '@/app/actions/export';
 import { getClasses } from '@/app/actions/class';
 import { Download } from 'lucide-react';
 
 export default function ExportFeesPage() {
-    const [grades, setGrades] = useState<{ id: string; name: string; grade: string }[]>([]);
-    const [selectedGrade, setSelectedGrade] = useState('');
+    const [classes, setClasses] = useState<{ id: string; name: string; section?: string }[]>([]);
+    const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
-        getClasses().then(classes => {
-            setGrades(classes);
-            if (classes.length > 0) {
-                setSelectedGrade(classes[0].grade);
+        getClasses().then(cls => {
+            setClasses(cls);
+            if (cls.length > 0) {
+                setSelectedClass(cls[0].id);
             }
         });
     }, []);
 
     const handleExport = async () => {
-        if (!selectedGrade) return;
+        if (!selectedClass) return;
         setIsExporting(true);
         try {
-            const data = await getPendingFeesByClass(selectedGrade);
+            const data = await getAllFeesByClass(selectedClass);
 
             if (data.length === 0) {
-                alert('No pending fees found for this class.');
+                alert('No fees found for this class.');
                 return;
             }
 
@@ -50,7 +50,7 @@ export default function ExportFeesPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `pending_fees_${selectedGrade.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `class_fees_${selectedClass}_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -66,14 +66,14 @@ export default function ExportFeesPage() {
 
     return (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '2rem' }}>Export Pending Fees</h1>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '2rem' }}>Export Class Fees</h1>
 
             <div className="card">
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Select Class</label>
                     <select
-                        value={selectedGrade}
-                        onChange={(e) => setSelectedGrade(e.target.value)}
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
                         style={{
                             width: '100%',
                             padding: '0.75rem',
@@ -82,9 +82,9 @@ export default function ExportFeesPage() {
                             backgroundColor: 'var(--surface)'
                         }}
                     >
-                        {grades.map((cls) => (
-                            <option key={cls.id} value={cls.grade}>
-                                {cls.name} (Grade {cls.grade})
+                        {classes.map((cls) => (
+                            <option key={cls.id} value={cls.id}>
+                                {cls.name} {cls.section ? `(${cls.section})` : ''}
                             </option>
                         ))}
                     </select>
@@ -92,7 +92,7 @@ export default function ExportFeesPage() {
 
                 <button
                     onClick={handleExport}
-                    disabled={isExporting || !selectedGrade}
+                    disabled={isExporting || !selectedClass}
                     className="btn btn-primary"
                     style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}
                 >

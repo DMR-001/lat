@@ -10,7 +10,7 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
     });
 
     const classes = await prisma.class.findMany({
-        orderBy: { grade: 'asc' }
+        orderBy: { name: 'asc' }
     });
 
     if (!student) return <div>Student not found</div>;
@@ -52,7 +52,7 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Class</label>
                         <select name="classId" defaultValue={student.classId} required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
                             {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name} (Grade {c.grade})</option>
+                                <option key={c.id} value={c.id}>{c.name} {c.section ? `(Section ${c.section})` : ''}</option>
                             ))}
                         </select>
                     </div>

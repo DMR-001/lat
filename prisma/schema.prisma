@@ -42,7 +42,7 @@ model Teacher {
 model Class {
   id        String    @id @default(cuid())
   name      String
-  grade     String
+  section   String?   @map("grade")
   teacherId String?
   teacher   Teacher?  @relation(fields: [teacherId], references: [id])
   students  Student[]

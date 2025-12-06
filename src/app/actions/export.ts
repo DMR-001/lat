@@ -2,24 +2,15 @@
 
 import prisma from '@/lib/prisma';
 
-export async function getPendingFeesByClass(grade: string) {
+export async function getAllFeesByClass(classId: string) {
     const students = await prisma.student.findMany({
         where: {
             class: {
-                grade: grade
-            },
-            fees: {
-                some: {
-                    status: { not: 'PAID' }
-                }
+                id: classId
             }
         },
         include: {
-            fees: {
-                where: {
-                    status: { not: 'PAID' }
-                }
-            }
+            fees: true
         }
     });
 

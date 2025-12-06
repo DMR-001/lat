@@ -2,11 +2,11 @@
 
 import prisma from '@/lib/prisma';
 
-export async function getStudentsByClass(grade: string) {
+export async function getStudentsByClass(classId: string) {
     const students = await prisma.student.findMany({
         where: {
             class: {
-                grade: grade
+                id: classId
             }
         },
         include: {
@@ -25,7 +25,7 @@ export async function getStudentsByClass(grade: string) {
         gender: student.gender,
         dob: student.dob.toISOString().split('T')[0],
         className: student.class.name,
-        grade: student.class.grade,
+        section: student.class.section || '',
         parentName: student.parentName || '',
         phone: student.phone || '',
         email: student.email || '',

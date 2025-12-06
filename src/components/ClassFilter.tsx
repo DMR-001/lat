@@ -33,7 +33,7 @@ export default function ClassFilter({ classes }: { classes: any[] }) {
             <option value="">All Classes</option>
             {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                    {c.name} ({c.grade})
+                    {c.name} {c.section ? `(${c.section})` : ''}
                 </option>
             ))}
         </select>

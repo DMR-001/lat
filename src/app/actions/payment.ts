@@ -76,7 +76,7 @@ export async function getPayments(filter: PaymentFilter, customStart?: Date, cus
         studentName: `${p.fee.student.firstName} ${p.fee.student.lastName}`,
         admissionNo: p.fee.student.admissionNo,
         className: p.fee.student.class.name,
-        grade: p.fee.student.class.grade,
+        section: p.fee.student.class.section || '',
         feeType: p.fee.type
     }));
 }

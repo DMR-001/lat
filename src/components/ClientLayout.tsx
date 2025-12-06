@@ -20,10 +20,11 @@ export default function ClientLayout({
     const isReceiptDetailPage = pathname?.startsWith('/receipts/') && pathname.split('/').length > 2;
 
     const showSidebar = session && !isReceiptDetailPage;
+    const showHeader = session && !isReceiptDetailPage;
 
     return (
-        <div style={{ minHeight: '100vh', paddingTop: session ? '64px' : '0' }}>
-            {session && <Header />}
+        <div style={{ minHeight: '100vh', paddingTop: showHeader ? '64px' : '0' }}>
+            {showHeader && <Header />}
             <div style={{ display: 'flex' }}>
                 {showSidebar && sidebar}
                 <main style={{

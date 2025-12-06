@@ -7,24 +7,24 @@ import { Download, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ExportStudentsPage() {
-    const [grades, setGrades] = useState<{ id: string; name: string; grade: string }[]>([]);
-    const [selectedGrade, setSelectedGrade] = useState('');
+    const [classes, setClasses] = useState<{ id: string; name: string; section?: string }[]>([]);
+    const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
-        getClasses().then(classes => {
-            setGrades(classes);
-            if (classes.length > 0) {
-                setSelectedGrade(classes[0].grade);
+        getClasses().then(cls => {
+            setClasses(cls);
+            if (cls.length > 0) {
+                setSelectedClass(cls[0].id);
             }
         });
     }, []);
 
     const handleExport = async () => {
-        if (!selectedGrade) return;
+        if (!selectedClass) return;
         setIsExporting(true);
         try {
-            const data = await getStudentsByClass(selectedGrade);
+            const data = await getStudentsByClass(selectedClass);
 
             if (data.length === 0) {
                 alert('No students found for this class.');
@@ -32,7 +32,7 @@ export default function ExportStudentsPage() {
             }
 
             // Convert to CSV
-            const headers = ['Admission No', 'First Name', 'Last Name', 'Gender', 'DOB', 'Class', 'Grade', 'Parent Name', 'Phone', 'Email', 'Address'];
+            const headers = ['Admission No', 'First Name', 'Last Name', 'Gender', 'DOB', 'Class', 'Section', 'Parent Name', 'Phone', 'Email', 'Address'];
             const csvContent = [
                 headers.join(','),
                 ...data.map(row => [
@@ -42,7 +42,7 @@ export default function ExportStudentsPage() {
                     row.gender,
                     row.dob,
                     row.className,
-                    row.grade,
+                    row.section || '',
                     `"${row.parentName}"`,
                     row.phone,
                     row.email,
@@ -55,7 +55,7 @@ export default function ExportStudentsPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `students_grade_${selectedGrade.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `students_class_${selectedClass}_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -82,8 +82,8 @@ export default function ExportStudentsPage() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Select Class</label>
                     <select
-                        value={selectedGrade}
-                        onChange={(e) => setSelectedGrade(e.target.value)}
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
                         style={{
                             width: '100%',
                             padding: '0.75rem',
@@ -92,9 +92,9 @@ export default function ExportStudentsPage() {
                             backgroundColor: 'var(--surface)'
                         }}
                     >
-                        {grades.map((cls) => (
-                            <option key={cls.id} value={cls.grade}>
-                                {cls.name} (Grade {cls.grade})
+                        {classes.map((cls) => (
+                            <option key={cls.id} value={cls.id}>
+                                {cls.name} {cls.section ? `(Section ${cls.section})` : ''}
                             </option>
                         ))}
                     </select>
@@ -102,7 +102,7 @@ export default function ExportStudentsPage() {
 
                 <button
                     onClick={handleExport}
-                    disabled={isExporting || !selectedGrade}
+                    disabled={isExporting || !selectedClass}
                     className="btn btn-primary"
                     style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}
                 >

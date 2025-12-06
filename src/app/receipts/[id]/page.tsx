@@ -68,7 +68,7 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                         </div>
                         <div>
                             <span style={{ color: 'var(--text-secondary)' }}>Class: </span>
-                            <span style={{ fontWeight: 'bold' }}>Grade {payment.fee.student.class?.grade || 'N/A'}</span>
+                            <span style={{ fontWeight: 'bold' }}>{payment.fee.student.class?.name} {payment.fee.student.class?.section ? `(${payment.fee.student.class.section})` : ''}</span>
                         </div>
                         <div>
                             <span style={{ color: 'var(--text-secondary)' }}>Parent: </span>
@@ -127,11 +127,19 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                     .no-print { display: none !important; }
                     .container { margin: 0 !important; max-width: 100% !important; }
                     .card { 
-                        border: 1px solid #000 !important; 
+                        border: 2px solid var(--text-main) !important; 
                         box-shadow: none !important; 
-                        padding: 1rem !important; 
+                        padding: 1.5rem !important; 
                         page-break-inside: avoid;
                         height: auto;
+                    }
+                    .grid-cols-2 {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     body { background-color: white !important; font-size: 12px; }
                 }

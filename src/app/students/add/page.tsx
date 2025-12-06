@@ -52,7 +52,7 @@ export default async function AddStudentPage() {
                     <select name="classId" required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
                         <option value="">Select Class</option>
                         {classes.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                            <option key={c.id} value={c.id}>{c.name} {c.section ? `(${c.section})` : ''}</option>
                         ))}
                     </select>
                     {classes.length === 0 && <p style={{ fontSize: '0.875rem', color: 'var(--error)', marginTop: '0.5rem' }}>No classes found. Please create a class first in Settings.</p>}
