@@ -23,12 +23,16 @@ export async function middleware(request: NextRequest) {
         // For simplicity, let's just let the normal flow handle it, but the rewrite above handles the homepage.
     }
 
+    // Subdomain routing: admin.sproutschool.co.in -> default (but / goes to dashboard)
+    if (hostname.startsWith('admin.') && path === '/') {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
     // Public paths
-    // Allow /receipts/ so parents can view/download their receipt after paying
-    // Also allow /api/receipts/ for direct PDF download
-    if (path === '/login' || path === '/pay' || path.startsWith('/receipts/') || path.startsWith('/api/receipts/')) {
+    const publicPaths = ['/', '/about', '/gallery', '/academics', '/contact', '/login', '/pay', '/website.css'];
+    if (publicPaths.includes(path) || path.startsWith('/receipts/') || path.startsWith('/api/receipts/')) {
         if (session && path === '/login') {
-            return NextResponse.redirect(new URL('/', request.url));
+            return NextResponse.redirect(new URL('/dashboard', request.url));
         }
         return NextResponse.next();
     }
