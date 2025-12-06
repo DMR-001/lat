@@ -7,7 +7,7 @@ import { Download, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ExportStudentsPage() {
-    const [classes, setClasses] = useState<{ id: string; name: string; section?: string }[]>([]);
+    const [classes, setClasses] = useState<{ id: string; name: string; section?: string | null }[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
 
@@ -94,7 +94,7 @@ export default function ExportStudentsPage() {
                     >
                         {classes.map((cls) => (
                             <option key={cls.id} value={cls.id}>
-                                {cls.name} {cls.section ? `(Section ${cls.section})` : ''}
+                                {cls.name} {cls.section ? `(${cls.section})` : ''}
                             </option>
                         ))}
                     </select>

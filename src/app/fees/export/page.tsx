@@ -6,7 +6,7 @@ import { getClasses } from '@/app/actions/class';
 import { Download } from 'lucide-react';
 
 export default function ExportFeesPage() {
-    const [classes, setClasses] = useState<{ id: string; name: string; section?: string }[]>([]);
+    const [classes, setClasses] = useState<{ id: string; name: string; section?: string | null }[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
 
