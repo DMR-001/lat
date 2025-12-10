@@ -56,7 +56,12 @@ export async function importStudents(prevState: any, formData: FormData): Promis
         const rows = data as any[];
 
         for (const row of rows) {
-            if (!row.firstName || !row.className) continue; // Skip invalid rows
+            if (!row.fullName || !row.className) continue; // Skip invalid rows
+
+            // Parse fullName into firstName and lastName
+            const nameParts = row.fullName.trim().split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
 
             // 1. Find or Create Class
             let classRecord = await prisma.class.findFirst({
@@ -87,12 +92,12 @@ export async function importStudents(prevState: any, formData: FormData): Promis
             if (!existing) {
                 const student = await prisma.student.create({
                     data: {
-                        firstName: row.firstName,
-                        lastName: row.lastName || '',
+                        firstName,
+                        lastName,
                         admissionNo,
                         dob: parseDate(row.dob),
                         gender: row.gender || 'Not Specified',
-                        address: row.address,
+                        address: row.address || null,
                         phone: row.phone,
                         parentName: row.parentName,
                         classId: classRecord.id,

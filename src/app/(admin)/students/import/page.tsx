@@ -28,9 +28,11 @@ export default function ImportStudentsPage() {
                         Upload a CSV file with the following columns (headers are required):
                     </p>
                     <code style={{ display: 'block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.25rem', fontSize: '0.875rem', fontFamily: 'monospace', border: '1px solid var(--border)' }}>
-                        admissionNo,firstName,lastName,dob,gender,className,parentName,phone,feeAmount,feePaid
+                        admissionNo,fullName,dob,gender,address,className,parentName,phone,feeAmount,feePaid
                     </code>
                     <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                        * <strong>fullName</strong>: Complete name of the student.<br />
+                        * <strong>address</strong>: Full residential address.<br />
                         * Date of Birth (dob) should be in YYYY-MM-DD format.<br />
                         * Class Name (className) will be created if it doesn't exist.<br />
                         * <strong>feeAmount</strong>: Total tuition fee for the student.<br />
