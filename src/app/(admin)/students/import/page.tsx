@@ -41,18 +41,26 @@ export default function ImportStudentsPage() {
                 </div>
 
                 <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{ border: '2px dashed var(--border)', borderRadius: '0.5rem', padding: '3rem', textAlign: 'center', backgroundColor: 'var(--background)' }}>
+                    <div style={{ border: '2px dashed var(--border)', borderRadius: '0.5rem', padding: '3rem', textAlign: 'center', backgroundColor: 'var(--background)', position: 'relative' }}>
                         <Upload size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', margin: '0 auto' }} />
-                        <label htmlFor="file-upload" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', cursor: 'pointer', color: 'var(--primary)' }}>
-                            Click to upload CSV file
-                        </label>
+                        <p style={{ marginBottom: '1rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                            Drag and drop your CSV file here, or click to browse
+                        </p>
                         <input
                             id="file-upload"
                             type="file"
                             name="file"
                             accept=".csv"
                             required
-                            style={{ display: 'block', margin: '0 auto', maxWidth: '300px' }}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                opacity: 0,
+                                cursor: 'pointer'
+                            }}
                         />
                     </div>
 
