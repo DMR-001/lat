@@ -1,12 +1,18 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { importStudents } from '@/app/actions/student';
 import Link from 'next/link';
 import { ArrowLeft, Upload, FileSpreadsheet } from 'lucide-react';
 
 export default function ImportStudentsPage() {
     const [state, formAction, isPending] = useActionState(importStudents, null);
+    const [fileName, setFileName] = useState('');
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        setFileName(file ? file.name : '');
+    };
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -41,10 +47,10 @@ export default function ImportStudentsPage() {
                 </div>
 
                 <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{ border: '2px dashed var(--border)', borderRadius: '0.5rem', padding: '3rem', textAlign: 'center', backgroundColor: 'var(--background)', position: 'relative' }}>
+                    <div style={{ border: '2px dashed var(--border)', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center', backgroundColor: 'var(--background)' }}>
                         <Upload size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', margin: '0 auto' }} />
                         <p style={{ marginBottom: '1rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                            Drag and drop your CSV file here, or click to browse
+                            Select CSV file to upload
                         </p>
                         <input
                             id="file-upload"
@@ -52,16 +58,22 @@ export default function ImportStudentsPage() {
                             name="file"
                             accept=".csv"
                             required
+                            onChange={handleFileChange}
                             style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                opacity: 0,
+                                display: 'block',
+                                margin: '0 auto',
+                                maxWidth: '300px',
+                                padding: '0.5rem',
+                                border: '1px solid var(--border)',
+                                borderRadius: '0.25rem',
                                 cursor: 'pointer'
                             }}
                         />
+                        {fileName && (
+                            <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--primary)', fontWeight: '500' }}>
+                                Selected: {fileName}
+                            </p>
+                        )}
                     </div>
 
                     {state?.error && (

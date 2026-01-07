@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, Receipt } from 'lucide-react';
 import DeleteButton from '@/components/DeleteButton';
 
 export default async function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,7 +10,18 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
         include: {
             class: true,
             fees: {
+                include: {
+                    payments: {
+                        orderBy: { date: 'desc' }
+                    }
+                },
                 orderBy: { dueDate: 'desc' }
+            },
+            certificates: {
+                include: {
+                    academicYear: true
+                },
+                orderBy: { createdAt: 'desc' }
             }
         }
     });
@@ -136,6 +147,138 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                                             </span>
                                         </td>
                                         <td style={{ padding: '1rem' }}>{fee.dueDate.toLocaleDateString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Receipts Section */}
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Receipt size={24} />
+                        Payment Receipts
+                    </h3>
+                </div>
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
+                            <tr>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Receipt No</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Date</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Amount</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Method</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Fee Type</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {student.fees.flatMap(fee => fee.payments).length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                        No payment receipts found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                student.fees.flatMap(fee =>
+                                    fee.payments.map(payment => (
+                                        <tr key={payment.id} style={{ borderTop: '1px solid var(--border)' }}>
+                                            <td style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>{payment.receiptNo}</td>
+                                            <td style={{ padding: '1rem' }}>{payment.date.toLocaleDateString()}</td>
+                                            <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--success)' }}>₹{payment.amount.toFixed(2)}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <span style={{
+                                                    padding: '0.25rem 0.5rem',
+                                                    backgroundColor: 'var(--primary-light)',
+                                                    color: 'var(--primary)',
+                                                    borderRadius: '0.25rem',
+                                                    fontSize: '0.75rem'
+                                                }}>
+                                                    {payment.method}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem' }}>{fee.type}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <Link
+                                                    href={`/receipts/${payment.id}`}
+                                                    target="_blank"
+                                                    className="btn btn-secondary"
+                                                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
+                                                >
+                                                    View
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Certificates Section */}
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FileText size={24} />
+                        Issued Certificates
+                    </h3>
+                    <Link href={`/certificates/generate?studentId=${student.id}`} className="btn btn-primary" style={{ fontSize: '0.875rem' }}>
+                        Generate Certificate
+                    </Link>
+                </div>
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
+                            <tr>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Certificate No</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Type</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Issue Date</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Academic Year</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Purpose</th>
+                                <th style={{ padding: '1rem', fontWeight: '500' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {student.certificates.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                        No certificates issued yet.
+                                    </td>
+                                </tr>
+                            ) : (
+                                student.certificates.map(cert => (
+                                    <tr key={cert.id} style={{ borderTop: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>{cert.certificateNo}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor: 'var(--primary-light)',
+                                                color: 'var(--primary)',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '500'
+                                            }}>
+                                                {cert.type === 'BONAFIDE' ? 'Bonafide' : cert.type === 'STUDY_CERTIFICATE' ? 'Study Certificate' : 'Transfer Certificate'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>{cert.issueDate.toLocaleDateString()}</td>
+                                        <td style={{ padding: '1rem' }}>{cert.academicYear.name}</td>
+                                        <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{cert.purpose || '-'}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <Link
+                                                href={`/certificates/${cert.id}`}
+                                                target="_blank"
+                                                className="btn btn-secondary"
+                                                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
+                                            >
+                                                View
+                                            </Link>
+                                        </td>
                                     </tr>
                                 ))
                             )}

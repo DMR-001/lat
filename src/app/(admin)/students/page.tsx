@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
-import { Plus, Download, Upload } from 'lucide-react';
+import { Plus, Download, Upload, ArrowRight } from 'lucide-react';
 import Search from '@/components/Search';
 import ClassFilter from '@/components/ClassFilter';
 import { Prisma } from '@prisma/client';
@@ -38,6 +38,10 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>Students</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
+                    <Link href="/students/promote" className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--secondary-light, #fef3c7)', color: 'var(--secondary, #f59e0b)', textDecoration: 'none' }}>
+                        <ArrowRight size={20} />
+                        Promote Students
+                    </Link>
                     <Link href="/students/import" className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', textDecoration: 'none' }}>
                         <Upload size={20} />
                         Import CSV

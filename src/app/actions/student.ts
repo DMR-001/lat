@@ -105,6 +105,22 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                     }
                 });
 
+                // 3.5. Create Enrollment Record (for active academic year)
+                const activeYear = await prisma.academicYear.findFirst({
+                    where: { isActive: true }
+                });
+
+                if (activeYear) {
+                    await prisma.studentEnrollment.create({
+                        data: {
+                            studentId: student.id,
+                            classId: classRecord.id,
+                            academicYearId: activeYear.id,
+                            status: 'ACTIVE'
+                        }
+                    });
+                }
+
                 // 4. Create Fee Record (if provided)
                 if (row.feeAmount && !isNaN(parseFloat(row.feeAmount))) {
                     const amount = parseFloat(row.feeAmount);
@@ -118,7 +134,8 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                             paidAmount: paidAmount,
                             dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                             type: 'TUITION',
-                            status: status
+                            status: status,
+                            academicYearId: activeYear?.id
                         }
                     });
 
@@ -292,4 +309,69 @@ export async function searchStudents(query: string) {
     });
 
     return students;
+}
+
+// Student Promotion Functions
+export async function promoteStudents(
+    studentIds: string[],
+    targetClassId: string,
+    academicYearId: string
+) {
+    try {
+        // Update each student's class
+        await prisma.student.updateMany({
+            where: { id: { in: studentIds } },
+            data: { classId: targetClassId }
+        });
+
+        // Create enrollment records for the new academic year
+        const enrollmentData = studentIds.map(studentId => ({
+            studentId,
+            classId: targetClassId,
+            academicYearId,
+            status: 'ACTIVE'
+        }));
+
+        await prisma.studentEnrollment.createMany({
+            data: enrollmentData,
+            skipDuplicates: true
+        });
+
+        // Mark previous year enrollments as PROMOTED
+        await prisma.studentEnrollment.updateMany({
+            where: {
+                studentId: { in: studentIds },
+                academicYearId: { not: academicYearId },
+                status: 'ACTIVE'
+            },
+            data: { status: 'PROMOTED' }
+        });
+
+        revalidatePath('/students');
+        revalidatePath('/students/promote');
+
+        return {
+            success: true,
+            message: `Successfully promoted ${studentIds.length} students`
+        };
+    } catch (error: any) {
+        console.error('Promotion error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getStudentsByClass(classId: string) {
+    try {
+        const students = await prisma.student.findMany({
+            where: { classId },
+            include: {
+                class: true
+            },
+            orderBy: { firstName: 'asc' }
+        });
+
+        return { success: true, students };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }

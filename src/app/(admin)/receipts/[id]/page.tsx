@@ -123,25 +123,45 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
 
             <style>{`
                 @media print {
-                    @page { margin: 0.5cm; size: A4; }
+                    @page { 
+                        margin: 0.3cm; 
+                        size: A5 portrait; /* 148mm x 210mm */
+                    }
                     .no-print { display: none !important; }
                     .container { margin: 0 !important; max-width: 100% !important; }
                     .card { 
-                        border: 2px solid var(--text-main) !important; 
+                        border: 1.5px solid var(--text-main) !important; 
                         box-shadow: none !important; 
-                        padding: 1.5rem !important; 
+                        padding: 0.5rem !important; 
                         page-break-inside: avoid;
                         height: auto;
+                        font-size: 10px !important;
+                    }
+                    .card img {
+                        height: 40px !important;
+                    }
+                    .card h1 {
+                        font-size: 1rem !important;
+                    }
+                    .card p, .card span, .card td, .card th {
+                        font-size: 9px !important;
                     }
                     .grid-cols-2 {
                         display: grid !important;
                         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                        gap: 0.25rem !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    body { background-color: white !important; font-size: 12px; }
+                    body { 
+                        background-color: white !important; 
+                        font-size: 10px !important;
+                    }
+                    table {
+                        font-size: 9px !important;
+                    }
                 }
             `}</style>
         </div>
