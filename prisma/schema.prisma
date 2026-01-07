@@ -18,6 +18,7 @@ model AcademicYear {
   fees        Fee[]
   attendance  Attendance[]
   certificates Certificate[]
+  feeStructures FeeStructure[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -76,15 +77,17 @@ model Certificate {
 }
 
 model Teacher {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String?
-  subject   String?
-  classes   Class[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String              @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String              @unique
+  phone      String?
+  subject    String?
+  classes    Class[]
+  salaries   TeacherSalary[]
+  attendance TeacherAttendance[]
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
 }
 
 model Class {
@@ -95,6 +98,7 @@ model Class {
   teacher   Teacher?  @relation(fields: [teacherId], references: [id])
   students  Student[]
   enrollments StudentEnrollment[]
+  feeStructures FeeStructure[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -110,6 +114,27 @@ model Attendance {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
+
+model TeacherAttendance {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String   // PRESENT, ABSENT, HALF_DAY, PAID_LEAVE, UNPAID_LEAVE
+  
+  checkIn   DateTime?
+  checkOut  DateTime?
+  lateMinutes Int    @default(0)
+  isLate    Boolean  @default(false)
+  workedHours Float  @default(0)
+  
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  remarks   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([teacherId, date])
+}
+
 
 model Fee {
   id             String       @id @default(cuid())
@@ -137,6 +162,113 @@ model Payment {
   fee       Fee      @relation(fields: [feeId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model FeeStructure {
+  id             String        @id @default(cuid())
+  name           String        // e.g., "Class 1 Annual Fee"
+  classId        String?
+  class          Class?        @relation(fields: [classId], references: [id])
+  academicYearId String?
+  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id])
+  
+  tuitionFee     Float         @default(0)
+  transportFee   Float         @default(0)
+  booksFee       Float         @default(0)
+  uniformFee     Float         @default(0)
+  examFee        Float         @default(0)
+  otherFee       Float         @default(0)
+  
+  totalFee       Float         // Calculated total
+  
+  installments   Int           @default(1) // Number of installments
+  lateFeePerDay  Float         @default(0)
+  
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model SchoolSettings {
+  id                    String   @id @default(cuid())
+  
+  // School Info
+  schoolName            String   @default("Sprout School")
+  address               String?
+  phone                 String?
+  email                 String?
+  website               String?
+  
+  // Principal Info
+  principalName         String?
+  principalSignature    String?  // File path
+  
+  // Branding
+  logoUrl               String?
+  schoolSeal            String?
+  
+  // Receipt Settings
+  receiptHeader         String?
+  receiptFooter         String?
+  receiptTerms          String?
+  
+  // Certificate Settings
+  certificateLetterhead String?
+  
+  // Payroll & Attendance Settings
+  lateGracePeriod       Int      @default(15) // minutes
+  latePenaltyCount      Int      @default(3)  // 3 late marks = 1 day deduction
+  fullDayWorkHours      Float    @default(8)
+  halfDayWorkHours      Float    @default(4)
+  
+  updatedAt             DateTime @updatedAt
+  
+  @@map("school_settings")
+}
+
+model TeacherSalary {
+  id            String          @id @default(cuid())
+  teacherId     String
+  teacher       Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  basicSalary   Float
+  allowances    Float           @default(0)
+  deductions    Float           @default(0)
+  netSalary     Float
+  
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  isActive      Boolean         @default(true)
+  
+  payments      SalaryPayment[]
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model SalaryPayment {
+  id            String        @id @default(cuid())
+  salaryId      String
+  salary        TeacherSalary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+  
+  month         Int
+  year          Int
+  
+  amount        Float
+  leaveDays     Int           @default(0)
+  leaveDeduction Float        @default(0)
+  finalAmount   Float
+  
+  status        String        @default("PENDING")
+  paymentDate   DateTime?
+  paymentMethod String?
+  referenceNo   String?
+  remarks       String?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@unique([salaryId, month, year])
 }
 
 enum Role {

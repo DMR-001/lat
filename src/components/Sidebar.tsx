@@ -18,6 +18,7 @@ const Sidebar = async () => {
         { name: 'Teachers', href: '/teachers', icon: Users },
         { name: 'Fees', href: '/fees', icon: CreditCard },
         { name: 'Collect Fees', href: '/fees/collect', icon: CreditCard },
+        { name: 'Fee Structure', href: '/fee-structure', icon: CreditCard },
         { name: 'Receipts', href: '/receipts', icon: CreditCard },
         { name: 'Certificates', href: '/certificates', icon: FileText },
         { name: 'Academic Year', href: '/academic-year', icon: CalendarDays },
@@ -25,7 +26,11 @@ const Sidebar = async () => {
     ];
 
     if (role === 'MANAGEMENT') {
-        links.push({ name: 'Management', href: '/management', icon: Users });
+        links.push(
+            { name: 'Attendance', href: '/management/attendance', icon: CalendarDays },
+            { name: 'Salaries', href: '/management/salaries', icon: CreditCard },
+            { name: 'Management', href: '/management', icon: Users }
+        );
     }
 
 

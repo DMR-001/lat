@@ -18,9 +18,24 @@ export async function middleware(request: NextRequest) {
         if (path === '/') {
             return NextResponse.rewrite(new URL('/pay', request.url));
         }
+    }
 
-        // If they try to access other admin pages via pay subdomain, we might want to allow it or block it. 
-        // For simplicity, let's just let the normal flow handle it, but the rewrite above handles the homepage.
+    // Subdomain routing: payroll.sproutschool.co.in -> /management
+    if (hostname.startsWith('payroll.')) {
+        // Allow public assets and API
+        if (path.startsWith('/_next') || path.startsWith('/static') || path === '/favicon.ico' || path.startsWith('/api/')) {
+            return NextResponse.next();
+        }
+
+        // Rewrite root to /management
+        if (path === '/') {
+            return NextResponse.rewrite(new URL('/management', request.url));
+        }
+
+        // Ensure users stay within management
+        if (!path.startsWith('/management') && !path.startsWith('/login') && !path.startsWith('/api')) {
+            return NextResponse.redirect(new URL('/management', request.url));
+        }
     }
 
     // Subdomain routing: admin.sproutschool.co.in -> default (but / goes to dashboard)

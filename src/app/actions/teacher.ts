@@ -24,3 +24,14 @@ export async function addTeacher(formData: FormData) {
     revalidatePath('/teachers');
     redirect('/teachers');
 }
+
+export async function getTeachers() {
+    try {
+        const teachers = await prisma.teacher.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        return { success: true, teachers };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
