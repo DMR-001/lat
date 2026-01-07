@@ -4,10 +4,10 @@ import { Plus, DollarSign, Users, Calendar } from 'lucide-react';
 
 export default async function SalariesPage() {
     const result = await getActiveSalaries();
-    const salaries = result.success ? result.salaries : [];
+    const salaries = result.success && result.salaries ? result.salaries : [];
 
-    const totalSalaries = salaries.reduce((sum, s) => sum + s.netSalary, 0);
-    const pendingPayments = salaries.reduce((sum, s) => sum + s.payments.length, 0);
+    const totalSalaries = salaries.reduce((sum: number, s: any) => sum + s.netSalary, 0);
+    const pendingPayments = salaries.reduce((sum: number, s: any) => sum + s.payments.length, 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -96,7 +96,7 @@ export default async function SalariesPage() {
                                 </td>
                             </tr>
                         ) : (
-                            salaries.map((salary) => (
+                            salaries.map((salary: any) => (
                                 <tr key={salary.id} style={{ borderTop: '1px solid var(--border)' }}>
                                     <td style={{ padding: '1rem', fontWeight: '600' }}>
                                         {salary.teacher.firstName} {salary.teacher.lastName}

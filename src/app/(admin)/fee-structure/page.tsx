@@ -37,7 +37,7 @@ export default async function FeeStructurePage() {
                                 </td>
                             </tr>
                         ) : (
-                            feeStructures.map((structure) => (
+                            feeStructures.map((structure: any) => (
                                 <tr key={structure.id} style={{ borderTop: '1px solid var(--border)' }}>
                                     <td style={{ padding: '1rem', fontWeight: '600' }}>{structure.name}</td>
                                     <td style={{ padding: '1rem' }}>{structure.class?.name || 'All Classes'}</td>
