@@ -78,6 +78,7 @@ model Certificate {
 
 model Teacher {
   id         String              @id @default(cuid())
+  employeeId String?             @unique // For Biometric Device ID mapping
   firstName  String
   lastName   String
   email      String              @unique
