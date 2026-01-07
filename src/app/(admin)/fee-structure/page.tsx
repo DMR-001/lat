@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 
 export default async function FeeStructurePage() {
     const result = await getFeeStructures();
-    const feeStructures = result.success ? result.feeStructures : [];
+    const feeStructures = result.success && result.feeStructures ? result.feeStructures : [];
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
