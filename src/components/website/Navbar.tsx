@@ -33,10 +33,10 @@ export default function Navbar() {
 
                 {/* Desktop Buttons */}
                 <div className="desktop-buttons" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <a href="https://admin.sproutschool.co.in" className="w-btn w-btn-outline" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
+                    <a href="https://admin.sproutschool.edu.in" className="w-btn w-btn-outline" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
                         Staff Login
                     </a>
-                    <a href="https://pay.sproutschool.co.in" className="w-btn w-btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
+                    <a href="https://pay.sproutschool.edu.in" className="w-btn w-btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
                         Pay Fees
                     </a>
                 </div>
@@ -72,8 +72,8 @@ export default function Navbar() {
                     <Link href="/academics" onClick={() => setIsOpen(false)} style={{ padding: '0.5rem', fontWeight: '500', color: '#374151', textDecoration: 'none' }}>Academics</Link>
                     <Link href="/contact" onClick={() => setIsOpen(false)} style={{ padding: '0.5rem', fontWeight: '500', color: '#374151', textDecoration: 'none' }}>Contact</Link>
                     <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '0.5rem 0' }} />
-                    <a href="https://admin.sproutschool.co.in" onClick={() => setIsOpen(false)} className="w-btn w-btn-outline" style={{ textAlign: 'center' }}>Staff Login</a>
-                    <a href="https://pay.sproutschool.co.in" onClick={() => setIsOpen(false)} className="w-btn w-btn-primary" style={{ textAlign: 'center' }}>Pay Fees</a>
+                    <a href="https://admin.sproutschool.edu.in" onClick={() => setIsOpen(false)} className="w-btn w-btn-outline" style={{ textAlign: 'center' }}>Staff Login</a>
+                    <a href="https://pay.sproutschool.edu.in" onClick={() => setIsOpen(false)} className="w-btn w-btn-primary" style={{ textAlign: 'center' }}>Pay Fees</a>
                 </div>
             )}
 

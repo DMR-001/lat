@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
     const hostname = request.headers.get('host') || '';
 
-    // Subdomain routing: pay.sproutschool.co.in -> /pay
+    // Subdomain routing: pay.sproutschool.edu.in -> /pay
     if (hostname.startsWith('pay.')) {
         // Allow public assets and API
         if (path.startsWith('/_next') || path.startsWith('/static') || path === '/favicon.ico' || path.startsWith('/api/')) {
@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    // Subdomain routing: payroll.sproutschool.co.in -> /management
+    // Subdomain routing: payroll.sproutschool.edu.in -> /management
     if (hostname.startsWith('payroll.')) {
         // Allow public assets and API
         if (path.startsWith('/_next') || path.startsWith('/static') || path === '/favicon.ico' || path.startsWith('/api/')) {
@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    // Subdomain routing: admin.sproutschool.co.in -> default (but / goes to dashboard)
+    // Subdomain routing: admin.sproutschool.edu.in -> default (but / goes to dashboard)
     if (hostname.startsWith('admin.') && path === '/') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
