@@ -254,18 +254,18 @@ export default async function CertificateViewPage({ params }: { params: Promise<
 
             <div className="card certificate-card" style={{ padding: '2rem', border: '2px solid var(--text-main)' }}>
                 {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem', borderBottom: '2px solid var(--text-main)', paddingBottom: '1rem' }}>
-                    <img src="/sprout-logo.png" alt="Sprout School Logo" style={{ height: '60px', marginBottom: '0.5rem' }} />
+                <div className="cert-header" style={{ textAlign: 'center', marginBottom: '1rem', borderBottom: '2px solid var(--text-main)', paddingBottom: '0.5rem' }}>
+                    <img src="/sprout-logo.png" alt="Sprout School Logo" style={{ height: '60px', marginBottom: '0.25rem' }} />
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
                         Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad
                     </p>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        Ph: +91 7032252030 | Email: sproutmeerpet@gmail.com
+                        Ph: +91 7032252030, +91 9704717264 | Email: info@sproutschool.edu.in
                     </p>
                 </div>
 
                 {/* Certificate Type Title */}
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                     <h2 style={{
                         fontSize: '1.25rem',
                         fontWeight: 'bold',
@@ -280,7 +280,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Certificate Number and Date */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', fontSize: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.75rem' }}>
                     <div>
                         <strong>Certificate No:</strong> {certificate.certificateNo}
                     </div>
@@ -294,7 +294,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Certificate Content */}
-                <div style={{ lineHeight: '1.8', fontSize: '1rem', textAlign: 'justify', marginBottom: '2rem', flex: 1 }}>
+                <div className="cert-body" style={{ lineHeight: '1.8', fontSize: '1rem', textAlign: 'justify', marginBottom: '2rem', flex: 1 }}>
                     <p style={{ marginBottom: '1rem' }}>
                         This is to certify that <strong>{student.firstName} {student.lastName}</strong>,
                         son/daughter of <strong>{student.parentName || '_______________'}</strong>,
@@ -351,7 +351,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
             <style>{`
                 @media print {
                     @page { 
-                        margin: 8mm; 
+                        margin: 5mm 8mm 8mm 8mm; 
                         size: A5 landscape;
                     }
                     html, body {
@@ -371,7 +371,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                     .certificate-card { 
                         border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 1rem 1.5rem !important; 
+                        padding: 0.75rem 1.5rem !important; 
                         page-break-inside: avoid;
                         position: relative;
                         width: 100% !important;
@@ -382,25 +382,37 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                         box-sizing: border-box !important;
                     }
                     .certificate-card img {
-                        height: 40px !important;
-                        margin-bottom: 0.25rem !important;
+                        height: 35px !important;
+                        margin-bottom: 0.2rem !important;
                     }
                     .certificate-card h2 {
                         font-size: 1rem !important;
-                        margin-bottom: 0.5rem !important;
-                    }
-                    .certificate-card p {
-                        font-size: 11px !important;
-                        line-height: 1.6 !important;
-                        margin-bottom: 0.5rem !important;
+                        margin-bottom: 0.4rem !important;
                     }
                     .certificate-card > div:first-child {
-                        padding-bottom: 0.5rem !important;
+                        padding-bottom: 0.25rem !important;
+                        margin-bottom: 0.25rem !important;
+                    }
+                    .cert-header {
                         margin-bottom: 0.5rem !important;
+                        padding-bottom: 0.25rem !important;
+                    }
+                    .cert-header p {
+                        font-size: 9px !important;
+                        margin: 0 !important;
+                    }
+                    .cert-body {
+                        font-size: 14px !important;
+                        line-height: 1.8 !important;
+                    }
+                    .cert-body p {
+                        font-size: 14px !important;
+                        line-height: 1.8 !important;
+                        margin-bottom: 0.6rem !important;
                     }
                     .certificate-card > div:last-child {
                         margin-top: auto !important;
-                        padding-top: 1rem !important;
+                        padding-top: 0.5rem !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
