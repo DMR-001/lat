@@ -26,10 +26,144 @@ export default async function CertificateViewPage({ params }: { params: Promise<
     const className = student.class?.name;
     const displayClassName = className && /^\d+$/.test(className) ? `Class ${className}` : className;
 
-    // School Record Sheet layout
+    // School Record Sheet layout - A4 with two copies (School Copy + Student Copy)
     if (isSchoolRecord) {
+        const RecordCard = ({ copyType }: { copyType: string }) => (
+            <div style={{ 
+                width: '50%',
+                padding: '8px',
+                borderRight: copyType === 'SCHOOL COPY' ? '1px dashed #999' : 'none',
+                boxSizing: 'border-box',
+                fontSize: '9px',
+                fontFamily: 'Georgia, serif'
+            }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '8px', borderBottom: '2px solid #1a365d', paddingBottom: '6px' }}>
+                    <img src="/sprout-logo.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                    <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#1a365d', marginTop: '2px' }}>SPROUT SCHOOL</div>
+                    <div style={{ fontSize: '7px', color: '#666' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad</div>
+                    <div style={{ fontSize: '7px', color: '#666' }}>Ph: +91 7032252030 | Email: info@sproutschool.edu.in</div>
+                </div>
+
+                {/* Title */}
+                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#c53030', letterSpacing: '1px' }}>SCHOOL RECORD SHEET</div>
+                    <div style={{ fontSize: '8px', color: '#666', fontStyle: 'italic' }}>({copyType})</div>
+                </div>
+
+                {/* Student Details Table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', border: '1px solid #1a365d' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', width: '40%', backgroundColor: '#f7fafc' }}>Admission No.</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.admissionNo}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Name of the Student</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.firstName} {student.lastName}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Date of Birth</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.dob.toLocaleDateString('en-IN')}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Father's Name</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.parentName || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Mother's Name</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.motherName || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Religion</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>{student.religion || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Aadhar No.</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>{student.aadharNo || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>PEN No.</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>{student.penNo || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>APAAR ID</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>{student.apaarId || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Address</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030', fontSize: '8px' }}>{student.address || '___________'}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Date of Admission</td>
+                            <td style={{ padding: '3px 5px', fontWeight: 'bold', color: '#c53030' }}>{student.createdAt.toLocaleDateString('en-IN')}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* Attendance Table */}
+                <div style={{ fontSize: '8px', fontWeight: 'bold', marginBottom: '3px', color: '#1a365d' }}>Quarterly Attendance Record:</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', border: '1px solid #1a365d', fontSize: '7px' }}>
+                    <thead>
+                        <tr style={{ backgroundColor: '#f7fafc' }}>
+                            <th style={{ padding: '2px', borderRight: '1px solid #ccc', borderBottom: '1px solid #1a365d' }}>Quarter</th>
+                            <th style={{ padding: '2px', borderRight: '1px solid #ccc', borderBottom: '1px solid #1a365d' }}>Class</th>
+                            <th style={{ padding: '2px', borderRight: '1px solid #ccc', borderBottom: '1px solid #1a365d' }}>Working Days</th>
+                            <th style={{ padding: '2px', borderBottom: '1px solid #1a365d' }}>Days Present</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {['June-Aug', 'Sep-Nov', 'Dec-Feb', 'Mar-May'].map((quarter, idx) => (
+                            <tr key={quarter} style={{ borderBottom: idx < 3 ? '1px solid #ccc' : 'none' }}>
+                                <td style={{ padding: '2px 4px', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>{quarter}</td>
+                                <td style={{ padding: '2px 4px', borderRight: '1px solid #ccc', color: '#c53030' }}></td>
+                                <td style={{ padding: '2px 4px', borderRight: '1px solid #ccc', color: '#c53030' }}></td>
+                                <td style={{ padding: '2px 4px', color: '#c53030' }}></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {/* Additional Fields */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', border: '1px solid #1a365d', fontSize: '8px' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', width: '50%', backgroundColor: '#f7fafc' }}>Conduct</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>Good</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Date of Leaving</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>___________</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Course Completed</td>
+                            <td style={{ padding: '3px 5px', borderBottom: '1px solid #ccc', color: '#c53030' }}>___________</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '3px 5px', borderRight: '1px solid #ccc', backgroundColor: '#f7fafc' }}>Identification Marks</td>
+                            <td style={{ padding: '3px 5px', color: '#c53030' }}>___________</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* Signatures */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '7px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ borderTop: '1px solid #000', width: '70px', paddingTop: '2px', marginTop: '20px' }}>
+                            Student's Sign
+                        </div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ borderTop: '1px solid #000', width: '70px', paddingTop: '2px', marginTop: '20px', fontWeight: 'bold' }}>
+                            Head Mistress
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
         return (
-            <div className="container" style={{ maxWidth: '600px', margin: '2rem auto' }}>
+            <div className="container" style={{ maxWidth: '900px', margin: '2rem auto' }}>
                 <div className="no-print" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <PrintButton />
                 </div>
@@ -37,199 +171,27 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 <div className="card school-record-card" style={{ 
                     padding: '0', 
                     border: '2px solid #1a365d',
-                    position: 'relative',
-                    fontFamily: 'Georgia, serif',
-                    fontSize: '11px'
+                    display: 'flex',
+                    flexDirection: 'row'
                 }}>
-                    {/* Main Grid Layout */}
-                    <div style={{ display: 'flex' }}>
-                        {/* Left Section - Logo, Admission, Attendance Table */}
-                        <div style={{ flex: '1', borderRight: '1px solid #1a365d', padding: '12px' }}>
-                            {/* School Stamp/Logo */}
-                            <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                                <div style={{
-                                    width: '80px',
-                                    height: '80px',
-                                    margin: '0 auto',
-                                    border: '2px solid #1a365d',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexDirection: 'column',
-                                    fontSize: '8px',
-                                    fontWeight: 'bold',
-                                    color: '#1a365d'
-                                }}>
-                                    <img src="/sprout-logo.png" alt="Logo" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
-                                </div>
-                                <div style={{ marginTop: '5px', fontWeight: 'bold', fontSize: '10px', color: '#1a365d' }}>
-                                    SPROUT SCHOOL
-                                </div>
-                                <div style={{ fontSize: '7px', color: '#666' }}>Meerpet, R.R. Dist.</div>
-                            </div>
-
-                            {/* Admission Info */}
-                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '9px' }}>
-                                <tbody>
-                                    <tr>
-                                        <td style={{ padding: '4px', borderBottom: '1px solid #ccc' }}>Admission No.</td>
-                                        <td style={{ padding: '4px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>{student.admissionNo}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style={{ padding: '4px', borderBottom: '1px solid #ccc' }}>Date of Admission & Promotion</td>
-                                        <td style={{ padding: '4px', borderBottom: '1px solid #ccc', fontWeight: 'bold', color: '#c53030' }}>
-                                            {student.createdAt.toLocaleDateString('en-IN')}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            {/* Quarterly Attendance Table */}
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', border: '1px solid #1a365d' }}>
-                                <tbody>
-                                    {['June to Aug', 'Sep to Nov', 'Dec to Feb', 'Mar to May'].map((quarter, idx) => (
-                                        <React.Fragment key={quarter}>
-                                            <tr style={{ borderBottom: '1px solid #ccc' }}>
-                                                <td rowSpan={3} style={{ 
-                                                    padding: '4px', 
-                                                    borderRight: '1px solid #1a365d',
-                                                    writingMode: 'vertical-lr',
-                                                    transform: 'rotate(180deg)',
-                                                    textAlign: 'center',
-                                                    width: '20px',
-                                                    fontSize: '7px',
-                                                    backgroundColor: '#f7fafc'
-                                                }}>{quarter}</td>
-                                                <td style={{ padding: '3px', borderRight: '1px solid #ccc' }}>Class</td>
-                                                <td style={{ padding: '3px', color: '#c53030' }}></td>
-                                            </tr>
-                                            <tr style={{ borderBottom: '1px solid #ccc' }}>
-                                                <td style={{ padding: '3px', borderRight: '1px solid #ccc' }}>Working Days</td>
-                                                <td style={{ padding: '3px', color: '#c53030' }}></td>
-                                            </tr>
-                                            <tr style={{ borderBottom: idx < 3 ? '1px solid #1a365d' : 'none' }}>
-                                                <td style={{ padding: '3px', borderRight: '1px solid #ccc' }}>Days of Present</td>
-                                                <td style={{ padding: '3px', color: '#c53030' }}></td>
-                                            </tr>
-                                        </React.Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-
-                            {/* Bottom fields */}
-                            <div style={{ marginTop: '10px', fontSize: '8px' }}>
-                                <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '3px 0' }}>
-                                    <span style={{ width: '20px' }}>9.</span>
-                                    <span>Conduct:</span>
-                                    <span style={{ marginLeft: '10px', fontWeight: 'bold', color: '#c53030' }}>Good</span>
-                                </div>
-                                <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '3px 0' }}>
-                                    <span style={{ width: '20px' }}>10.</span>
-                                    <span>Date of Leaving the School:</span>
-                                    <span style={{ marginLeft: '10px', color: '#c53030' }}>___________</span>
-                                </div>
-                                <div style={{ borderBottom: '1px solid #ccc', padding: '3px 0' }}>
-                                    <div style={{ display: 'flex' }}>
-                                        <span style={{ width: '20px' }}>11.</span>
-                                        <span>Certificate that the pupil has attained the age prescribed and completed the Course:</span>
-                                    </div>
-                                    <div style={{ marginLeft: '20px', color: '#c53030' }}>___________</div>
-                                </div>
-                                <div style={{ display: 'flex', padding: '3px 0' }}>
-                                    <span style={{ width: '20px' }}>12.</span>
-                                    <span>Identification of Marks:</span>
-                                    <span style={{ marginLeft: '10px', color: '#c53030' }}>___________</span>
-                                </div>
-                            </div>
-
-                            {/* Signatures */}
-                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '8px' }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ borderTop: '1px solid #000', width: '80px', paddingTop: '3px', marginTop: '30px' }}>
-                                        Signature of the Student
-                                    </div>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '7px', color: '#666' }}>
-                                        SPROUT SCHOOL<br />
-                                        #14-218/5, Raghavanagar<br />
-                                        Meerpet, R.R. Dist.
-                                    </div>
-                                    <div style={{ borderTop: '1px solid #000', width: '80px', paddingTop: '3px', marginTop: '10px', fontWeight: 'bold' }}>
-                                        Head Mistress
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Section - Title and Student Details */}
-                        <div style={{ width: '180px', position: 'relative' }}>
-                            {/* Vertical Title */}
-                            <div style={{
-                                position: 'absolute',
-                                right: '5px',
-                                top: '50%',
-                                transform: 'translateY(-50%) rotate(-90deg)',
-                                transformOrigin: 'center center',
-                                whiteSpace: 'nowrap',
-                                fontWeight: 'bold',
-                                fontSize: '16px',
-                                color: '#c53030',
-                                letterSpacing: '2px'
-                            }}>
-                                SCHOOL RECORD SHEET
-                            </div>
-
-                            {/* Student Details */}
-                            <div style={{ padding: '12px', paddingRight: '40px', fontSize: '8px' }}>
-                                <div style={{ marginBottom: '3px', color: '#c53030', fontSize: '7px' }}>Admission No.</div>
-                                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#c53030' }}>{student.admissionNo}</div>
-
-                                {[
-                                    { num: 1, label: 'Name of the Student', value: `${student.firstName} ${student.lastName}`, highlight: true },
-                                    { num: 2, label: 'Date of Birth', value: student.dob.toLocaleDateString('en-IN'), subLabel: '(in words)', highlight: true },
-                                    { num: 3, label: 'Religion', value: student.religion || '___________', highlight: !!student.religion },
-                                    { num: 4, label: 'Aadhar Card No.', value: student.aadharNo || '___________', highlight: !!student.aadharNo },
-                                    { num: 5, label: 'PEN No.', value: student.penNo || '___________', highlight: !!student.penNo },
-                                    { num: 6, label: "Father's Name (in full)", value: student.parentName || '___________', highlight: !!student.parentName },
-                                    { num: 7, label: "Mother's Name (in full)", value: student.motherName || '___________', highlight: !!student.motherName },
-                                    { num: 8, label: 'Address', value: student.address || '___________', highlight: !!student.address },
-                                    { num: 9, label: 'APAAR ID No.', value: student.apaarId || '___________', highlight: !!student.apaarId },
-                                ].map((field) => (
-                                    <div key={field.num} style={{ 
-                                        display: 'flex', 
-                                        borderBottom: '1px solid #e2e8f0', 
-                                        padding: '2px 0',
-                                        fontSize: '7px'
-                                    }}>
-                                        <span style={{ width: '12px', color: '#1a365d' }}>{field.num}.</span>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ color: '#1a365d' }}>{field.label}</div>
-                                            <div style={{ 
-                                                color: field.highlight ? '#c53030' : '#666',
-                                                fontWeight: field.highlight ? 'bold' : 'normal'
-                                            }}>{field.value}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    <RecordCard copyType="SCHOOL COPY" />
+                    <RecordCard copyType="STUDENT COPY" />
                 </div>
 
                 <style>{`
                     @media print {
                         @page { 
-                            margin: 0.3cm; 
-                            size: A5 portrait;
+                            margin: 5mm; 
+                            size: A4 landscape;
                         }
                         .no-print { display: none !important; }
-                        .container { margin: 0 !important; max-width: 100% !important; }
+                        .container { margin: 0 !important; max-width: 100% !important; width: 100% !important; }
                         .school-record-card { 
-                            border: 2px solid #1a365d !important; 
+                            border: 1px solid #1a365d !important; 
                             box-shadow: none !important;
                             page-break-inside: avoid;
+                            width: 100% !important;
+                            height: calc(210mm - 10mm) !important;
                         }
                         * {
                             -webkit-print-color-adjust: exact !important;
