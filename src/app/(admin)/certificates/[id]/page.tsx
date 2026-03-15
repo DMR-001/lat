@@ -294,7 +294,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Certificate Content */}
-                <div style={{ lineHeight: '1.8', fontSize: '0.875rem', textAlign: 'justify', marginBottom: '2rem' }}>
+                <div style={{ lineHeight: '1.8', fontSize: '1rem', textAlign: 'justify', marginBottom: '2rem', flex: 1 }}>
                     <p style={{ marginBottom: '1rem' }}>
                         This is to certify that <strong>{student.firstName} {student.lastName}</strong>,
                         son/daughter of <strong>{student.parentName || '_______________'}</strong>,
@@ -329,14 +329,14 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Footer - Signature */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '2rem' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             Academic Year: {certificate.academicYear.name}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '150px', borderTop: '1px solid var(--text-main)', paddingTop: '0.5rem', marginTop: '2rem' }}>
+                        <div style={{ width: '150px', borderTop: '1px solid var(--text-main)', paddingTop: '0.5rem', marginTop: '3rem' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>
                                 {certificate.issuedBy || 'Principal'}
                             </div>
@@ -346,30 +346,12 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                         </div>
                     </div>
                 </div>
-
-                {/* School Seal Placeholder */}
-                <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', opacity: 0.1 }}>
-                    <div style={{
-                        width: '80px',
-                        height: '80px',
-                        border: '2px solid var(--primary)',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '0.625rem',
-                        textAlign: 'center'
-                    }}>
-                        SCHOOL<br />SEAL
-                    </div>
-                </div>
             </div>
 
             <style>{`
                 @media print {
                     @page { 
-                        margin: 0; 
+                        margin: 8mm; 
                         size: A5 landscape;
                     }
                     html, body {
@@ -382,44 +364,43 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                     .container { 
                         margin: 0 !important; 
                         max-width: 100% !important;
-                        width: 210mm !important;
-                        height: 148mm !important;
+                        width: 100% !important;
+                        height: 100% !important;
                         padding: 0 !important;
-                        position: absolute !important;
-                        top: 0 !important;
-                        left: 0 !important;
                     }
                     .certificate-card { 
                         border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 0.5rem 1rem !important; 
+                        padding: 1rem 1.5rem !important; 
                         page-break-inside: avoid;
                         position: relative;
-                        width: calc(210mm - 6mm) !important;
-                        height: calc(148mm - 6mm) !important;
-                        margin: 3mm !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
                         display: flex !important;
                         flex-direction: column !important;
+                        box-sizing: border-box !important;
                     }
                     .certificate-card img {
-                        height: 35px !important;
+                        height: 40px !important;
                         margin-bottom: 0.25rem !important;
                     }
                     .certificate-card h2 {
-                        font-size: 0.9rem !important;
-                        margin-bottom: 0.4rem !important;
+                        font-size: 1rem !important;
+                        margin-bottom: 0.5rem !important;
                     }
                     .certificate-card p {
-                        font-size: 9px !important;
-                        line-height: 1.4 !important;
-                        margin-bottom: 0.3rem !important;
+                        font-size: 11px !important;
+                        line-height: 1.6 !important;
+                        margin-bottom: 0.5rem !important;
                     }
                     .certificate-card > div:first-child {
-                        padding-bottom: 0.4rem !important;
-                        margin-bottom: 0.4rem !important;
+                        padding-bottom: 0.5rem !important;
+                        margin-bottom: 0.5rem !important;
                     }
                     .certificate-card > div:last-child {
                         margin-top: auto !important;
+                        padding-top: 1rem !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
