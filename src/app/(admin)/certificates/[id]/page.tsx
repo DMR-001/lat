@@ -18,7 +18,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
 
     if (!certificate) return <div>Certificate not found</div>;
 
-    const student = certificate.student;
+    const student = certificate.student as any;
     const isBonafide = certificate.type === 'BONAFIDE';
     const isSchoolRecord = certificate.type === 'SCHOOL_RECORD';
 
@@ -375,8 +375,8 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                     html, body {
                         width: 210mm;
                         height: 148mm;
-                        margin: 0;
-                        padding: 0;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
                     .no-print { display: none !important; }
                     .container { 
@@ -385,34 +385,38 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                         width: 210mm !important;
                         height: 148mm !important;
                         padding: 0 !important;
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
                     }
                     .certificate-card { 
                         border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 0.75rem 1.5rem !important; 
+                        padding: 0.5rem 1rem !important; 
                         page-break-inside: avoid;
                         position: relative;
-                        width: calc(210mm - 8mm) !important;
+                        width: calc(210mm - 6mm) !important;
                         height: calc(148mm - 6mm) !important;
-                        margin: 2mm 4mm 4mm 4mm !important;
+                        margin: 3mm !important;
                         display: flex !important;
                         flex-direction: column !important;
                     }
                     .certificate-card img {
-                        height: 40px !important;
+                        height: 35px !important;
+                        margin-bottom: 0.25rem !important;
                     }
                     .certificate-card h2 {
-                        font-size: 0.95rem !important;
-                        margin-bottom: 0.5rem !important;
+                        font-size: 0.9rem !important;
+                        margin-bottom: 0.4rem !important;
                     }
                     .certificate-card p {
                         font-size: 9px !important;
-                        line-height: 1.5 !important;
-                        margin-bottom: 0.4rem !important;
+                        line-height: 1.4 !important;
+                        margin-bottom: 0.3rem !important;
                     }
                     .certificate-card > div:first-child {
-                        padding-bottom: 0.5rem !important;
-                        margin-bottom: 0.5rem !important;
+                        padding-bottom: 0.4rem !important;
+                        margin-bottom: 0.4rem !important;
                     }
                     .certificate-card > div:last-child {
                         margin-top: auto !important;
