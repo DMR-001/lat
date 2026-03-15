@@ -3,12 +3,36 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+
+// Helper to get current academic year from cookies
+async function getCurrentAcademicYearId(): Promise<string | null> {
+    const cookieStore = await cookies();
+    return cookieStore.get('selectedAcademicYearId')?.value || null;
+}
+
+// Helper to get current branch from cookies
+async function getCurrentBranchId(): Promise<string | null> {
+    const cookieStore = await cookies();
+    return cookieStore.get('selectedBranchId')?.value || null;
+}
+
+// Helper to get branch code
+async function getBranchCode(branchId: string | null): Promise<string> {
+    if (!branchId) return 'SPR';
+    const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        select: { code: true }
+    });
+    return branch?.code || 'SPR';
+}
 
 export async function assignFee(formData: FormData) {
     const studentId = formData.get('studentId') as string;
     const type = formData.get('type') as string;
     const amount = parseFloat(formData.get('amount') as string);
     const dueDate = new Date(formData.get('dueDate') as string);
+    const academicYearId = await getCurrentAcademicYearId();
 
     await prisma.fee.create({
         data: {
@@ -17,7 +41,8 @@ export async function assignFee(formData: FormData) {
             amount,
             paidAmount: 0,
             dueDate,
-            status: 'PENDING'
+            status: 'PENDING',
+            academicYearId
         }
     });
 
@@ -36,8 +61,13 @@ export async function recordPayment(formData: FormData) {
     const newPaidAmount = fee.paidAmount + amount;
     const newStatus = newPaidAmount >= fee.amount ? 'PAID' : 'PENDING';
 
-    // Generate Receipt Number
+    // Get branch info for receipt number
+    const branchId = await getCurrentBranchId();
+    const branchCode = await getBranchCode(branchId);
+
+    // Generate Receipt Number with branch code
     const lastPayment = await prisma.payment.findFirst({
+        where: branchId ? { branchId } : {},
         orderBy: { createdAt: 'desc' }
     });
 
@@ -72,10 +102,10 @@ export async function recordPayment(formData: FormData) {
 
     const shortType = getFeeTypeShortForm(fee.type);
 
-    // Pad number with leading zeros, e.g., 001
-    const paddedNumber = nextNumber.toString().padStart(3, '0');
+    // Pad number with leading zeros, e.g., 0001
+    const paddedNumber = nextNumber.toString().padStart(4, '0');
 
-    const receiptNo = `SPR/${shortType}/${currentYear}/${paddedNumber}`;
+    const receiptNo = `${branchCode}/${shortType}/${currentYear}/${paddedNumber}`;
 
     await prisma.$transaction([
         prisma.payment.create({
@@ -84,6 +114,7 @@ export async function recordPayment(formData: FormData) {
                 amount,
                 method,
                 receiptNo,
+                branchId,
                 date: new Date()
             }
         }),

@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { Plus, Search, Mail, Phone } from 'lucide-react';
+import { getFilterContext } from '@/lib/filter-context';
 
 export default async function TeachersPage() {
+    const { branchId } = await getFilterContext();
+
     const teachers = await prisma.teacher.findMany({
+        where: branchId ? { branchId } : {},
         orderBy: { createdAt: 'desc' }
     });
 

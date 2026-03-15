@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { addClass, deleteClass } from '@/app/actions/class';
 import { Trash2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -14,18 +15,29 @@ function SubmitButton() {
     );
 }
 
-export default function ClassManager({ classes }: { classes: any[] }) {
+export default function ClassManager({ classes, onUpdate }: { classes: any[]; onUpdate?: () => void }) {
     const formRef = useRef<HTMLFormElement>(null);
+    const router = useRouter();
+
+    const handleAddClass = async (formData: FormData) => {
+        await addClass(formData);
+        formRef.current?.reset();
+        onUpdate?.();
+        router.refresh();
+    };
+
+    const handleDeleteClass = async (id: string) => {
+        await deleteClass(id);
+        onUpdate?.();
+        router.refresh();
+    };
 
     return (
         <div className="card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>Class Management</h2>
 
             <form
-                action={async (formData) => {
-                    await addClass(formData);
-                    formRef.current?.reset();
-                }}
+                action={handleAddClass}
                 ref={formRef}
                 style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '2rem' }}
             >
@@ -63,22 +75,17 @@ export default function ClassManager({ classes }: { classes: any[] }) {
                                 <td style={{ padding: '1rem' }}>{c.section || '-'}</td>
                                 <td style={{ padding: '1rem' }}>{c._count?.students || 0}</td>
                                 <td style={{ padding: '1rem' }}>
-                                    <form
-                                        action={deleteClass.bind(null, c.id)}
-                                        onSubmit={(e) => {
-                                            if (!confirm('Are you sure you want to delete this class?')) {
-                                                e.preventDefault();
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to delete this class?')) {
+                                                handleDeleteClass(c.id);
                                             }
                                         }}
+                                        style={{ padding: '0.5rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                                        title="Delete Class"
                                     >
-                                        <button
-                                            type="submit"
-                                            style={{ padding: '0.5rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
-                                            title="Delete Class"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </form>
+                                        <Trash2 size={18} />
+                                    </button>
                                 </td>
                             </tr>
                         ))

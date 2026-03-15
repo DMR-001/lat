@@ -83,8 +83,16 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                             </div>
 
                             <div>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Parent Name</p>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Father Name</p>
                                 <p style={{ fontWeight: '500' }}>{student.parentName || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Mother Name</p>
+                                <p style={{ fontWeight: '500' }}>{student.motherName || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Religion</p>
+                                <p style={{ fontWeight: '500' }}>{student.religion || '-'}</p>
                             </div>
                             <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Phone</p>
@@ -93,6 +101,18 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                             <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Email</p>
                                 <p style={{ fontWeight: '500' }}>{student.email || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Aadhar No</p>
+                                <p style={{ fontWeight: '500' }}>{student.aadharNo || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>PEN No</p>
+                                <p style={{ fontWeight: '500' }}>{student.penNo || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>APAAR ID</p>
+                                <p style={{ fontWeight: '500' }}>{student.apaarId || '-'}</p>
                             </div>
                             <div style={{ gridColumn: 'span 2' }}>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Address</p>

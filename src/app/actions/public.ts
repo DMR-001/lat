@@ -63,10 +63,20 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     // 1. Validate student exists
     const student = await prisma.student.findUnique({
         where: { id: studentId },
-        include: { class: true }
+        include: { 
+            class: {
+                include: {
+                    branch: true
+                }
+            }
+        }
     });
 
     if (!student) throw new Error('Student not found');
+
+    // Get branch info from student's class
+    const branchId = student.class?.branchId || null;
+    const branchCode = student.class?.branch?.code || 'SPR';
 
     const paymentsCreated = [];
 
@@ -117,7 +127,7 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
 
         const currentYear = new Date().getFullYear();
         const paddedNumber = nextNumber.toString().padStart(3, '0');
-        const receiptNo = `SPR/PL/${shortType}/${paddedNumber}`;
+        const receiptNo = `${branchCode}/PL/${shortType}/${currentYear}/${paddedNumber}`;
 
         const newPaidAmount = fee.paidAmount + paymentItem.amount;
         // Allow for small floating point discrepancies or overpayment logic if desired,
@@ -132,7 +142,8 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
                     date: new Date(),
                     method: 'ONLINE', // Generic for public portal
                     feeId: fee.id,
-                    receiptNo: receiptNo
+                    receiptNo: receiptNo,
+                    branchId: branchId
                 }
             }),
             prisma.fee.update({

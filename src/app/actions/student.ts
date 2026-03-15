@@ -4,6 +4,23 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import Papa from 'papaparse';
+import { cookies } from 'next/headers';
+
+// Helper to get current branch from cookies
+async function getCurrentBranchId(): Promise<string | null> {
+    const cookieStore = await cookies();
+    return cookieStore.get('selectedBranchId')?.value || null;
+}
+
+// Helper to get branch code for admission/receipt numbers
+async function getBranchCode(branchId: string | null): Promise<string> {
+    if (!branchId) return 'SPR';
+    const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        select: { code: true }
+    });
+    return branch?.code || 'SPR';
+}
 
 type ImportResult = {
     success: boolean;
@@ -52,6 +69,11 @@ export async function importStudents(prevState: any, formData: FormData): Promis
             return { success: false, error: `CSV Parsing Error: ${errors[0].message}` };
         }
 
+        // Get branch info for admission numbers
+        const branchId = await getCurrentBranchId();
+        const branchCode = await getBranchCode(branchId);
+        const currentYear = new Date().getFullYear();
+
         let count = 0;
         const rows = data as any[];
 
@@ -82,9 +104,16 @@ export async function importStudents(prevState: any, formData: FormData): Promis
             // 2. Generate Admission Number (or use provided)
             let admissionNo = row.admissionNo;
             if (!admissionNo) {
-                const lastStudent = await prisma.student.findFirst({ orderBy: { createdAt: 'desc' } });
-                const lastNum = lastStudent?.admissionNo ? parseInt(lastStudent.admissionNo.replace('SPR', '')) || 0 : 0;
-                admissionNo = `SPR${lastNum + 1 + count}`;
+                const lastStudent = await prisma.student.findFirst({
+                    where: branchId ? { branchId } : {},
+                    orderBy: { createdAt: 'desc' }
+                });
+                let lastNum = 0;
+                if (lastStudent?.admissionNo) {
+                    const parts = lastStudent.admissionNo.split('-');
+                    lastNum = parseInt(parts[parts.length - 1]) || 0;
+                }
+                admissionNo = `${branchCode}-${currentYear}-${String(lastNum + 1 + count).padStart(4, '0')}`;
             }
 
             // 3. Create Student
@@ -101,7 +130,8 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                         phone: row.phone,
                         parentName: row.parentName,
                         classId: classRecord.id,
-                        email: row.email
+                        email: row.email,
+                        branchId
                     }
                 });
 
@@ -141,8 +171,7 @@ export async function importStudents(prevState: any, formData: FormData): Promis
 
                     // 5. Create Payment Record (if paid amount > 0)
                     if (paidAmount > 0) {
-                        const currentYear = new Date().getFullYear();
-                        const receiptNo = `SPR/MIG/${currentYear}/${admissionNo}`; // MIG for Migration
+                        const receiptNo = `${branchCode}/MIG/${currentYear}/${admissionNo}`; // MIG for Migration
 
                         const existingPayment = await prisma.payment.findUnique({ where: { receiptNo } });
 
@@ -153,7 +182,8 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                                     amount: paidAmount,
                                     method: 'CASH',
                                     receiptNo: receiptNo,
-                                    date: new Date()
+                                    date: new Date(),
+                                    branchId: branchId
                                 }
                             });
                         }
@@ -189,20 +219,28 @@ export async function addStudent(formData: FormData) {
         throw new Error("Class ID is required");
     }
 
-    // Generate Admission Number
+    // Get current branch from cookies
+    const branchId = await getCurrentBranchId();
+    const branchCode = await getBranchCode(branchId);
+
+    // Generate Admission Number with branch code: BRANCHCODE-YEAR-SERIAL (e.g., MAIN-2025-001)
+    const currentYear = new Date().getFullYear();
     const lastStudent = await prisma.student.findFirst({
+        where: branchId ? { branchId } : {},
         orderBy: { createdAt: 'desc' }
     });
 
     let nextNumber = 1;
     if (lastStudent && lastStudent.admissionNo) {
-        const lastNumber = parseInt(lastStudent.admissionNo.replace('SPR', ''));
+        // Extract the serial number from the admission number (last part after -)
+        const parts = lastStudent.admissionNo.split('-');
+        const lastNumber = parseInt(parts[parts.length - 1]);
         if (!isNaN(lastNumber)) {
             nextNumber = lastNumber + 1;
         }
     }
 
-    const admissionNo = `SPR${nextNumber}`;
+    const admissionNo = `${branchCode}-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
 
     await prisma.student.create({
         data: {
@@ -216,6 +254,7 @@ export async function addStudent(formData: FormData) {
             phone,
             parentName,
             classId,
+            branchId,
         },
     });
 
@@ -233,6 +272,11 @@ export async function updateStudent(formData: FormData) {
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
     const parentName = formData.get('parentName') as string;
+    const motherName = formData.get('motherName') as string;
+    const religion = formData.get('religion') as string;
+    const aadharNo = formData.get('aadharNo') as string;
+    const penNo = formData.get('penNo') as string;
+    const apaarId = formData.get('apaarId') as string;
     const classId = formData.get('classId') as string;
 
     await prisma.student.update({
@@ -246,6 +290,11 @@ export async function updateStudent(formData: FormData) {
             address,
             phone,
             parentName,
+            motherName: motherName || null,
+            religion: religion || null,
+            aadharNo: aadharNo || null,
+            penNo: penNo || null,
+            apaarId: apaarId || null,
             classId,
         },
     });

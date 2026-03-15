@@ -124,32 +124,47 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
             <style>{`
                 @media print {
                     @page { 
-                        margin: 0.3cm; 
-                        size: A5 portrait; /* 148mm x 210mm */
+                        margin: 0; 
+                        size: A5 landscape; /* 210mm x 148mm */
+                    }
+                    html, body {
+                        width: 210mm;
+                        height: 148mm;
+                        margin: 0;
+                        padding: 0;
                     }
                     .no-print { display: none !important; }
-                    .container { margin: 0 !important; max-width: 100% !important; }
+                    .container { 
+                        margin: 0 !important; 
+                        max-width: 100% !important; 
+                        width: 210mm !important;
+                        height: 148mm !important;
+                        padding: 0 !important;
+                    }
                     .card { 
-                        border: 1.5px solid var(--text-main) !important; 
+                        border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 0.5rem !important; 
+                        padding: 1.5rem !important; 
                         page-break-inside: avoid;
-                        height: auto;
-                        font-size: 10px !important;
+                        width: calc(210mm - 10mm) !important;
+                        height: calc(148mm - 10mm) !important;
+                        margin: 5mm !important;
+                        display: flex !important;
+                        flex-direction: column !important;
                     }
                     .card img {
-                        height: 40px !important;
+                        height: 50px !important;
                     }
                     .card h1 {
-                        font-size: 1rem !important;
+                        font-size: 1.25rem !important;
                     }
                     .card p, .card span, .card td, .card th {
-                        font-size: 9px !important;
+                        font-size: 11px !important;
                     }
                     .grid-cols-2 {
                         display: grid !important;
                         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                        gap: 0.25rem !important;
+                        gap: 0.5rem !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
@@ -157,10 +172,10 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                     }
                     body { 
                         background-color: white !important; 
-                        font-size: 10px !important;
                     }
                     table {
-                        font-size: 9px !important;
+                        font-size: 11px !important;
+                        flex: 1 !important;
                     }
                 }
             `}</style>

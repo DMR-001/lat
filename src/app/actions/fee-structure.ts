@@ -2,6 +2,13 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+
+// Helper to get current branch from cookies
+async function getCurrentBranchId(): Promise<string | null> {
+    const cookieStore = await cookies();
+    return cookieStore.get('selectedBranchId')?.value || null;
+}
 
 export async function createFeeStructure(data: {
     name: string;
@@ -17,6 +24,7 @@ export async function createFeeStructure(data: {
     lateFeePerDay: number;
 }) {
     try {
+        const branchId = await getCurrentBranchId();
         const totalFee = data.tuitionFee + data.transportFee + data.booksFee +
             data.uniformFee + data.examFee + data.otherFee;
 
@@ -25,7 +33,8 @@ export async function createFeeStructure(data: {
                 ...data,
                 totalFee,
                 classId: data.classId || null,
-                academicYearId: data.academicYearId || null
+                academicYearId: data.academicYearId || null,
+                branchId
             },
             include: {
                 class: true,
@@ -46,8 +55,10 @@ export async function getFeeStructures(filters?: {
     isActive?: boolean;
 }) {
     try {
+        const branchId = await getCurrentBranchId();
         const where: any = {};
 
+        if (branchId) where.branchId = branchId;
         if (filters?.classId) where.classId = filters.classId;
         if (filters?.academicYearId) where.academicYearId = filters.academicYearId;
         if (filters?.isActive !== undefined) where.isActive = filters.isActive;

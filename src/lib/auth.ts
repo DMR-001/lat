@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const secretKey = 'secret'; // Todo: Move to env
+const secretKey = process.env.JWT_SECRET || 'default-dev-secret-change-in-production';
 const key = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: any) {

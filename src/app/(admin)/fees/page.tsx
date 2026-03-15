@@ -1,9 +1,22 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { CreditCard, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { getFilterContext } from '@/lib/filter-context';
 
 export default async function FeesPage() {
+    const { branchId, academicYearId } = await getFilterContext();
+
+    // Build filter for fees - filter by student's branch and academic year
+    const feeWhere: any = {};
+    if (academicYearId) {
+        feeWhere.academicYearId = academicYearId;
+    }
+    if (branchId) {
+        feeWhere.student = { branchId };
+    }
+
     const fees = await prisma.fee.findMany({
+        where: feeWhere,
         include: {
             student: true
         },
@@ -14,18 +27,30 @@ export default async function FeesPage() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+    // Filter payments by branch through fee->student relation
+    const paymentWhere: any = {
+        date: {
+            gte: startOfMonth,
+            lte: endOfMonth
+        }
+    };
+    if (branchId) {
+        paymentWhere.fee = { student: { branchId } };
+    }
+    if (academicYearId) {
+        paymentWhere.fee = { ...paymentWhere.fee, academicYearId };
+    }
+
     const collectedThisMonth = await prisma.payment.aggregate({
         _sum: { amount: true },
-        where: {
-            date: {
-                gte: startOfMonth,
-                lte: endOfMonth
-            }
-        }
+        where: paymentWhere
     });
 
     const pendingFees = await prisma.fee.findMany({
-        where: { status: { not: 'PAID' } }
+        where: { 
+            status: { not: 'PAID' },
+            ...feeWhere
+        }
     });
 
     const totalPending = pendingFees.reduce((acc, fee) => acc + (fee.amount - fee.paidAmount), 0);

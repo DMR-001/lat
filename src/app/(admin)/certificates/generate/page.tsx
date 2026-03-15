@@ -13,7 +13,7 @@ export default function GenerateCertificatePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [students, setStudents] = useState<any[]>([]);
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [certificateType, setCertificateType] = useState<'BONAFIDE' | 'STUDY_CERTIFICATE'>('BONAFIDE');
+    const [certificateType, setCertificateType] = useState<'BONAFIDE' | 'STUDY_CERTIFICATE' | 'SCHOOL_RECORD'>('BONAFIDE');
     const [purpose, setPurpose] = useState('');
     const [remarks, setRemarks] = useState('');
     const [issuedBy, setIssuedBy] = useState('Principal');
@@ -168,6 +168,7 @@ export default function GenerateCertificatePage() {
                     >
                         <option value="BONAFIDE">Bonafide Certificate</option>
                         <option value="STUDY_CERTIFICATE">Study Certificate</option>
+                        <option value="SCHOOL_RECORD">School Record Sheet</option>
                     </select>
                 </div>
 

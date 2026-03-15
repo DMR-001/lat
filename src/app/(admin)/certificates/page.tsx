@@ -1,9 +1,18 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { FileText, Plus, Printer } from 'lucide-react';
+import { getFilterContext } from '@/lib/filter-context';
 
 export default async function CertificatesPage() {
+    const { branchId, academicYearId } = await getFilterContext();
+
+    // Build filter
+    const where: any = {};
+    if (academicYearId) where.academicYearId = academicYearId;
+    if (branchId) where.student = { branchId };
+
     const certificates = await prisma.certificate.findMany({
+        where,
         include: {
             student: {
                 include: {
@@ -20,6 +29,7 @@ export default async function CertificatesPage() {
             case 'BONAFIDE': return 'Bonafide Certificate';
             case 'STUDY_CERTIFICATE': return 'Study Certificate';
             case 'TRANSFER_CERTIFICATE': return 'Transfer Certificate';
+            case 'SCHOOL_RECORD': return 'School Record Sheet';
             default: return type;
         }
     };

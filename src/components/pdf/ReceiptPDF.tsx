@@ -180,7 +180,7 @@ export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
 
     return (
         <Document>
-            <Page size="A4" style={styles.page} orientation="landscape">
+            <Page size="A5" style={styles.page} orientation="landscape">
                 {/* Note: Standard receipt is usually landscape or half-A4. 
                 But image looks like a card. Let's stick to Portrait A4 but draw the container box. 
                 Actually, image implies a constrained box. 

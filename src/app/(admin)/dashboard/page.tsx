@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Users, DollarSign, FileText, TrendingUp, CreditCard, GraduationCap } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -13,12 +14,9 @@ export default function DashboardPage() {
   });
   const [recentPayments, setRecentPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const response = await fetch('/api/dashboard');
       const data = await response.json();
@@ -29,7 +27,12 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Reload data when navigating back to dashboard
+  useEffect(() => {
+    loadDashboardData();
+  }, [pathname, loadDashboardData]);
 
   const statsCards = [
     {

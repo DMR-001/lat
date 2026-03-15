@@ -5,6 +5,7 @@ import { createAcademicYear } from '@/app/actions/academic-year';
 import Link from 'next/link';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { refreshHeader } from '@/lib/events';
 
 export default function NewAcademicYearPage() {
     const router = useRouter();
@@ -30,6 +31,7 @@ export default function NewAcademicYearPage() {
         setLoading(false);
 
         if (result.success) {
+            refreshHeader();
             router.push('/academic-year');
         } else {
             setError(result.error || 'Failed to create academic year');

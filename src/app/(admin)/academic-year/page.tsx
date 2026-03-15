@@ -2,11 +2,18 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { Plus, CheckCircle, Calendar } from 'lucide-react';
 import { setActiveYear } from '@/app/actions/academic-year';
+import { getFilterContext } from '@/lib/filter-context';
+import OrphanedYearsWarning from './OrphanedYearsWarning';
 
 export default async function AcademicYearPage() {
+    const { branchId } = await getFilterContext();
+    
+    // Get years for current branch
     const years = await prisma.academicYear.findMany({
+        where: branchId ? { branchId } : {},
         orderBy: { startDate: 'desc' },
         include: {
+            branch: true,
             _count: {
                 select: {
                     enrollments: true,
@@ -15,6 +22,13 @@ export default async function AcademicYearPage() {
                 }
             }
         }
+    });
+
+    // Get orphaned years (no branch assigned)
+    const orphanedYears = await prisma.academicYear.findMany({
+        where: { branchId: null },
+        orderBy: { startDate: 'desc' },
+        select: { id: true, name: true }
     });
 
     return (
@@ -26,6 +40,9 @@ export default async function AcademicYearPage() {
                     New Academic Year
                 </Link>
             </div>
+
+            {/* Orphaned Years Warning */}
+            <OrphanedYearsWarning orphanedYears={orphanedYears} branchId={branchId} />
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                 {years.map((year) => (

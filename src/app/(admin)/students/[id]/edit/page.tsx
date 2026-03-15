@@ -65,8 +65,28 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
                         <input type="email" name="email" defaultValue={student.email || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Parent Name</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Father Name</label>
                         <input type="text" name="parentName" defaultValue={student.parentName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Mother Name</label>
+                        <input type="text" name="motherName" defaultValue={student.motherName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Religion</label>
+                        <input type="text" name="religion" defaultValue={student.religion || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Aadhar Number</label>
+                        <input type="text" name="aadharNo" defaultValue={student.aadharNo || ''} placeholder="12 digit Aadhar" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>PEN Number</label>
+                        <input type="text" name="penNo" defaultValue={student.penNo || ''} placeholder="Permanent Education Number" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>APAAR ID</label>
+                        <input type="text" name="apaarId" defaultValue={student.apaarId || ''} placeholder="Automated Permanent Academic Account Registry" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
                     <div style={{ gridColumn: 'span 2' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Address</label>
