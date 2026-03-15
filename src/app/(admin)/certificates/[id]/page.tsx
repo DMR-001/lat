@@ -329,14 +329,14 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Footer - Signature */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '2rem' }}>
+                <div className="cert-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '1rem' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             Academic Year: {certificate.academicYear.name}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '150px', borderTop: '1px solid var(--text-main)', paddingTop: '0.5rem', marginTop: '3rem' }}>
+                        <div style={{ width: '150px', borderTop: '1px solid var(--text-main)', paddingTop: '0.5rem' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>
                                 {certificate.issuedBy || 'Principal'}
                             </div>
@@ -351,7 +351,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
             <style>{`
                 @media print {
                     @page { 
-                        margin: 5mm 8mm 8mm 8mm; 
+                        margin: 4mm 6mm; 
                         size: A5 landscape;
                     }
                     html, body {
@@ -359,6 +359,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                         height: 148mm;
                         margin: 0 !important;
                         padding: 0 !important;
+                        overflow: hidden !important;
                     }
                     .no-print { display: none !important; }
                     .container { 
@@ -367,52 +368,67 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                         width: 100% !important;
                         height: 100% !important;
                         padding: 0 !important;
+                        overflow: hidden !important;
                     }
                     .certificate-card { 
                         border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 0.75rem 1.5rem !important; 
-                        page-break-inside: avoid;
+                        padding: 0.5rem 1rem !important; 
+                        page-break-inside: avoid !important;
+                        page-break-after: avoid !important;
                         position: relative;
                         width: 100% !important;
-                        height: 100% !important;
+                        height: calc(148mm - 8mm) !important;
+                        max-height: calc(148mm - 8mm) !important;
                         margin: 0 !important;
                         display: flex !important;
                         flex-direction: column !important;
                         box-sizing: border-box !important;
+                        overflow: hidden !important;
                     }
                     .certificate-card img {
-                        height: 35px !important;
-                        margin-bottom: 0.2rem !important;
+                        height: 30px !important;
+                        margin-bottom: 0.1rem !important;
                     }
                     .certificate-card h2 {
-                        font-size: 1rem !important;
-                        margin-bottom: 0.4rem !important;
+                        font-size: 0.9rem !important;
+                        margin-bottom: 0.3rem !important;
+                        padding-bottom: 0.2rem !important;
                     }
                     .certificate-card > div:first-child {
-                        padding-bottom: 0.25rem !important;
-                        margin-bottom: 0.25rem !important;
+                        padding-bottom: 0.2rem !important;
+                        margin-bottom: 0.2rem !important;
                     }
                     .cert-header {
-                        margin-bottom: 0.5rem !important;
-                        padding-bottom: 0.25rem !important;
+                        margin-bottom: 0.3rem !important;
+                        padding-bottom: 0.2rem !important;
                     }
                     .cert-header p {
-                        font-size: 9px !important;
+                        font-size: 8px !important;
                         margin: 0 !important;
+                        line-height: 1.2 !important;
                     }
                     .cert-body {
-                        font-size: 14px !important;
-                        line-height: 1.8 !important;
+                        font-size: 12px !important;
+                        line-height: 1.6 !important;
+                        flex: 1 !important;
+                        margin-bottom: 0.3rem !important;
                     }
                     .cert-body p {
-                        font-size: 14px !important;
-                        line-height: 1.8 !important;
-                        margin-bottom: 0.6rem !important;
+                        font-size: 12px !important;
+                        line-height: 1.6 !important;
+                        margin-bottom: 0.4rem !important;
+                    }
+                    .cert-footer {
+                        margin-top: 0 !important;
+                        padding-top: 0.2rem !important;
+                    }
+                    .cert-footer > div {
+                        font-size: 10px !important;
                     }
                     .certificate-card > div:last-child {
-                        margin-top: auto !important;
-                        padding-top: 0.5rem !important;
+                        margin-top: 0 !important;
+                        padding-top: 0.3rem !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
