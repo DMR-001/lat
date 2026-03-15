@@ -291,7 +291,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Footer - Signature */}
-                <div className="cert-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '1rem' }}>
+                <div className="cert-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid black' }}>
                     <div>
                         <div style={{ fontSize: '0.875rem', color: 'black', fontWeight: 'bold' }}>
                             Academic Year: {certificate.academicYear.name}
@@ -314,11 +314,11 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 @media print {
                     @page { 
                         margin: 0; 
-                        size: A5 portrait;
+                        size: A5 landscape;
                     }
                     html, body {
-                        width: 148mm;
-                        height: 210mm;
+                        width: 210mm;
+                        height: 148mm;
                         margin: 0 !important;
                         padding: 0 !important;
                         overflow: hidden !important;
@@ -326,23 +326,23 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                     .no-print { display: none !important; }
                     .container { 
                         margin: 0 !important; 
-                        max-width: 148mm !important;
-                        width: 148mm !important;
-                        height: 210mm !important;
-                        padding: 8mm !important;
+                        max-width: 210mm !important;
+                        width: 210mm !important;
+                        height: 148mm !important;
+                        padding: 6mm !important;
                         overflow: hidden !important;
                         box-sizing: border-box !important;
                     }
                     .certificate-card { 
                         border: 2px solid black !important; 
                         box-shadow: none !important; 
-                        padding: 8mm 10mm !important; 
+                        padding: 6mm 10mm !important; 
                         page-break-inside: avoid !important;
                         page-break-after: avoid !important;
                         position: relative;
                         width: 100% !important;
                         height: 100% !important;
-                        max-height: calc(210mm - 16mm) !important;
+                        max-height: calc(148mm - 12mm) !important;
                         margin: 0 !important;
                         display: flex !important;
                         flex-direction: column !important;
