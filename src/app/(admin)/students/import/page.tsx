@@ -16,13 +16,11 @@ export default function ImportStudentsPage() {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Link href="/students" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
-                    <ArrowLeft size={20} />
-                    Back to Students
-                </Link>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>Import Students</h1>
-            </div>
+            <Link href="/students" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', marginBottom: '1rem' }}>
+                <ArrowLeft size={20} />
+                Back to Students
+            </Link>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '2rem' }}>Import Students</h1>
 
             <div className="card" style={{ padding: '2rem' }}>
                 <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-light)', borderRadius: '0.5rem', border: '1px solid var(--primary)' }}>
@@ -33,12 +31,16 @@ export default function ImportStudentsPage() {
                     <p style={{ fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>
                         Upload a CSV file with the following columns (headers are required):
                     </p>
-                    <code style={{ display: 'block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.25rem', fontSize: '0.875rem', fontFamily: 'monospace', border: '1px solid var(--border)' }}>
-                        admissionNo,fullName,dob,gender,address,className,parentName,phone,feeAmount,feePaid
+                    <code style={{ display: 'block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.25rem', fontSize: '0.75rem', fontFamily: 'monospace', border: '1px solid var(--border)', wordBreak: 'break-all' }}>
+                        admissionNo,fullName,dob,gender,address,className,parentName,motherName,phone,aadharNo,penNo,apaarId,feeAmount,feePaid
                     </code>
                     <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
                         * <strong>fullName</strong>: Complete name of the student.<br />
                         * <strong>address</strong>: Full residential address.<br />
+                        * <strong>motherName</strong>: Mother's name (optional).<br />
+                        * <strong>aadharNo</strong>: Aadhar number (optional).<br />
+                        * <strong>penNo</strong>: PEN number (optional).<br />
+                        * <strong>apaarId</strong>: APAAR ID (optional).<br />
                         * Date of Birth (dob) should be in YYYY-MM-DD format.<br />
                         * Class Name (className) will be created if it doesn't exist.<br />
                         * <strong>feeAmount</strong>: Total tuition fee for the student.<br />
