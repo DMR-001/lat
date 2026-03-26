@@ -347,15 +347,25 @@ export async function deleteStudent(id: string) {
         await tx.attendance.deleteMany({
             where: { studentId: id }
         });
+        
+        // 5. Delete enrollment records
+        await tx.studentEnrollment.deleteMany({
+            where: { studentId: id }
+        });
+        
+        // 6. Delete certificates
+        await tx.certificate.deleteMany({
+            where: { studentId: id }
+        });
 
-        // 5. Delete the student
+        // 7. Delete the student
         await tx.student.delete({
             where: { id }
         });
     });
 
     revalidatePath('/students');
-    redirect('/students');
+    return { success: true };
 }
 
 export async function searchStudents(query: string) {

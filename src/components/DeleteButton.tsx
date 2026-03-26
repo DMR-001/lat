@@ -2,11 +2,22 @@
 
 import { deleteStudent } from '@/app/actions/student';
 import { Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function DeleteButton({ id }: { id: string }) {
+    const router = useRouter();
+    
     const handleDelete = async () => {
         if (confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
-            await deleteStudent(id);
+            try {
+                const result = await deleteStudent(id);
+                if (result?.success) {
+                    router.push('/students');
+                    router.refresh();
+                }
+            } catch (error: any) {
+                alert(error?.message || 'Failed to delete student');
+            }
         }
     };
 
