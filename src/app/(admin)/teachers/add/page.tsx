@@ -1,4 +1,5 @@
 import { addTeacher } from '@/app/actions/teacher';
+import Link from 'next/link';
 
 export default function AddTeacherPage() {
     return (
@@ -33,7 +34,7 @@ export default function AddTeacherPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn" style={{ border: '1px solid var(--border)' }}>Cancel</button>
+                    <Link href="/teachers" className="btn" style={{ border: '1px solid var(--border)', textDecoration: 'none' }}>Cancel</Link>
                     <button type="submit" className="btn btn-primary">Save Teacher</button>
                 </div>
             </form>

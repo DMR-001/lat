@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { recordPayment } from '@/app/actions/fee';
+import Link from 'next/link';
 
 export default async function RecordPaymentPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -63,7 +64,7 @@ export default async function RecordPaymentPage({ params }: { params: Promise<{ 
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn" style={{ border: '1px solid var(--border)' }}>Cancel</button>
+                    <Link href="/fees" className="btn" style={{ border: '1px solid var(--border)', textDecoration: 'none' }}>Cancel</Link>
                     <button type="submit" className="btn btn-primary">Record Payment</button>
                 </div>
             </form>

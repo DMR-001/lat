@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import Papa from 'papaparse';
 import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
 
 // Helper to get current branch from cookies
 async function getCurrentBranchId(): Promise<string | null> {
@@ -305,6 +306,22 @@ export async function updateStudent(formData: FormData) {
 }
 
 export async function deleteStudent(id: string) {
+    // Check branch access for admin users
+    const session = await getSession();
+    const userDefaultBranchId = session?.user?.defaultBranchId;
+    
+    if (userDefaultBranchId) {
+        // Verify the student belongs to the admin's branch
+        const student = await prisma.student.findUnique({
+            where: { id },
+            select: { branchId: true }
+        });
+        
+        if (student?.branchId !== userDefaultBranchId) {
+            throw new Error('You do not have permission to delete students from other branches');
+        }
+    }
+    
     await prisma.$transaction(async (tx) => {
         // 1. Get all fees for the student to delete their payments first
         const fees = await tx.fee.findMany({

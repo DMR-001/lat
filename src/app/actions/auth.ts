@@ -23,7 +23,7 @@ export async function loginAction(formData: FormData) {
         return { error: 'Invalid username or password' };
     }
 
-    await login({ id: user.id, username: user.username, role: user.role });
+    await login({ id: user.id, username: user.username, role: user.role, defaultBranchId: user.defaultBranchId });
     redirect('/');
 }
 

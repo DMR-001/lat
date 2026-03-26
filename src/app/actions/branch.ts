@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
 
 export async function getBranches() {
     try {
@@ -99,17 +100,25 @@ export async function getSelectedBranchAndYear() {
         const selectedBranchId = cookieStore.get('selectedBranchId')?.value;
         const selectedAcademicYearId = cookieStore.get('selectedAcademicYearId')?.value;
 
-        // Get branches
+        // Get the current user's session to check for branch restrictions
+        const session = await getSession();
+        const userDefaultBranchId = session?.user?.defaultBranchId;
+
+        // Get branches - filter by user's defaultBranchId if they have one
         const branches = await prisma.branch.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                ...(userDefaultBranchId ? { id: userDefaultBranchId } : {})
+            },
             orderBy: { name: 'asc' }
         });
 
-        // Check if selected branch still exists, if not use first available
+        // Check if selected branch still exists and user has access to it
         let currentBranchId = selectedBranchId;
         const branchExists = branches.find((b: { id: string }) => b.id === selectedBranchId);
         if (!branchExists && branches.length > 0) {
-            currentBranchId = branches[0].id;
+            // If user has branch restriction, use that; otherwise use first available
+            currentBranchId = userDefaultBranchId || branches[0].id;
             // Update cookie with valid branch
             if (currentBranchId) {
                 cookieStore.set('selectedBranchId', currentBranchId, {
