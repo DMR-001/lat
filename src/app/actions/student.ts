@@ -128,10 +128,14 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                         dob: parseDate(row.dob),
                         gender: row.gender || 'Not Specified',
                         address: row.address || null,
-                        phone: row.phone,
-                        parentName: row.parentName,
+                        phone: row.phone || null,
+                        parentName: row.parentName || null,
+                        motherName: row.motherName || null,
+                        aadharNo: row.aadharNo || null,
+                        penNo: row.penNo || null,
+                        apaarId: row.apaarId || null,
                         classId: classRecord.id,
-                        email: row.email,
+                        email: row.email || null,
                         branchId
                     }
                 });
