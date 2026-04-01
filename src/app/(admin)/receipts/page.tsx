@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import Search from '@/components/Search';
 import { Printer } from 'lucide-react';
+import { getFilterContext } from '@/lib/filter-context';
 
 import { Payment, Fee, Student } from '@prisma/client';
 
@@ -13,15 +14,23 @@ type PaymentWithDetails = Payment & {
 
 export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<{ query?: string, filter?: string, date?: string }> }) {
     const { query, filter, date } = await searchParams;
+    const { branchId } = await getFilterContext();
 
     let where: any = {};
 
+    // Filter by branch
+    if (branchId) {
+        where.fee = { student: { branchId } };
+    }
+
     if (query) {
         where = {
+            ...where,
             OR: [
                 {
                     fee: {
                         student: {
+                            ...(branchId ? { branchId } : {}),
                             OR: [
                                 { admissionNo: { contains: query, mode: 'insensitive' } },
                                 { firstName: { contains: query, mode: 'insensitive' } },
@@ -31,7 +40,7 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
                         }
                     }
                 },
-                { receiptNo: { contains: query, mode: 'insensitive' } }
+                { receiptNo: { contains: query, mode: 'insensitive' }, ...(branchId ? { fee: { student: { branchId } } } : {}) }
             ]
         };
     } else {

@@ -185,8 +185,6 @@ export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
     const branchPhone = (branch?.phone && branch.phone.trim()) || '+91 7032252030';
     const branchEmail = (branch?.email && branch.email.trim()) || 'sproutmeerpet@gmail.com';
 
-    console.log('Receipt Branch Debug:', { branchId: branch?.id, address: branch?.address, studentBranch: student.branch?.id, paymentBranch: payment.branch?.id });
-
     return (
         <Document>
             <Page size="A5" style={styles.page} orientation="landscape">
