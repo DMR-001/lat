@@ -6,7 +6,7 @@ import { getClasses } from '@/app/actions/class';
 import { getBranches, createBranch, updateBranch, deleteBranch } from '@/app/actions/branch';
 import { createBackup, getBackups, downloadBackup, deleteBackup, restoreBackup } from '@/app/actions/backup';
 import ClassManager from './ClassManager';
-import { Plus, Trash2, Download, Upload, Database, Building2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Database, Building2, RefreshCw, Edit2, X } from 'lucide-react';
 import { refreshHeader } from '@/lib/events';
 
 type Branch = { id: string; name: string; code: string; address?: string | null; phone?: string | null; email?: string | null; isActive: boolean };
@@ -125,6 +125,28 @@ export default function SettingsPage() {
         } else {
             setError(result.error || 'Failed to delete branch');
         }
+    };
+
+    const handleUpdateBranch = async () => {
+        if (!editingBranch) return;
+        setLoading(true);
+        const result = await updateBranch(editingBranch.id, {
+            name: editingBranch.name,
+            code: editingBranch.code,
+            address: editingBranch.address || undefined,
+            phone: editingBranch.phone || undefined,
+            email: editingBranch.email || undefined
+        });
+        if (result.success) {
+            setEditingBranch(null);
+            loadBranches();
+            refreshHeader();
+            setSuccess('Branch updated successfully!');
+            setTimeout(() => setSuccess(''), 3000);
+        } else {
+            setError(result.error || 'Failed to update branch');
+        }
+        setLoading(false);
     };
 
     // Backup handlers
@@ -684,39 +706,121 @@ export default function SettingsPage() {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                         {branches.map(branch => (
                                             <div key={branch.id} style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
                                                 padding: '1rem 1.25rem',
                                                 backgroundColor: 'var(--background)',
                                                 borderRadius: '0.5rem',
                                                 border: '1px solid var(--border)'
                                             }}>
-                                                <div>
-                                                    <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        {branch.name}
-                                                        <span style={{
-                                                            fontSize: '0.75rem',
-                                                            padding: '0.125rem 0.5rem',
-                                                            backgroundColor: 'var(--primary-light)',
-                                                            color: 'var(--primary)',
-                                                            borderRadius: '9999px'
-                                                        }}>
-                                                            {branch.code}
-                                                        </span>
+                                                {editingBranch?.id === branch.id ? (
+                                                    /* Edit Mode */
+                                                    <div>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem' }}>Name *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingBranch.name}
+                                                                    onChange={(e) => setEditingBranch({ ...editingBranch, name: e.target.value })}
+                                                                    className="input"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem' }}>Code *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingBranch.code}
+                                                                    onChange={(e) => setEditingBranch({ ...editingBranch, code: e.target.value.toUpperCase() })}
+                                                                    className="input"
+                                                                    maxLength={10}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem' }}>Phone</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingBranch.phone || ''}
+                                                                    onChange={(e) => setEditingBranch({ ...editingBranch, phone: e.target.value })}
+                                                                    className="input"
+                                                                />
+                                                            </div>
+                                                            <div style={{ gridColumn: 'span 2' }}>
+                                                                <label style={{ fontSize: '0.75rem' }}>Address</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingBranch.address || ''}
+                                                                    onChange={(e) => setEditingBranch({ ...editingBranch, address: e.target.value })}
+                                                                    className="input"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem' }}>Email</label>
+                                                                <input
+                                                                    type="email"
+                                                                    value={editingBranch.email || ''}
+                                                                    onChange={(e) => setEditingBranch({ ...editingBranch, email: e.target.value })}
+                                                                    className="input"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                            <button
+                                                                onClick={handleUpdateBranch}
+                                                                disabled={loading}
+                                                                className="btn btn-primary"
+                                                                style={{ padding: '0.5rem 1rem' }}
+                                                            >
+                                                                Save Changes
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setEditingBranch(null)}
+                                                                className="btn"
+                                                                style={{ padding: '0.5rem 1rem' }}
+                                                            >
+                                                                <X size={16} style={{ marginRight: '0.25rem' }} />
+                                                                Cancel
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                                        {[branch.phone, branch.email, branch.address].filter(Boolean).join(' • ') || 'No contact info'}
+                                                ) : (
+                                                    /* View Mode */
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                {branch.name}
+                                                                <span style={{
+                                                                    fontSize: '0.75rem',
+                                                                    padding: '0.125rem 0.5rem',
+                                                                    backgroundColor: 'var(--primary-light)',
+                                                                    color: 'var(--primary)',
+                                                                    borderRadius: '9999px'
+                                                                }}>
+                                                                    {branch.code}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                                                {[branch.phone, branch.email, branch.address].filter(Boolean).join(' • ') || 'No contact info'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                            <button
+                                                                onClick={() => setEditingBranch(branch)}
+                                                                className="btn"
+                                                                style={{ padding: '0.5rem', color: 'var(--primary)', backgroundColor: 'var(--primary-light)' }}
+                                                                title="Edit branch"
+                                                            >
+                                                                <Edit2 size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteBranch(branch.id)}
+                                                                className="btn"
+                                                                style={{ padding: '0.5rem', color: '#ef4444', backgroundColor: '#fee2e2' }}
+                                                                title="Delete branch"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDeleteBranch(branch.id)}
-                                                    className="btn"
-                                                    style={{ padding: '0.5rem', color: '#ef4444', backgroundColor: '#fee2e2' }}
-                                                    title="Delete branch"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

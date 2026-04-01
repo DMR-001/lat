@@ -73,6 +73,7 @@ export async function importStudents(prevState: any, formData: FormData): Promis
         // Get branch info for admission numbers
         const branchId = await getCurrentBranchId();
         const branchCode = await getBranchCode(branchId);
+        const currentYear = new Date().getFullYear();
 
         let count = 0;
         const rows = data as any[];
