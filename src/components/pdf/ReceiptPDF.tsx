@@ -177,12 +177,15 @@ interface ReceiptPDFProps {
 
 export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
     const student = payment.fee.student;
-    const branch = payment.branch || student.branch;
+    // Prioritize student's branch (always assigned) over payment's branch
+    const branch = student.branch || payment.branch;
     
-    // Branch-specific or fallback info
-    const branchAddress = branch?.address || 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad';
-    const branchPhone = branch?.phone || '+91 7032252030';
-    const branchEmail = branch?.email || 'sproutmeerpet@gmail.com';
+    // Branch-specific or fallback info (check for empty strings too)
+    const branchAddress = (branch?.address && branch.address.trim()) || 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad';
+    const branchPhone = (branch?.phone && branch.phone.trim()) || '+91 7032252030';
+    const branchEmail = (branch?.email && branch.email.trim()) || 'sproutmeerpet@gmail.com';
+
+    console.log('Receipt Branch Debug:', { branchId: branch?.id, address: branch?.address, studentBranch: student.branch?.id, paymentBranch: payment.branch?.id });
 
     return (
         <Document>

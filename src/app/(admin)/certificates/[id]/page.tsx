@@ -300,7 +300,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 </div>
 
                 {/* Footer - Signature */}
-                <div className="cert-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid black' }}>
+                <div className="cert-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '1rem' }}>
                     <div>
                         <div style={{ fontSize: '0.875rem', color: 'black', fontWeight: 'bold' }}>
                             Academic Year: {certificate.academicYear.name}
