@@ -1,11 +1,9 @@
 import { addStudent } from '@/app/actions/student';
-import prisma from '@/lib/prisma';
+import { getClasses } from '@/app/actions/class';
 import Link from 'next/link';
 
 export default async function AddStudentPage() {
-    const classes = await prisma.class.findMany({
-        orderBy: { name: 'asc' }
-    });
+    const classes = await getClasses();
 
     return (
         <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>

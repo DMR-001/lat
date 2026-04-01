@@ -1,10 +1,15 @@
 import prisma from '@/lib/prisma';
 import AttendanceClient from './AttendanceClient';
+import { getFilterContext } from '@/lib/filter-context';
 
 export default async function AttendancePage() {
+    const { branchId } = await getFilterContext();
+    
     const classes = await prisma.class.findMany({
+        where: branchId ? { branchId } : {},
         include: {
             students: {
+                where: branchId ? { branchId } : {},
                 orderBy: { lastName: 'asc' }
             }
         },

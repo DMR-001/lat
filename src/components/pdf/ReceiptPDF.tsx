@@ -177,6 +177,12 @@ interface ReceiptPDFProps {
 
 export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
     const student = payment.fee.student;
+    const branch = payment.branch || student.branch;
+    
+    // Branch-specific or fallback info
+    const branchAddress = branch?.address || 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad';
+    const branchPhone = branch?.phone || '+91 7032252030';
+    const branchEmail = branch?.email || 'sproutmeerpet@gmail.com';
 
     return (
         <Document>
@@ -192,8 +198,8 @@ export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
                         {logoData && <Image src={logoData} style={styles.logo} />}
                         <View style={styles.headerContent}>
                             <Text style={styles.receiptTitle}>Receipt</Text>
-                            <Text style={styles.addressLine}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad</Text>
-                            <Text style={styles.addressLine}>Ph: +91 7032252030  Email: sproutmeerpet@gmail.com</Text>
+                            <Text style={styles.addressLine}>{branchAddress}</Text>
+                            <Text style={styles.addressLine}>Ph: {branchPhone}  Email: {branchEmail}</Text>
                         </View>
                     </View>
 

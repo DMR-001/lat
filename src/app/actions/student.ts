@@ -73,7 +73,6 @@ export async function importStudents(prevState: any, formData: FormData): Promis
         // Get branch info for admission numbers
         const branchId = await getCurrentBranchId();
         const branchCode = await getBranchCode(branchId);
-        const currentYear = new Date().getFullYear();
 
         let count = 0;
         const rows = data as any[];
@@ -111,10 +110,10 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                 });
                 let lastNum = 0;
                 if (lastStudent?.admissionNo) {
-                    const parts = lastStudent.admissionNo.split('-');
+                    const parts = lastStudent.admissionNo.split('/');
                     lastNum = parseInt(parts[parts.length - 1]) || 0;
                 }
-                admissionNo = `${branchCode}-${currentYear}-${String(lastNum + 1 + count).padStart(4, '0')}`;
+                admissionNo = `SPR/${branchCode}/${lastNum + 1 + count}`;
             }
 
             // 3. Create Student
@@ -228,8 +227,7 @@ export async function addStudent(formData: FormData) {
     const branchId = await getCurrentBranchId();
     const branchCode = await getBranchCode(branchId);
 
-    // Generate Admission Number with branch code: BRANCHCODE-YEAR-SERIAL (e.g., MAIN-2025-001)
-    const currentYear = new Date().getFullYear();
+    // Generate Admission Number with format: SPR/BRANCHCODE/N (e.g., SPR/MAIN/1)
     const lastStudent = await prisma.student.findFirst({
         where: branchId ? { branchId } : {},
         orderBy: { createdAt: 'desc' }
@@ -237,15 +235,15 @@ export async function addStudent(formData: FormData) {
 
     let nextNumber = 1;
     if (lastStudent && lastStudent.admissionNo) {
-        // Extract the serial number from the admission number (last part after -)
-        const parts = lastStudent.admissionNo.split('-');
+        // Extract the serial number from the admission number (last part after /)
+        const parts = lastStudent.admissionNo.split('/');
         const lastNumber = parseInt(parts[parts.length - 1]);
         if (!isNaN(lastNumber)) {
             nextNumber = lastNumber + 1;
         }
     }
 
-    const admissionNo = `${branchCode}-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+    const admissionNo = `SPR/${branchCode}/${nextNumber}`;
 
     await prisma.student.create({
         data: {

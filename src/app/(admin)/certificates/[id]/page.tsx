@@ -9,16 +9,25 @@ export default async function CertificateViewPage({ params }: { params: Promise<
         include: {
             student: {
                 include: {
-                    class: true
+                    class: true,
+                    branch: true
                 }
             },
-            academicYear: true
+            academicYear: true,
+            branch: true
         }
     });
 
     if (!certificate) return <div>Certificate not found</div>;
 
     const student = certificate.student as any;
+    const branch = (certificate as any).branch || student.branch;
+    
+    // Branch-specific or fallback info
+    const branchAddress = branch?.address || 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad';
+    const branchPhone = branch?.phone || '+91 7032252030';
+    const branchEmail = branch?.email || 'info@sproutschool.edu.in';
+    
     const isBonafide = certificate.type === 'BONAFIDE';
     const isSchoolRecord = certificate.type === 'SCHOOL_RECORD';
 
@@ -41,8 +50,8 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 <div style={{ textAlign: 'center', marginBottom: '8px', borderBottom: '2px solid #1a365d', paddingBottom: '6px' }}>
                     <img src="/sprout-logo.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                     <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#1a365d', marginTop: '2px' }}>SPROUT SCHOOL</div>
-                    <div style={{ fontSize: '7px', color: '#666' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad</div>
-                    <div style={{ fontSize: '7px', color: '#666' }}>Ph: +91 7032252030 | Email: info@sproutschool.edu.in</div>
+                    <div style={{ fontSize: '7px', color: '#666' }}>{branchAddress}</div>
+                    <div style={{ fontSize: '7px', color: '#666' }}>Ph: {branchPhone} | Email: {branchEmail}</div>
                 </div>
 
                 {/* Title */}
@@ -219,10 +228,10 @@ export default async function CertificateViewPage({ params }: { params: Promise<
                 <div className="cert-header" style={{ textAlign: 'center', marginBottom: '1rem', borderBottom: '2px solid var(--text-main)', paddingBottom: '0.5rem' }}>
                     <img src="/sprout-logo.png" alt="Sprout School Logo" style={{ height: '60px', marginBottom: '0.25rem' }} />
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad
+                        {branchAddress}
                     </p>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        Ph: +91 7032252030, +91 9704717264 | Email: info@sproutschool.edu.in
+                        Ph: {branchPhone} | Email: {branchEmail}
                     </p>
                 </div>
 

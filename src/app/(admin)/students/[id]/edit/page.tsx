@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { updateStudent } from '@/app/actions/student';
+import { getClasses } from '@/app/actions/class';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
@@ -9,9 +10,7 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
         where: { id }
     });
 
-    const classes = await prisma.class.findMany({
-        orderBy: { name: 'asc' }
-    });
+    const classes = await getClasses();
 
     if (!student) return <div>Student not found</div>;
 

@@ -16,11 +16,13 @@ export async function GET(
                 include: {
                     student: {
                         include: {
-                            class: true
+                            class: true,
+                            branch: true
                         }
                     }
                 }
-            }
+            },
+            branch: true
         }
     });
 

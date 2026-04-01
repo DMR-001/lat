@@ -3,11 +3,18 @@ import Link from 'next/link';
 import Search from '@/components/Search';
 import ClassFilter from '@/components/ClassFilter';
 import { Prisma } from '@prisma/client';
+import { getFilterContext } from '@/lib/filter-context';
 
 export default async function CollectFeesSearchPage({ searchParams }: { searchParams: Promise<{ query?: string, classId?: string }> }) {
     const { query, classId } = await searchParams;
+    const { branchId } = await getFilterContext();
 
     const where: Prisma.StudentWhereInput = {};
+
+    // Filter by branch if selected
+    if (branchId) {
+        where.branchId = branchId;
+    }
 
     if (query) {
         where.OR = [
@@ -34,6 +41,7 @@ export default async function CollectFeesSearchPage({ searchParams }: { searchPa
     }
 
     const classes = await prisma.class.findMany({
+        where: branchId ? { branchId } : {},
         orderBy: { name: 'asc' }
     });
 
