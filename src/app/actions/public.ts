@@ -33,6 +33,43 @@ export async function searchStudentsPublic(classId: string, nameQuery: string) {
     return students;
 }
 
+export async function searchStudentsByPhonePublic(branchId: string, phone: string) {
+    if (!branchId || !phone || phone.length < 10) return [];
+
+    const students = await prisma.student.findMany({
+        where: {
+            branchId,
+            phone: { contains: phone.trim() }
+        },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            admissionNo: true,
+            parentName: true,
+            phone: true,
+            class: {
+                select: {
+                    name: true,
+                    section: true
+                }
+            }
+        },
+        take: 10
+    });
+
+    return students;
+}
+
+export async function getBranchesPublic() {
+    const branches = await prisma.branch.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, code: true },
+        orderBy: { name: 'asc' }
+    });
+    return branches;
+}
+
 export async function getStudentFeesPublic(studentId: string) {
     const expenses = await prisma.fee.findMany({
         where: {
