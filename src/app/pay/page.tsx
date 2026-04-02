@@ -103,355 +103,281 @@ export default function PublicPaymentPage() {
 
     const stepIndex = { branch: 1, search: 2, select: 2, confirm: 3, pay: 4, success: 5 }[step];
 
+    const Rs = '\u20B9';
+
     return (
         <>
             <style jsx global>{`
                 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-                body { background: #060b14; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
 
                 .pr {
                     min-height: 100vh;
-                    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,0.15) 0%, transparent 70%),
-                                linear-gradient(180deg, #060b14 0%, #0a1628 100%);
+                    background: #f1f5f9;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 2.5rem 1rem 4rem;
+                    padding: 2rem 1rem 4rem;
                 }
 
-                /* â”€â”€ Header â”€â”€ */
-                .ph { text-align: center; margin-bottom: 2.5rem; }
-                .ph-logo { height: 48px; object-fit: contain; margin-bottom: 1rem; }
-                .ph-title { font-size: 1.35rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em; }
-                .ph-sub { font-size: 0.82rem; color: #475569; margin-top: 0.3rem; }
+                /* Header */
+                .ph { text-align: center; margin-bottom: 2rem; }
+                .ph-logo { height: 48px; object-fit: contain; margin-bottom: 0.75rem; }
+                .ph-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
+                .ph-sub { font-size: 0.82rem; color: #64748b; margin-top: 0.25rem; }
 
-                /* â”€â”€ Step pill â”€â”€ */
-                .steps {
-                    display: flex; align-items: center; justify-content: center;
-                    gap: 0; margin-bottom: 2rem;
-                }
+                /* Step indicator */
+                .steps { display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
                 .step-pill {
                     display: flex; align-items: center; gap: 0.4rem;
-                    padding: 0.35rem 0.85rem;
-                    border-radius: 2rem;
-                    font-size: 0.72rem; font-weight: 600;
-                    color: #334155;
-                    transition: all 0.3s;
-                    white-space: nowrap;
+                    padding: 0.3rem 0.75rem; border-radius: 2rem;
+                    font-size: 0.72rem; font-weight: 600; color: #94a3b8;
+                    white-space: nowrap; transition: all 0.2s;
                 }
-                .step-pill.done { color: #22c55e; }
-                .step-pill.active { color: #f8fafc; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); }
+                .step-pill.active { color: #1d4ed8; background: #eff6ff; }
+                .step-pill.done { color: #16a34a; }
                 .step-num {
                     width: 20px; height: 20px; border-radius: 50%;
-                    background: #1e293b; border: 1.5px solid #334155;
+                    background: #e2e8f0; border: 1.5px solid #cbd5e1;
                     display: flex; align-items: center; justify-content: center;
-                    font-size: 0.65rem; font-weight: 700; color: #475569;
-                    transition: all 0.3s; flex-shrink: 0;
+                    font-size: 0.62rem; font-weight: 700; color: #94a3b8;
+                    flex-shrink: 0; transition: all 0.2s;
                 }
-                .step-pill.active .step-num { background: #3b82f6; border-color: #3b82f6; color: white; }
-                .step-pill.done .step-num { background: #22c55e; border-color: #22c55e; color: white; }
-                .step-line { width: 24px; height: 1.5px; background: #1e293b; flex-shrink: 0; }
-                .step-line.done { background: #22c55e; }
+                .step-pill.active .step-num { background: #2563eb; border-color: #2563eb; color: white; }
+                .step-pill.done .step-num { background: #16a34a; border-color: #16a34a; color: white; }
+                .step-line { width: 20px; height: 1.5px; background: #e2e8f0; flex-shrink: 0; }
+                .step-line.done { background: #16a34a; }
 
-                /* â”€â”€ Card â”€â”€ */
+                /* Card */
                 .pc {
                     width: 100%; max-width: 420px;
-                    background: #0d1829;
-                    border: 1px solid rgba(255,255,255,0.07);
-                    border-radius: 1.5rem;
-                    box-shadow: 0 0 0 1px rgba(59,130,246,0.05), 0 32px 64px rgba(0,0,0,0.6);
-                    overflow: hidden;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 1.25rem;
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
                 }
                 .pc-body { padding: 1.75rem 1.5rem 2rem; }
 
-                /* â”€â”€ Section header â”€â”€ */
-                .sec-head {
-                    display: flex; align-items: flex-start; justify-content: space-between;
-                    margin-bottom: 1.5rem;
-                }
-                .sec-title { font-size: 1.05rem; font-weight: 700; color: #f1f5f9; }
-                .sec-sub { font-size: 0.78rem; color: #475569; margin-top: 0.2rem; }
-                .back-btn {
-                    font-size: 0.78rem; font-weight: 600; color: #3b82f6;
-                    background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0;
-                    margin-top: 0.15rem;
-                }
+                /* Section header */
+                .sec-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; }
+                .sec-title { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+                .sec-sub { font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; }
+                .back-btn { font-size: 0.78rem; font-weight: 600; color: #2563eb; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; margin-top: 0.15rem; }
+                .back-btn:hover { color: #1d4ed8; }
 
-                /* â”€â”€ Branch grid â”€â”€ */
+                /* Branch grid */
                 .bg { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-                @media (max-width: 360px) { .bg { grid-template-columns: 1fr; } }
                 .bb {
-                    background: #111827;
-                    border: 1.5px solid #1e293b;
-                    border-radius: 1rem;
-                    padding: 1.1rem 0.875rem 1rem;
+                    background: #f8fafc; border: 1.5px solid #e2e8f0;
+                    border-radius: 0.875rem; padding: 1.1rem 0.75rem 1rem;
                     cursor: pointer; text-align: center;
-                    transition: border-color 0.2s, transform 0.15s, background 0.2s;
+                    transition: border-color 0.18s, background 0.18s, transform 0.12s;
                 }
-                .bb:hover { border-color: #3b82f6; background: rgba(59,130,246,0.07); transform: translateY(-1px); }
+                .bb:hover { border-color: #2563eb; background: #eff6ff; transform: translateY(-1px); }
                 .bb:active { transform: translateY(0); }
-                .bb-code { font-size: 1.2rem; font-weight: 800; color: #60a5fa; letter-spacing: 0.04em; margin-bottom: 0.3rem; }
-                .bb-name { font-size: 0.75rem; color: #64748b; line-height: 1.3; }
+                .bb-code { font-size: 1.15rem; font-weight: 800; color: #1d4ed8; letter-spacing: 0.03em; margin-bottom: 0.25rem; }
+                .bb-name { font-size: 0.73rem; color: #64748b; line-height: 1.3; }
 
-                /* â”€â”€ Field â”€â”€ */
-                .fl { display: block; font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+                /* Field */
+                .fl { display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.4rem; }
                 .fw { position: relative; }
-                .fi-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #334155; pointer-events: none; }
+                .fi-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
                 .fi {
-                    width: 100%;
-                    padding: 0.875rem 1rem 0.875rem 3rem;
-                    background: #111827;
-                    border: 1.5px solid #1e293b;
-                    border-radius: 0.875rem;
-                    color: #f1f5f9;
-                    font-size: 1rem;
-                    outline: none;
-                    transition: border-color 0.2s, box-shadow 0.2s;
-                    margin-bottom: 1rem;
+                    width: 100%; padding: 0.8rem 1rem 0.8rem 2.75rem;
+                    background: #f8fafc; border: 1.5px solid #e2e8f0;
+                    border-radius: 0.75rem; color: #0f172a; font-size: 1rem;
+                    outline: none; margin-bottom: 0.875rem;
+                    transition: border-color 0.18s, box-shadow 0.18s;
                 }
-                .fi:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
-                .fi::placeholder { color: #1e3a5f; }
+                .fi:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+                .fi::placeholder { color: #cbd5e1; }
 
-                /* â”€â”€ Buttons â”€â”€ */
+                /* Buttons */
                 .btn-blue {
-                    width: 100%; padding: 0.9rem;
-                    background: #2563eb;
-                    color: white; border: none; border-radius: 0.875rem;
+                    width: 100%; padding: 0.875rem;
+                    background: #2563eb; color: white; border: none; border-radius: 0.75rem;
                     font-size: 0.925rem; font-weight: 700;
                     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-                    transition: background 0.2s, transform 0.1s;
-                    letter-spacing: 0.01em; margin-top: 0.25rem;
+                    transition: background 0.18s, transform 0.1s; margin-top: 0.25rem;
                 }
                 .btn-blue:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
                 .btn-blue:active:not(:disabled) { transform: translateY(0); }
-                .btn-blue:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+                .btn-blue:disabled { background: #93c5fd; cursor: not-allowed; transform: none; }
 
                 .btn-green {
-                    width: 100%; padding: 1rem;
-                    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-                    color: white; border: none; border-radius: 0.875rem;
-                    font-size: 0.975rem; font-weight: 700;
+                    width: 100%; padding: 0.975rem;
+                    background: #16a34a; color: white; border: none; border-radius: 0.875rem;
+                    font-size: 1rem; font-weight: 700;
                     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.6rem;
-                    transition: opacity 0.2s, transform 0.1s;
-                    letter-spacing: 0.01em; margin-bottom: 0.875rem;
-                    box-shadow: 0 4px 20px rgba(16,185,129,0.25);
+                    transition: background 0.18s, transform 0.1s; margin-bottom: 0.875rem;
+                    box-shadow: 0 4px 16px rgba(22,163,74,0.2);
                 }
-                .btn-green:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+                .btn-green:hover:not(:disabled) { background: #15803d; transform: translateY(-1px); }
                 .btn-green:active:not(:disabled) { transform: translateY(0); }
-                .btn-green:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+                .btn-green:disabled { background: #86efac; cursor: not-allowed; transform: none; box-shadow: none; }
 
                 .btn-outline {
                     width: 100%; padding: 0.875rem;
                     background: transparent; color: #64748b;
-                    border: 1.5px solid #1e293b; border-radius: 0.875rem;
-                    font-size: 0.875rem; font-weight: 600;
-                    cursor: pointer; transition: border-color 0.2s, color 0.2s;
+                    border: 1.5px solid #e2e8f0; border-radius: 0.875rem;
+                    font-size: 0.875rem; font-weight: 600; cursor: pointer;
+                    transition: border-color 0.18s, color 0.18s;
                 }
-                .btn-outline:hover { border-color: #334155; color: #94a3b8; }
+                .btn-outline:hover { border-color: #2563eb; color: #2563eb; }
 
-                /* â”€â”€ Alert â”€â”€ */
+                /* Alert */
                 .err {
-                    background: rgba(127,29,29,0.3);
-                    border: 1px solid rgba(239,68,68,0.3);
-                    border-radius: 0.75rem;
-                    padding: 0.7rem 1rem;
-                    font-size: 0.8rem; color: #fca5a5;
-                    margin-bottom: 1rem;
+                    background: #fef2f2; border: 1.5px solid #fecaca;
+                    border-radius: 0.75rem; padding: 0.7rem 1rem;
+                    font-size: 0.8rem; color: #dc2626; margin-bottom: 0.875rem;
                     display: flex; align-items: center; gap: 0.5rem;
                 }
 
-                /* â”€â”€ Student card (select list) â”€â”€ */
+                /* Student list card */
                 .sc {
-                    background: #111827; border: 1.5px solid #1e293b; border-radius: 1rem;
-                    padding: 1rem 1.1rem; margin-bottom: 0.625rem;
+                    background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.875rem;
+                    padding: 0.875rem 1rem; margin-bottom: 0.625rem;
                     cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-                    transition: border-color 0.2s, background 0.2s;
-                    width: 100%; text-align: left;
+                    width: 100%; text-align: left; transition: border-color 0.18s, background 0.18s;
                 }
-                .sc:hover { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+                .sc:hover { border-color: #2563eb; background: #eff6ff; }
                 .sc-avatar {
                     width: 40px; height: 40px; border-radius: 50%;
-                    background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+                    background: linear-gradient(135deg, #2563eb, #7c3aed);
                     display: flex; align-items: center; justify-content: center;
                     font-size: 0.8rem; font-weight: 800; color: white; flex-shrink: 0;
-                    letter-spacing: 0.02em;
                 }
-                .sc-name { font-weight: 700; font-size: 0.9rem; color: #f1f5f9; }
-                .sc-meta { font-size: 0.75rem; color: #475569; margin-top: 0.15rem; }
+                .sc-name { font-weight: 700; font-size: 0.9rem; color: #0f172a; }
+                .sc-meta { font-size: 0.74rem; color: #64748b; margin-top: 0.15rem; }
 
-                /* â”€â”€ Confirm student card â”€â”€ */
+                /* Confirm card */
                 .confirm-card {
-                    background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.08));
-                    border: 1.5px solid rgba(59,130,246,0.2);
-                    border-radius: 1.125rem;
-                    padding: 1.5rem;
-                    margin-bottom: 1.25rem;
+                    background: #f8fafc; border: 1.5px solid #e2e8f0;
+                    border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.25rem;
                 }
                 .confirm-avatar {
                     width: 56px; height: 56px; border-radius: 50%;
-                    background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+                    background: linear-gradient(135deg, #2563eb, #7c3aed);
                     display: flex; align-items: center; justify-content: center;
                     font-size: 1.1rem; font-weight: 800; color: white;
-                    margin: 0 auto 1rem;
-                    box-shadow: 0 4px 16px rgba(59,130,246,0.35);
-                    letter-spacing: 0.02em;
+                    margin: 0 auto 0.875rem;
+                    box-shadow: 0 4px 12px rgba(37,99,235,0.25);
                 }
-                .confirm-name { font-size: 1.1rem; font-weight: 800; color: #f8fafc; text-align: center; margin-bottom: 1rem; }
+                .confirm-name { font-size: 1.1rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 1rem; }
                 .confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
-                .confirm-item {
-                    background: rgba(0,0,0,0.25); border-radius: 0.625rem;
-                    padding: 0.625rem 0.75rem;
-                }
-                .confirm-item-label { font-size: 0.65rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
-                .confirm-item-value { font-size: 0.82rem; font-weight: 600; color: #cbd5e1; }
+                .confirm-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.625rem 0.75rem; }
+                .confirm-item-label { font-size: 0.64rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.2rem; }
+                .confirm-item-value { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
                 .confirm-check {
                     display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-                    font-size: 0.72rem; color: #22c55e; font-weight: 600;
-                    margin-top: 0.875rem;
+                    font-size: 0.72rem; color: #16a34a; font-weight: 600; margin-top: 0.875rem;
                 }
 
-                /* â”€â”€ Fee card â”€â”€ */
-                .fc {
-                    background: #111827; border: 1.5px solid #1e293b; border-radius: 1rem;
-                    padding: 1rem 1.1rem; margin-bottom: 0.75rem;
-                }
+                /* Fee card */
+                .fc { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.875rem; padding: 1rem; margin-bottom: 0.75rem; }
                 .fc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; }
-                .fc-type { font-weight: 700; color: #e2e8f0; font-size: 0.875rem; }
-                .fc-due { font-size: 0.75rem; color: #475569; }
-                .fc-due span { color: #94a3b8; font-weight: 600; }
+                .fc-type { font-weight: 700; color: #0f172a; font-size: 0.875rem; }
+                .fc-due { font-size: 0.75rem; color: #94a3b8; }
+                .fc-due span { color: #475569; font-weight: 600; }
                 .fc-inp-wrap { position: relative; }
                 .fc-inp {
-                    width: 100%;
-                    padding: 0.75rem 4rem 0.75rem 2.25rem;
-                    background: #0d1829; border: 1.5px solid #1e293b;
-                    border-radius: 0.75rem; color: #f1f5f9; font-size: 0.9rem; outline: none;
-                    transition: border-color 0.2s, box-shadow 0.2s;
+                    width: 100%; padding: 0.72rem 4rem 0.72rem 2rem;
+                    background: #fff; border: 1.5px solid #e2e8f0;
+                    border-radius: 0.625rem; color: #0f172a; font-size: 0.9rem; outline: none;
+                    transition: border-color 0.18s, box-shadow 0.18s;
                 }
-                .fc-inp:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-                .fc-inp::placeholder { color: #1e3a5f; }
-                .fc-sym { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); color: #334155; font-size: 0.85rem; pointer-events: none; font-weight: 600; }
+                .fc-inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+                .fc-inp::placeholder { color: #cbd5e1; }
+                .fc-sym { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem; pointer-events: none; font-weight: 600; }
                 .fc-full {
                     position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-                    background: rgba(37,99,235,0.15); border: 1px solid rgba(59,130,246,0.2);
-                    border-radius: 0.375rem; color: #60a5fa; font-size: 0.68rem; font-weight: 800;
-                    padding: 0.3rem 0.55rem; cursor: pointer; letter-spacing: 0.04em;
-                    transition: background 0.2s, color 0.2s;
+                    background: #eff6ff; border: 1px solid #bfdbfe;
+                    border-radius: 0.375rem; color: #2563eb; font-size: 0.68rem; font-weight: 800;
+                    padding: 0.28rem 0.5rem; cursor: pointer; letter-spacing: 0.03em;
+                    transition: background 0.18s;
                 }
                 .fc-full:hover { background: #2563eb; color: white; border-color: #2563eb; }
 
-                /* â”€â”€ Total bar â”€â”€ */
+                /* Total */
                 .total-row {
                     display: flex; justify-content: space-between; align-items: center;
-                    padding: 1.1rem 0 1.25rem;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                    margin-top: 0.25rem;
+                    padding: 1rem 0 1.25rem; border-top: 1.5px solid #f1f5f9; margin-top: 0.25rem;
                 }
-                .total-lbl { font-size: 0.8rem; color: #475569; font-weight: 600; }
-                .total-val { font-size: 1.7rem; font-weight: 800; color: #60a5fa; }
+                .total-lbl { font-size: 0.82rem; color: #64748b; font-weight: 600; }
+                .total-val { font-size: 1.65rem; font-weight: 800; color: #0f172a; }
 
-                /* â”€â”€ Secure note â”€â”€ */
-                .secure {
-                    display: flex; align-items: center; justify-content: center; gap: 0.35rem;
-                    font-size: 0.72rem; color: #334155; margin-top: 0.25rem;
-                }
+                /* Secure */
+                .secure { display: flex; align-items: center; justify-content: center; gap: 0.35rem; font-size: 0.72rem; color: #94a3b8; }
 
-                /* â”€â”€ Outstanding box â”€â”€ */
+                /* Outstanding box */
                 .outstanding-box {
-                    background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(124,58,237,0.08));
-                    border: 1px solid rgba(59,130,246,0.15);
-                    border-radius: 1rem; padding: 1.1rem;
+                    background: #0f172a; border-radius: 0.875rem; padding: 1rem;
                     text-align: center; margin-bottom: 1.25rem;
                 }
-                .outstanding-lbl { font-size: 0.65rem; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+                .outstanding-lbl { font-size: 0.63rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
                 .outstanding-val { font-size: 2rem; font-weight: 800; color: #f8fafc; }
 
-                /* â”€â”€ Success â”€â”€ */
+                /* Success */
                 .success-wrap { text-align: center; padding: 0.5rem 0; }
                 .success-ring {
                     width: 72px; height: 72px; border-radius: 50%;
-                    background: radial-gradient(circle, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%);
-                    border: 2px solid rgba(34,197,94,0.3);
+                    background: #f0fdf4; border: 2px solid #86efac;
                     display: flex; align-items: center; justify-content: center;
-                    margin: 0 auto 1.25rem; color: #22c55e;
+                    margin: 0 auto 1.25rem; color: #16a34a;
                 }
-                .success-title { font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin-bottom: 0.4rem; }
-                .success-sub { font-size: 0.82rem; color: #475569; margin-bottom: 1.75rem; line-height: 1.5; }
+                .success-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem; }
+                .success-sub { font-size: 0.82rem; color: #64748b; margin-bottom: 1.75rem; line-height: 1.6; }
                 .btn-receipt {
                     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
                     width: 100%; padding: 0.875rem;
                     background: #2563eb; color: white; border-radius: 0.875rem;
                     text-decoration: none; font-weight: 700; font-size: 0.875rem;
-                    margin-bottom: 0.625rem; transition: background 0.2s;
+                    margin-bottom: 0.625rem; transition: background 0.18s;
                 }
                 .btn-receipt:hover { background: #1d4ed8; }
 
-                /* â”€â”€ Footer â”€â”€ */
-                .pf { text-align: center; margin-top: 1.75rem; color: #1e293b; font-size: 0.75rem; }
+                /* Footer */
+                .pf { text-align: center; margin-top: 1.75rem; color: #cbd5e1; font-size: 0.75rem; }
 
                 /* iOS zoom prevention */
                 input, select, textarea { font-size: 16px !important; }
 
-                /* ── Mobile ── */
+                /* Mobile */
                 @media (max-width: 480px) {
-                    .pr { padding: 1.25rem 0.75rem 3rem; }
+                    .pr { padding: 1.25rem 0.875rem 3rem; }
                     .ph { margin-bottom: 1.5rem; }
-                    .ph-logo { height: 40px; margin-bottom: 0.625rem; }
+                    .ph-logo { height: 42px; }
                     .ph-title { font-size: 1.15rem; }
-                    .ph-sub { font-size: 0.78rem; }
                     .steps { margin-bottom: 1.25rem; }
-                    .step-pill { font-size: 0.63rem; padding: 0.28rem 0.55rem; gap: 0.28rem; }
-                    .step-num { width: 18px; height: 18px; font-size: 0.6rem; }
+                    .step-pill { font-size: 0.65rem; padding: 0.28rem 0.6rem; gap: 0.28rem; }
+                    .step-num { width: 18px; height: 18px; font-size: 0.58rem; }
                     .step-line { width: 12px; }
                     .pc { border-radius: 1rem; }
-                    .pc-body { padding: 1.25rem 1rem 1.5rem; }
-                    .sec-title { font-size: 0.95rem; }
-                    .sec-sub { font-size: 0.72rem; }
-                    .bg { gap: 0.625rem; }
-                    .bb { padding: 0.9rem 0.625rem 0.85rem; border-radius: 0.875rem; }
-                    .bb-code { font-size: 1.05rem; }
-                    .bb-name { font-size: 0.7rem; }
-                    .fi { padding: 0.8rem 1rem 0.8rem 2.75rem; border-radius: 0.75rem; }
-                    .btn-blue, .btn-green, .btn-outline { padding: 0.85rem; font-size: 0.875rem; border-radius: 0.75rem; }
-                    .confirm-card { padding: 1.1rem 1rem; }
-                    .confirm-avatar { width: 48px; height: 48px; font-size: 0.95rem; margin-bottom: 0.75rem; }
-                    .confirm-name { font-size: 0.975rem; margin-bottom: 0.75rem; }
-                    .confirm-grid { gap: 0.5rem; }
-                    .confirm-item { padding: 0.5rem 0.625rem; }
-                    .confirm-item-value { font-size: 0.78rem; }
-                    .outstanding-box { padding: 0.875rem; }
-                    .outstanding-val { font-size: 1.65rem; }
-                    .fc { padding: 0.875rem; border-radius: 0.875rem; }
-                    .fc-type { font-size: 0.82rem; }
-                    .fc-inp { padding: 0.7rem 4rem 0.7rem 2rem; border-radius: 0.625rem; }
-                    .total-row { padding: 0.875rem 0 1rem; }
+                    .pc-body { padding: 1.25rem 1.1rem 1.5rem; }
+                    .bb { padding: 0.875rem 0.625rem; }
+                    .bb-code { font-size: 1rem; }
+                    .confirm-card { padding: 1.1rem; }
+                    .confirm-avatar { width: 48px; height: 48px; font-size: 0.95rem; }
+                    .confirm-name { font-size: 0.975rem; }
+                    .outstanding-val { font-size: 1.7rem; }
                     .total-val { font-size: 1.45rem; }
-                    .sc { padding: 0.8rem 0.875rem; border-radius: 0.875rem; }
-                    .sc-avatar { width: 36px; height: 36px; font-size: 0.7rem; }
-                    .sc-name { font-size: 0.85rem; }
-                    .sc-meta { font-size: 0.7rem; }
-                    .success-ring { width: 64px; height: 64px; }
-                    .success-title { font-size: 1.1rem; }
+                    .btn-blue, .btn-green { padding: 0.875rem; font-size: 0.9rem; }
                 }
-
                 @media (max-width: 360px) {
                     .bg { grid-template-columns: 1fr; }
                     .confirm-grid { grid-template-columns: 1fr; }
-                    .step-pill span:not(.step-num) { display: none; }
+                    .step-pill > span:last-child { display: none; }
                 }
+
             `}</style>
 
             <div className="pr">
-                {/* Header */}
                 <div className="ph">
                     <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" />
                     <div className="ph-title">Fee Payment Portal</div>
                     <div className="ph-sub">Secure online payment for school fees</div>
                 </div>
 
-                {/* Step indicator */}
                 <div className="steps">
                     {['Branch', 'Search', 'Student', 'Pay'].map((label, i) => {
                         const s = i + 1;
@@ -474,15 +400,15 @@ export default function PublicPaymentPage() {
                 <div className="pc">
                     <div className="pc-body">
 
-                        {/* â”€â”€ Branch â”€â”€ */}
+                        {/* Branch */}
                         {step === 'branch' && (
                             <div>
                                 <div className="sec-head" style={{ alignItems: 'center' }}>
                                     <div>
                                         <div className="sec-title">Select Branch</div>
-                                        <div className="sec-sub">Choose your ward's school branch</div>
+                                        <div className="sec-sub">Choose your ward&apos;s school branch</div>
                                     </div>
-                                    <Building2 size={20} color="#334155" />
+                                    <Building2 size={20} color="#94a3b8" />
                                 </div>
                                 <div className="bg">
                                     {branches.map(b => (
@@ -493,25 +419,24 @@ export default function PublicPaymentPage() {
                                     ))}
                                 </div>
                                 {branches.length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#334155', padding: '1.5rem 0', fontSize: '0.85rem' }}>Loadingâ€¦</p>
+                                    <p style={{ textAlign: 'center', color: '#94a3b8', padding: '1.5rem 0', fontSize: '0.85rem' }}>Loading...</p>
                                 )}
                             </div>
                         )}
 
-                        {/* â”€â”€ Search â”€â”€ */}
+                        {/* Search */}
                         {step === 'search' && (
                             <div>
                                 <div className="sec-head">
                                     <div>
                                         <div className="sec-title">Find Student</div>
                                         <div className="sec-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />
                                             {selectedBranch?.name}
                                         </div>
                                     </div>
                                     <button className="back-btn" onClick={() => setStep('branch')}>Change Branch</button>
                                 </div>
-
                                 <label className="fl">Parent / Guardian Mobile</label>
                                 <div className="fw">
                                     <span className="fi-icon"><Phone size={16} /></span>
@@ -525,33 +450,27 @@ export default function PublicPaymentPage() {
                                         onKeyDown={e => e.key === 'Enter' && handleSearch()}
                                     />
                                 </div>
-
                                 {noResult && (
                                     <div className="err">
-                                        <span>âš </span> No student found for this number. Please check and retry.
+                                        No student found for this number. Please check and retry.
                                     </div>
                                 )}
-
-                                <button
-                                    className="btn-blue"
-                                    onClick={handleSearch}
-                                    disabled={isSearching || phone.length < 10}
-                                >
+                                <button className="btn-blue" onClick={handleSearch} disabled={isSearching || phone.length < 10}>
                                     {isSearching
-                                        ? <><Loader2 size={17} className="animate-spin" /> Searchingâ€¦</>
-                                        : <><Search size={17} /> Search</>
+                                        ? <><Loader2 size={17} className="animate-spin" /> Searching...</>
+                                        : <><Search size={17} /> Search Student</>
                                     }
                                 </button>
                             </div>
                         )}
 
-                        {/* â”€â”€ Select (multiple) â”€â”€ */}
+                        {/* Select (multiple results) */}
                         {step === 'select' && (
                             <div>
                                 <div className="sec-head">
                                     <div>
                                         <div className="sec-title">Select Student</div>
-                                        <div className="sec-sub">{searchResults.length} students found for {phone}</div>
+                                        <div className="sec-sub">{searchResults.length} students found</div>
                                     </div>
                                     <button className="back-btn" onClick={() => setStep('search')}>Back</button>
                                 </div>
@@ -565,16 +484,16 @@ export default function PublicPaymentPage() {
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div className="sc-name">{s.firstName} {s.lastName}</div>
                                             <div className="sc-meta">
-                                                {s.class?.name}{s.class?.section ? ` Â· ${s.class.section}` : ''} &nbsp;Â·&nbsp; Adm: {s.admissionNo}
+                                                {s.class?.name}{s.class?.section ? ` (${s.class.section})` : ''} &bull; Adm: {s.admissionNo}
                                             </div>
                                         </div>
-                                        <ChevronRight size={16} color="#334155" style={{ flexShrink: 0 }} />
+                                        <ChevronRight size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
                                     </button>
                                 ))}
                             </div>
                         )}
 
-                        {/* â”€â”€ Confirm student â”€â”€ */}
+                        {/* Confirm student */}
                         {step === 'confirm' && selectedStudent && (
                             <div>
                                 <div className="sec-head">
@@ -584,7 +503,6 @@ export default function PublicPaymentPage() {
                                     </div>
                                     <button className="back-btn" onClick={() => setStep(searchResults.length > 1 ? 'select' : 'search')}>Back</button>
                                 </div>
-
                                 <div className="confirm-card">
                                     <div className="confirm-avatar">{getInitials(selectedStudent)}</div>
                                     <div className="confirm-name">{selectedStudent.firstName} {selectedStudent.lastName}</div>
@@ -592,44 +510,39 @@ export default function PublicPaymentPage() {
                                         <div className="confirm-item">
                                             <div className="confirm-item-label">Class</div>
                                             <div className="confirm-item-value">
-                                                {selectedStudent.class?.name ?? 'â€”'}{selectedStudent.class?.section ? ` (${selectedStudent.class.section})` : ''}
+                                                {selectedStudent.class?.name ?? '-'}{selectedStudent.class?.section ? ` (${selectedStudent.class.section})` : ''}
                                             </div>
                                         </div>
                                         <div className="confirm-item">
                                             <div className="confirm-item-label">Admission No</div>
-                                            <div className="confirm-item-value">{selectedStudent.admissionNo ?? 'â€”'}</div>
+                                            <div className="confirm-item-value">{selectedStudent.admissionNo ?? '-'}</div>
                                         </div>
                                         <div className="confirm-item" style={{ gridColumn: '1 / -1' }}>
                                             <div className="confirm-item-label">Parent / Father</div>
-                                            <div className="confirm-item-value">{selectedStudent.parentName ?? 'â€”'}</div>
+                                            <div className="confirm-item-value">{selectedStudent.parentName ?? '-'}</div>
                                         </div>
                                     </div>
                                     <div className="confirm-check">
                                         <ShieldCheck size={13} /> Verified from school records
                                     </div>
                                 </div>
-
-                                <button
-                                    className="btn-blue"
-                                    onClick={() => handleConfirmStudent(selectedStudent)}
-                                    disabled={isLoadingFees}
-                                >
+                                <button className="btn-blue" onClick={() => handleConfirmStudent(selectedStudent)} disabled={isLoadingFees}>
                                     {isLoadingFees
-                                        ? <><Loader2 size={17} className="animate-spin" /> Loading feesâ€¦</>
-                                        : <>Proceed to Pay &nbsp;<ChevronRight size={16} /></>
+                                        ? <><Loader2 size={17} className="animate-spin" /> Loading fees...</>
+                                        : <>Proceed to Pay <ChevronRight size={16} /></>
                                     }
                                 </button>
                             </div>
                         )}
 
-                        {/* â”€â”€ Pay â”€â”€ */}
+                        {/* Pay */}
                         {step === 'pay' && feeDetails && (
                             <div>
                                 <div className="sec-head">
                                     <div>
                                         <div className="sec-title">Fee Details</div>
                                         <div className="sec-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                                             {selectedStudent?.firstName} {selectedStudent?.lastName}
                                         </div>
                                     </div>
@@ -638,12 +551,12 @@ export default function PublicPaymentPage() {
 
                                 <div className="outstanding-box">
                                     <div className="outstanding-lbl">Total Outstanding</div>
-                                    <div className="outstanding-val">â‚¹{feeDetails.totalDue.toLocaleString('en-IN')}</div>
+                                    <div className="outstanding-val">{Rs}{feeDetails.totalDue.toLocaleString('en-IN')}</div>
                                 </div>
 
                                 {feeDetails.fees.length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#475569', padding: '1.5rem 0', fontSize: '0.875rem' }}>
-                                        No outstanding fees â€” all clear! âœ“
+                                    <p style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem 0', fontSize: '0.875rem' }}>
+                                        No outstanding fees. All clear!
                                     </p>
                                 )}
 
@@ -651,10 +564,10 @@ export default function PublicPaymentPage() {
                                     <div key={fee.id} className="fc">
                                         <div className="fc-head">
                                             <span className="fc-type">{fee.type}</span>
-                                            <span className="fc-due">Due <span>â‚¹{fee.due.toLocaleString('en-IN')}</span></span>
+                                            <span className="fc-due">Due <span>{Rs}{fee.due.toLocaleString('en-IN')}</span></span>
                                         </div>
                                         <div className="fc-inp-wrap">
-                                            <span className="fc-sym">â‚¹</span>
+                                            <span className="fc-sym">{Rs}</span>
                                             <input
                                                 className="fc-inp"
                                                 type="number"
@@ -672,16 +585,12 @@ export default function PublicPaymentPage() {
 
                                 <div className="total-row">
                                     <span className="total-lbl">Paying Now</span>
-                                    <span className="total-val">â‚¹{getTotalPayAmount().toLocaleString('en-IN')}</span>
+                                    <span className="total-val">{Rs}{getTotalPayAmount().toLocaleString('en-IN')}</span>
                                 </div>
 
-                                <button
-                                    className="btn-green"
-                                    onClick={handlePayment}
-                                    disabled={isProcessing || getTotalPayAmount() <= 0}
-                                >
+                                <button className="btn-green" onClick={handlePayment} disabled={isProcessing || getTotalPayAmount() <= 0}>
                                     {isProcessing
-                                        ? <><Loader2 size={20} className="animate-spin" /> Processingâ€¦</>
+                                        ? <><Loader2 size={20} className="animate-spin" /> Processing...</>
                                         : <><CreditCard size={20} /> Pay Securely</>
                                     }
                                 </button>
@@ -692,7 +601,7 @@ export default function PublicPaymentPage() {
                             </div>
                         )}
 
-                        {/* â”€â”€ Success â”€â”€ */}
+                        {/* Success */}
                         {step === 'success' && (
                             <div className="success-wrap">
                                 <div className="success-ring">
@@ -702,19 +611,12 @@ export default function PublicPaymentPage() {
                                 <div className="success-sub">
                                     Your payment has been recorded.<br />Download your receipt(s) below.
                                 </div>
-
                                 {transactionSuccess?.payments.map((p: any) => (
-                                    <Link
-                                        key={p.id}
-                                        href={`/api/receipts/${p.id}/download`}
-                                        target="_blank"
-                                        className="btn-receipt"
-                                    >
+                                    <Link key={p.id} href={`/api/receipts/${p.id}/download`} target="_blank" className="btn-receipt">
                                         <Download size={17} />
-                                        Receipt â€” {p.fee?.type || 'General'}
+                                        Receipt &mdash; {p.fee?.type || 'General'}
                                     </Link>
                                 ))}
-
                                 <button
                                     className="btn-outline"
                                     style={{ marginTop: '0.5rem' }}
