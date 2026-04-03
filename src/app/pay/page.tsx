@@ -26,6 +26,15 @@ export default function PublicPaymentPage() {
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
+    // Load Razorpay checkout script once on mount
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+        return () => { document.body.removeChild(script); };
+    }, []);
+
     const handleBranchSelect = (branch: { id: string; name: string; code: string }) => {
         setSelectedBranch(branch);
         setPhone('');
@@ -81,19 +90,84 @@ export default function PublicPaymentPage() {
         Object.values(paymentInputs).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
     const handlePayment = async () => {
-        if (getTotalPayAmount() <= 0) return;
+        const total = getTotalPayAmount();
+        if (total <= 0) return;
         setIsProcessing(true);
+
         const payments = Object.entries(paymentInputs)
             .map(([feeId, val]) => ({ feeId, amount: parseFloat(val) || 0 }))
             .filter(p => p.amount > 0);
-        await new Promise(r => setTimeout(r, 1500));
+
         try {
-            const result = await processPublicPayment(selectedStudent.id, payments);
-            setTransactionSuccess(result);
-            setStep('success');
+            // 1. Create Razorpay order on the server
+            const orderRes = await fetch('/api/razorpay/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: total }),
+            });
+
+            if (!orderRes.ok) throw new Error('Failed to create payment order');
+
+            const { orderId, amount: orderAmount, currency } = await orderRes.json();
+
+            // 2. Open Razorpay checkout
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                amount: orderAmount,
+                currency,
+                name: 'Sprout School',
+                description: 'Fee Payment',
+                image: '/sprout-logo.png',
+                order_id: orderId,
+                prefill: {
+                    name: selectedStudent?.parentName || `${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
+                    contact: selectedStudent?.phone || '',
+                },
+                theme: { color: '#2563eb' },
+                handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+                    try {
+                        // 3. Verify payment signature on the server
+                        const verifyRes = await fetch('/api/razorpay/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                            }),
+                        });
+
+                        const { verified } = await verifyRes.json();
+
+                        if (!verified) {
+                            alert('Payment verification failed. Please contact the school office.');
+                            setIsProcessing(false);
+                            return;
+                        }
+
+                        // 4. Record the payment in the database
+                        const result = await processPublicPayment(selectedStudent.id, payments);
+                        setTransactionSuccess(result);
+                        setStep('success');
+                    } catch {
+                        alert('Payment was captured but recording failed. Please contact the school office with your Razorpay ID: ' + response.razorpay_payment_id);
+                    } finally {
+                        setIsProcessing(false);
+                    }
+                },
+                modal: {
+                    ondismiss: () => { setIsProcessing(false); },
+                },
+            };
+
+            const rzp = new (window as any).Razorpay(options);
+            rzp.on('payment.failed', () => {
+                alert('Payment failed. Please try again.');
+                setIsProcessing(false);
+            });
+            rzp.open();
         } catch {
-            alert('Payment failed. Please try again.');
-        } finally {
+            alert('Could not initiate payment. Please try again.');
             setIsProcessing(false);
         }
     };

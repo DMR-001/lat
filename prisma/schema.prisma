@@ -194,17 +194,18 @@ model Fee {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  receiptNo String   @unique
-  amount    Float
-  date      DateTime @default(now())
-  method    String   // CASH, CARD, ONLINE
-  feeId     String
-  fee       Fee      @relation(fields: [feeId], references: [id])
-  branchId  String?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  receiptNo         String   @unique
+  amount            Float
+  date              DateTime @default(now())
+  method            String   // CASH, CARD, ONLINE
+  feeId             String
+  fee               Fee      @relation(fields: [feeId], references: [id])
+  branchId          String?
+  branch            Branch?  @relation(fields: [branchId], references: [id])
+  razorpayPaymentId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model FeeStructure {
