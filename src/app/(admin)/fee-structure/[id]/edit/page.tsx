@@ -1,24 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createFeeStructure } from '@/app/actions/fee-structure';
-import { getClasses } from '@/app/actions/class';
-import { getAllAcademicYears } from '@/app/actions/academic-year';
+import { getFeeStructureById, updateFeeStructure } from '@/app/actions/fee-structure';
 import Link from 'next/link';
 import { ArrowLeft, DollarSign } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function NewFeeStructurePage() {
+export default function EditFeeStructurePage() {
     const router = useRouter();
+    const params = useParams();
+    const id = params.id as string;
+
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
     const [error, setError] = useState('');
-    const [classes, setClasses] = useState<any[]>([]);
-    const [academicYears, setAcademicYears] = useState<any[]>([]);
+    const [structureInfo, setStructureInfo] = useState<{ name: string; className: string; academicYear: string } | null>(null);
 
     const [formData, setFormData] = useState({
         name: '',
-        classId: '',
-        academicYearId: '',
         tuitionFee: 0,
         transportFee: 0,
         booksFee: 0,
@@ -26,19 +25,40 @@ export default function NewFeeStructurePage() {
         examFee: 0,
         otherFee: 0,
         installments: 1,
-        lateFeePerDay: 0
+        lateFeePerDay: 0,
+        isActive: true
     });
 
     useEffect(() => {
-        loadData();
-    }, []);
+        loadFeeStructure();
+    }, [id]);
 
-    const loadData = async () => {
-        const classesResult = await getClasses();
-        const yearsResult = await getAllAcademicYears();
-
-        if (classesResult) setClasses(classesResult);
-        if (yearsResult.success) setAcademicYears(yearsResult.years || []);
+    const loadFeeStructure = async () => {
+        setFetching(true);
+        const result = await getFeeStructureById(id);
+        if (result.success && result.feeStructure) {
+            const fs = result.feeStructure;
+            setFormData({
+                name: fs.name,
+                tuitionFee: fs.tuitionFee,
+                transportFee: fs.transportFee,
+                booksFee: fs.booksFee,
+                uniformFee: fs.uniformFee,
+                examFee: fs.examFee,
+                otherFee: fs.otherFee,
+                installments: fs.installments,
+                lateFeePerDay: fs.lateFeePerDay,
+                isActive: fs.isActive
+            });
+            setStructureInfo({
+                name: fs.name,
+                className: fs.class?.name || 'All Classes',
+                academicYear: fs.academicYear?.name || 'All Years'
+            });
+        } else {
+            setError('Fee structure not found');
+        }
+        setFetching(false);
     };
 
     const totalFee = formData.tuitionFee + formData.transportFee + formData.booksFee +
@@ -49,24 +69,33 @@ export default function NewFeeStructurePage() {
         setLoading(true);
         setError('');
 
-        const result = await createFeeStructure({
-            ...formData,
-            classId: formData.classId || undefined,
-            academicYearId: formData.academicYearId || undefined
-        });
+        const result = await updateFeeStructure(id, formData);
 
         if (result.success) {
-            const msg = result.studentsAssigned
-                ? 'Fee structure created and automatically assigned to all students in the selected class.'
-                : 'Fee structure created. (No class selected — no auto-assignment.)';
-            alert(msg);
             router.push('/fee-structure');
         } else {
-            setError(result.error || 'Failed to create fee structure');
+            setError(result.error || 'Failed to update fee structure');
         }
 
         setLoading(false);
     };
+
+    if (fetching) {
+        return (
+            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Loading fee structure...
+            </div>
+        );
+    }
+
+    if (!fetching && !structureInfo) {
+        return (
+            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
+                <p style={{ color: 'red' }}>Fee structure not found.</p>
+                <Link href="/fee-structure" className="btn btn-secondary">Back to Fee Structures</Link>
+            </div>
+        );
+    }
 
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -75,7 +104,12 @@ export default function NewFeeStructurePage() {
                     <ArrowLeft size={18} />
                     Back to Fee Structures
                 </Link>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', margin: 0 }}>Create Fee Structure</h1>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', margin: 0 }}>Edit Fee Structure</h1>
+                {structureInfo && (
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+                        {structureInfo.className} &mdash; {structureInfo.academicYear}
+                    </p>
+                )}
             </div>
 
             <form onSubmit={handleSubmit} className="card" style={{ padding: '2.5rem' }}>
@@ -99,38 +133,20 @@ export default function NewFeeStructurePage() {
                             />
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                                Class <span style={{ fontSize: '0.875rem', fontWeight: '400', color: 'var(--text-secondary)' }}>(Optional)</span>
+                        <div style={{ gridColumn: 'span 2' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Status</label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isActive}
+                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                    style={{ width: '1.1rem', height: '1.1rem' }}
+                                />
+                                <span style={{ fontWeight: '500' }}>Active</span>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                    (Inactive structures will not be available for new fee assignments)
+                                </span>
                             </label>
-                            <select
-                                value={formData.classId}
-                                onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                                className="input"
-                                style={{ width: '100%' }}
-                            >
-                                <option value="">All Classes</option>
-                                {classes.map((cls) => (
-                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                                Academic Year <span style={{ fontSize: '0.875rem', fontWeight: '400', color: 'var(--text-secondary)' }}>(Optional)</span>
-                            </label>
-                            <select
-                                value={formData.academicYearId}
-                                onChange={(e) => setFormData({ ...formData, academicYearId: e.target.value })}
-                                className="input"
-                                style={{ width: '100%' }}
-                            >
-                                <option value="">All Years</option>
-                                {academicYears.map((year) => (
-                                    <option key={year.id} value={year.id}>{year.name}</option>
-                                ))}
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -286,7 +302,7 @@ export default function NewFeeStructurePage() {
                         className="btn btn-primary"
                         style={{ padding: '0.75rem 1.5rem' }}
                     >
-                        {loading ? 'Creating...' : 'Create Fee Structure'}
+                        {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
             </form>

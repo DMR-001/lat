@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { CreditCard, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Download, Tag } from 'lucide-react';
 import { getFilterContext } from '@/lib/filter-context';
 
 export default async function FeesPage() {
@@ -98,7 +98,9 @@ export default async function FeesPage() {
                         <tr>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Student</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Type</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Amount</th>
+                            <th style={{ padding: '1rem', fontWeight: '500' }}>Original</th>
+                            <th style={{ padding: '1rem', fontWeight: '500' }}>Discount</th>
+                            <th style={{ padding: '1rem', fontWeight: '500' }}>Final Amount</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Paid</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Due</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Due Date</th>
@@ -118,7 +120,19 @@ export default async function FeesPage() {
                                 <tr key={fee.id} style={{ borderTop: '1px solid var(--border)' }}>
                                     <td style={{ padding: '1rem', fontWeight: '500' }}>{fee.student.firstName} {fee.student.lastName}</td>
                                     <td style={{ padding: '1rem' }}>{fee.type}</td>
-                                    <td style={{ padding: '1rem' }}>₹{fee.amount.toFixed(2)}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        ₹{(fee.originalAmount > 0 ? fee.originalAmount : fee.amount).toFixed(2)}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        {fee.discountAmount > 0 ? (
+                                            <span style={{ color: 'var(--error)', fontWeight: '500' }} title={fee.discountReason || ''}>
+                                                - ₹{fee.discountAmount.toFixed(2)}
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem', fontWeight: '600' }}>₹{fee.amount.toFixed(2)}</td>
                                     <td style={{ padding: '1rem', color: 'var(--success)' }}>₹{fee.paidAmount.toFixed(2)}</td>
                                     <td style={{ padding: '1rem', color: 'var(--error)' }}>₹{(fee.amount - fee.paidAmount).toFixed(2)}</td>
                                     <td style={{ padding: '1rem' }}>{fee.dueDate.toLocaleDateString()}</td>
@@ -134,11 +148,20 @@ export default async function FeesPage() {
                                         </span>
                                     </td>
                                     <td style={{ padding: '1rem' }}>
-                                        {fee.status !== 'PAID' && (
-                                            <Link href={`/fees/${fee.id}/pay`} style={{ color: 'var(--primary)', fontWeight: '500' }}>
-                                                Record Payment
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <Link
+                                                href={`/fees/${fee.id}/discount`}
+                                                style={{ color: 'var(--primary)', fontWeight: '500', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                title="Apply Discount"
+                                            >
+                                                <Tag size={14} /> Discount
                                             </Link>
-                                        )}
+                                            {fee.status !== 'PAID' && (
+                                                <Link href={`/fees/${fee.id}/pay`} style={{ color: 'var(--success)', fontWeight: '500', fontSize: '0.85rem' }}>
+                                                    Pay
+                                                </Link>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))

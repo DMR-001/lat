@@ -130,3 +130,30 @@ export async function recordPayment(formData: FormData) {
     revalidatePath('/fees');
     redirect('/fees');
 }
+
+export async function applyDiscount(feeId: string, discountAmount: number, discountReason: string) {
+    const fee = await prisma.fee.findUnique({ where: { id: feeId } });
+    if (!fee) return { success: false, error: 'Fee not found' };
+
+    const base = fee.originalAmount > 0 ? fee.originalAmount : fee.amount;
+    if (discountAmount < 0 || discountAmount > base) {
+        return { success: false, error: 'Discount must be between 0 and the original fee amount' };
+    }
+
+    const newAmount = base - discountAmount;
+    const newStatus = fee.paidAmount >= newAmount ? 'PAID' : fee.status === 'PAID' ? 'PENDING' : fee.status;
+
+    await prisma.fee.update({
+        where: { id: feeId },
+        data: {
+            originalAmount: base,
+            discountAmount,
+            discountReason: discountReason || null,
+            amount: newAmount,
+            status: newStatus
+        }
+    });
+
+    revalidatePath('/fees');
+    return { success: true };
+}

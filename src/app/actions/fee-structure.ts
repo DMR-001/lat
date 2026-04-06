@@ -42,8 +42,49 @@ export async function createFeeStructure(data: {
             }
         });
 
+        // Auto-assign fees to all students in the class
+        if (data.classId) {
+            const students = await prisma.student.findMany({
+                where: {
+                    classId: data.classId,
+                    ...(branchId ? { branchId } : {})
+                },
+                select: { id: true }
+            });
+
+            // Determine due date: use academic year end date if available, else 3 months from now
+            let dueDate: Date;
+            if (data.academicYearId) {
+                const ay = await prisma.academicYear.findUnique({
+                    where: { id: data.academicYearId },
+                    select: { endDate: true }
+                });
+                dueDate = ay?.endDate ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+            } else {
+                dueDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+            }
+
+            if (students.length > 0) {
+                await prisma.fee.createMany({
+                    data: students.map((s) => ({
+                        studentId: s.id,
+                        feeStructureId: feeStructure.id,
+                        academicYearId: data.academicYearId || null,
+                        type: 'ANNUAL',
+                        amount: totalFee,
+                        originalAmount: totalFee,
+                        paidAmount: 0,
+                        dueDate,
+                        status: 'PENDING'
+                    })),
+                    skipDuplicates: false
+                });
+            }
+        }
+
         revalidatePath('/fee-structure');
-        return { success: true, feeStructure };
+        revalidatePath('/fees');
+        return { success: true, feeStructure, studentsAssigned: data.classId ? true : false };
     } catch (error: any) {
         return { success: false, error: error.message };
     }
@@ -135,7 +176,29 @@ export async function updateFeeStructure(id: string, data: {
             }
         });
 
+        // Sync all pending fees that were auto-assigned from this structure
+        // Update their originalAmount and recalculate amount = newTotal - existing discount
+        const linkedFees = await prisma.fee.findMany({
+            where: { feeStructureId: id, status: { not: 'PAID' } },
+            select: { id: true, discountAmount: true }
+        });
+
+        if (linkedFees.length > 0) {
+            await Promise.all(
+                linkedFees.map((f) =>
+                    prisma.fee.update({
+                        where: { id: f.id },
+                        data: {
+                            originalAmount: totalFee,
+                            amount: Math.max(0, totalFee - (f.discountAmount ?? 0))
+                        }
+                    })
+                )
+            );
+        }
+
         revalidatePath('/fee-structure');
+        revalidatePath('/fees');
         return { success: true, feeStructure };
     } catch (error: any) {
         return { success: false, error: error.message };
