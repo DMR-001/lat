@@ -7,6 +7,7 @@ import { getBranches, createBranch, updateBranch, deleteBranch } from '@/app/act
 import { createBackup, getBackups, downloadBackup, deleteBackup, restoreBackup } from '@/app/actions/backup';
 import ClassManager from './ClassManager';
 import { Plus, Trash2, Download, Upload, Database, Building2, RefreshCw, Edit2, X } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { refreshHeader } from '@/lib/events';
 
 type Branch = { id: string; name: string; code: string; address?: string | null; phone?: string | null; email?: string | null; isActive: boolean };
@@ -21,6 +22,7 @@ export default function SettingsPage() {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [backups, setBackups] = useState<Backup[]>([]);
     const [backupLoading, setBackupLoading] = useState(false);
+    const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; warningNote?: string; onConfirm: () => void } | null>(null);
 
     // Branch form
     const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '', email: '' });
@@ -114,17 +116,22 @@ export default function SettingsPage() {
         setLoading(false);
     };
 
-    const handleDeleteBranch = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this branch? All associated data will remain but need to be reassigned.')) return;
-        const result = await deleteBranch(id);
-        if (result.success) {
-            loadBranches();
-            refreshHeader();
-            setSuccess('Branch deleted');
-            setTimeout(() => setSuccess(''), 3000);
-        } else {
-            setError(result.error || 'Failed to delete branch');
-        }
+    const handleDeleteBranch = (id: string) => {
+        setConfirmDialog({
+            title: 'Delete Branch',
+            message: 'Are you sure you want to delete this branch? All associated data will remain but will need to be reassigned.',
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                        if (result.success) {
+                    loadBranches();
+                    refreshHeader();
+                    setSuccess('Branch deleted');
+                    setTimeout(() => setSuccess(''), 3000);
+                } else {
+                    setError(result.error || 'Failed to delete branch');
+                }
+            }
+        });
     };
 
     const handleUpdateBranch = async () => {
@@ -181,32 +188,43 @@ export default function SettingsPage() {
         }
     };
 
-    const handleDeleteBackup = async (id: string, filename: string) => {
-        if (!confirm('Delete this backup?')) return;
-        const result = await deleteBackup(id, filename);
-        if (result.success) {
-            loadBackups();
-            setSuccess('Backup deleted');
-            setTimeout(() => setSuccess(''), 3000);
-        } else {
-            setError(result.error || 'Failed to delete backup');
-        }
+    const handleDeleteBackup = (id: string, filename: string) => {
+        setConfirmDialog({
+            title: 'Delete Backup',
+            message: `Delete backup "${filename}"? This cannot be undone.`,
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                const result = await deleteBackup(id, filename);
+                if (result.success) {
+                    loadBackups();
+                    setSuccess('Backup deleted');
+                    setTimeout(() => setSuccess(''), 3000);
+                } else {
+                    setError(result.error || 'Failed to delete backup');
+                }
+            }
+        });
     };
 
-    const handleRestoreBackup = async (file: File) => {
-        if (!confirm('WARNING: This will replace ALL existing data. Are you absolutely sure?')) return;
-        if (!confirm('FINAL WARNING: This action cannot be undone. Continue?')) return;
-
-        setBackupLoading(true);
-        const content = await file.text();
-        const result = await restoreBackup(content);
-        if (result.success) {
-            setSuccess('Backup restored successfully! Page will reload...');
-            setTimeout(() => window.location.reload(), 2000);
-        } else {
-            setError(result.error || 'Failed to restore backup');
-        }
-        setBackupLoading(false);
+    const handleRestoreBackup = (file: File) => {
+        setConfirmDialog({
+            title: 'Restore Backup',
+            message: 'This will replace ALL existing school data with the backup. This action cannot be undone.',
+            warningNote: 'All current students, fees, attendance, and settings will be permanently overwritten.',
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                setBackupLoading(true);
+                const content = await file.text();
+                const result = await restoreBackup(content);
+                if (result.success) {
+                    setSuccess('Backup restored successfully! Page will reload...');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    setError(result.error || 'Failed to restore backup');
+                }
+                setBackupLoading(false);
+            }
+        });
     };
 
     const formatSize = (bytes: number) => {
@@ -992,6 +1010,17 @@ export default function SettingsPage() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {confirmDialog && (
+                <ConfirmDialog
+                    title={confirmDialog.title}
+                    message={confirmDialog.message}
+                    warningNote={confirmDialog.warningNote}
+                    confirmLabel="Confirm"
+                    onConfirm={confirmDialog.onConfirm}
+                    onCancel={() => setConfirmDialog(null)}
+                />
             )}
         </div>
     );

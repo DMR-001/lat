@@ -21,8 +21,10 @@ export default function PublicPaymentPage() {
     const [feeDetails, setFeeDetails] = useState<{ fees: any[]; totalDue: number } | null>(null);
 
     const [paymentInputs, setPaymentInputs] = useState<Record<string, string>>({});
+    const [selectedInstallments, setSelectedInstallments] = useState<Record<string, number[]>>({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionSuccess, setTransactionSuccess] = useState<any>(null);
+    const [payError, setPayError] = useState('');
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
@@ -71,32 +73,82 @@ export default function PublicPaymentPage() {
         try {
             const data = await getStudentFeesPublic(student.id);
             setFeeDetails(data);
-            const initialInputs: Record<string, string> = {};
-            data.fees.forEach((f: any) => { initialInputs[f.id] = ''; });
-            setPaymentInputs(initialInputs);
+            setSelectedInstallments({});
+            setPaymentInputs({});
             setStep('pay');
         } catch {
-            alert('Error fetching fee details. Please try again.');
+            setPayError('Error fetching fee details. Please try again.');
         } finally {
             setIsLoadingFees(false);
         }
     };
 
+    // --- Installment helpers ---
+    const getInstallmentsForFee = (fee: any) => {
+        const n = Math.max(1, fee.feeStructure?.installments || 1);
+        const total = fee.amount;
+        const perInst = total / n;
+        return Array.from({ length: n }, (_, i) => {
+            const instStart = i * perInst;
+            const instEnd = i === n - 1 ? total : (i + 1) * perInst;
+            const faceValue = instEnd - instStart;
+            const paidTowardThis = Math.max(0, Math.min((fee.paidAmount ?? 0) - instStart, faceValue));
+            const due = faceValue - paidTowardThis;
+            return {
+                index: i,
+                label: n === 1 ? 'Full Fee' : `Installment ${i + 1} of ${n}`,
+                faceValue,
+                paid: paidTowardThis,
+                due,
+                isPaid: due <= 0.01,
+            };
+        });
+    };
+
+    const getInstallmentPayAmount = (fee: any): number => {
+        const insts = getInstallmentsForFee(fee);
+        const selected = selectedInstallments[fee.id] || [];
+        return insts
+            .filter(inst => selected.includes(inst.index) && !inst.isPaid)
+            .reduce((sum, inst) => sum + inst.due, 0);
+    };
+
+    const handleInstallmentToggle = (feeId: string, instIndex: number) => {
+        setSelectedInstallments(prev => {
+            const current = prev[feeId] || [];
+            const updated = current.includes(instIndex)
+                ? current.filter(i => i !== instIndex)
+                : [...current, instIndex];
+            return { ...prev, [feeId]: updated };
+        });
+    };
+
+    const handleSelectAll = (fee: any) => {
+        const insts = getInstallmentsForFee(fee);
+        const unpaid = insts.filter(i => !i.isPaid).map(i => i.index);
+        const current = selectedInstallments[fee.id] || [];
+        const allSelected = unpaid.every(i => current.includes(i));
+        setSelectedInstallments(prev => ({ ...prev, [fee.id]: allSelected ? [] : unpaid }));
+    };
+    // --- end installment helpers ---
+
     const handleInputChange = (feeId: string, val: string) => {
         setPaymentInputs(prev => ({ ...prev, [feeId]: val }));
     };
 
-    const getTotalPayAmount = () =>
-        Object.values(paymentInputs).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    const getTotalPayAmount = () => {
+        if (!feeDetails) return 0;
+        return feeDetails.fees.reduce((sum, fee) => sum + getInstallmentPayAmount(fee), 0);
+    };
 
     const handlePayment = async () => {
         const total = getTotalPayAmount();
         if (total <= 0) return;
         setIsProcessing(true);
 
-        const payments = Object.entries(paymentInputs)
-            .map(([feeId, val]) => ({ feeId, amount: parseFloat(val) || 0 }))
-            .filter(p => p.amount > 0);
+        const payments = feeDetails!.fees
+            .map(fee => ({ feeId: fee.id, amount: getInstallmentPayAmount(fee) }))
+            .filter(p => p.amount > 0.01);
 
         try {
             // 1. Create Razorpay order on the server
@@ -140,7 +192,7 @@ export default function PublicPaymentPage() {
                         const { verified } = await verifyRes.json();
 
                         if (!verified) {
-                            alert('Payment verification failed. Please contact the school office.');
+                            setPayError('Payment verification failed. Please contact the school office.');
                             setIsProcessing(false);
                             return;
                         }
@@ -150,7 +202,7 @@ export default function PublicPaymentPage() {
                         setTransactionSuccess(result);
                         setStep('success');
                     } catch {
-                        alert('Payment was captured but recording failed. Please contact the school office with your Razorpay ID: ' + response.razorpay_payment_id);
+                        setPayError('Payment was captured but recording failed. Please contact the school office with your Razorpay ID: ' + response.razorpay_payment_id);
                     } finally {
                         setIsProcessing(false);
                     }
@@ -162,12 +214,12 @@ export default function PublicPaymentPage() {
 
             const rzp = new (window as any).Razorpay(options);
             rzp.on('payment.failed', () => {
-                alert('Payment failed. Please try again.');
+                setPayError('Payment failed. Please try again.');
                 setIsProcessing(false);
             });
             rzp.open();
         } catch {
-            alert('Could not initiate payment. Please try again.');
+            setPayError('Could not initiate payment. Please try again.');
             setIsProcessing(false);
         }
     };
@@ -349,28 +401,47 @@ export default function PublicPaymentPage() {
 
                 /* Fee card */
                 .fc { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.875rem; padding: 1rem; margin-bottom: 0.75rem; }
-                .fc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; }
+                .fc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
                 .fc-type { font-weight: 700; color: #0f172a; font-size: 0.875rem; }
                 .fc-due { font-size: 0.75rem; color: #94a3b8; }
                 .fc-due span { color: #475569; font-weight: 600; }
-                .fc-inp-wrap { position: relative; }
-                .fc-inp {
-                    width: 100%; padding: 0.72rem 4rem 0.72rem 2rem;
-                    background: #fff; border: 1.5px solid #e2e8f0;
-                    border-radius: 0.625rem; color: #0f172a; font-size: 0.9rem; outline: none;
-                    transition: border-color 0.18s, box-shadow 0.18s;
+
+                /* Installment rows */
+                .inst-row {
+                    display: flex; align-items: center; gap: 0.75rem;
+                    padding: 0.6rem 0.75rem; border-radius: 0.625rem;
+                    margin-bottom: 0.375rem; cursor: pointer;
+                    transition: background 0.15s;
+                    border: 1.5px solid transparent;
                 }
-                .fc-inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
-                .fc-inp::placeholder { color: #cbd5e1; }
-                .fc-sym { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem; pointer-events: none; font-weight: 600; }
-                .fc-full {
-                    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-                    background: #eff6ff; border: 1px solid #bfdbfe;
-                    border-radius: 0.375rem; color: #2563eb; font-size: 0.68rem; font-weight: 800;
-                    padding: 0.28rem 0.5rem; cursor: pointer; letter-spacing: 0.03em;
-                    transition: background 0.18s;
+                .inst-row.selectable { background: #fff; border-color: #e2e8f0; }
+                .inst-row.selectable:hover { border-color: #2563eb; background: #eff6ff; }
+                .inst-row.selected { background: #eff6ff; border-color: #2563eb; }
+                .inst-row.paid-row { background: #f0fdf4; border-color: #bbf7d0; cursor: default; opacity: 0.8; }
+                .inst-cb {
+                    width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+                    border: 2px solid #cbd5e1; background: #fff; display: flex; align-items: center;
+                    justify-content: center; transition: all 0.15s;
                 }
-                .fc-full:hover { background: #2563eb; color: white; border-color: #2563eb; }
+                .inst-row.selected .inst-cb { background: #2563eb; border-color: #2563eb; }
+                .inst-row.paid-row .inst-cb { background: #16a34a; border-color: #16a34a; }
+                .inst-label { flex: 1; font-size: 0.82rem; font-weight: 600; color: #1e293b; }
+                .inst-amt { font-size: 0.82rem; font-weight: 700; color: #475569; }
+                .inst-row.selected .inst-amt { color: #1d4ed8; }
+                .inst-row.paid-row .inst-amt { color: #15803d; }
+                .inst-badge {
+                    font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+                    padding: 0.15rem 0.45rem; border-radius: 0.25rem;
+                }
+                .badge-paid { background: #dcfce7; color: #15803d; }
+                .fc-actions { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
+                .fc-selectall {
+                    font-size: 0.7rem; font-weight: 800; color: #2563eb;
+                    background: none; border: none; cursor: pointer; letter-spacing: 0.03em;
+                    padding: 0.2rem 0.4rem; border-radius: 0.3rem;
+                    transition: background 0.15s;
+                }
+                .fc-selectall:hover { background: #eff6ff; }
 
                 /* Total */
                 .total-row {
@@ -634,28 +705,66 @@ export default function PublicPaymentPage() {
                                     </p>
                                 )}
 
-                                {feeDetails.fees.map(fee => (
-                                    <div key={fee.id} className="fc">
-                                        <div className="fc-head">
-                                            <span className="fc-type">{fee.type}</span>
-                                            <span className="fc-due">Due <span>{Rs}{fee.due.toLocaleString('en-IN')}</span></span>
+                                {feeDetails.fees.map(fee => {
+                                    const insts = getInstallmentsForFee(fee);
+                                    const selectedSet = selectedInstallments[fee.id] || [];
+                                    const allUnpaidSelected = insts.filter(i => !i.isPaid).length > 0 &&
+                                        insts.filter(i => !i.isPaid).every(i => selectedSet.includes(i.index));
+                                    const feePayAmt = getInstallmentPayAmount(fee);
+                                    const hasDiscount = fee.discountAmount > 0;
+                                    return (
+                                        <div key={fee.id} className="fc">
+                                            <div className="fc-head">
+                                                <div>
+                                                    <span className="fc-type">{fee.type}</span>
+                                                    {hasDiscount && (
+                                                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#16a34a', background: '#dcfce7', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', marginLeft: '0.4rem' }}>
+                                                            -{Rs}{fee.discountAmount.toLocaleString('en-IN')} off
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="fc-due">{Rs}{fee.due.toLocaleString('en-IN')} due</span>
+                                            </div>
+
+                                            {insts.map(inst => (
+                                                <div
+                                                    key={inst.index}
+                                                    className={`inst-row ${
+                                                        inst.isPaid ? 'paid-row' :
+                                                        selectedSet.includes(inst.index) ? 'selected' : 'selectable'
+                                                    }`}
+                                                    onClick={() => !inst.isPaid && handleInstallmentToggle(fee.id, inst.index)}
+                                                >
+                                                    <div className="inst-cb">
+                                                        {(inst.isPaid || selectedSet.includes(inst.index)) && (
+                                                            <Check size={11} strokeWidth={3} color="white" />
+                                                        )}
+                                                    </div>
+                                                    <span className="inst-label">{inst.label}</span>
+                                                    {inst.isPaid ? (
+                                                        <span className="inst-badge badge-paid">Paid</span>
+                                                    ) : (
+                                                        <span className="inst-amt">{Rs}{inst.due.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            <div className="fc-actions">
+                                                {insts.some(i => !i.isPaid) && (
+                                                    <button className="fc-selectall" onClick={() => handleSelectAll(fee)}>
+                                                        {allUnpaidSelected ? 'Deselect All' : 'Select All'}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {feePayAmt > 0 && (
+                                                <div style={{ marginTop: '0.25rem', textAlign: 'right', fontSize: '0.78rem', color: '#1d4ed8', fontWeight: 700 }}>
+                                                    Paying: {Rs}{feePayAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="fc-inp-wrap">
-                                            <span className="fc-sym">{Rs}</span>
-                                            <input
-                                                className="fc-inp"
-                                                type="number"
-                                                inputMode="decimal"
-                                                placeholder={`Enter amount (max ${fee.due})`}
-                                                value={paymentInputs[fee.id] || ''}
-                                                onChange={e => handleInputChange(fee.id, e.target.value)}
-                                            />
-                                            <button className="fc-full" onClick={() => handleInputChange(fee.id, fee.due.toString())}>
-                                                FULL
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
 
                                 <div className="total-row">
                                     <span className="total-lbl">Paying Now</span>
@@ -668,6 +777,25 @@ export default function PublicPaymentPage() {
                                         : <><CreditCard size={20} /> Pay Securely</>
                                     }
                                 </button>
+                                {payError && (
+                                    <div style={{
+                                        marginTop: '0.75rem',
+                                        padding: '0.9rem 1rem',
+                                        backgroundColor: '#fef2f2',
+                                        border: '1.5px solid #ef4444',
+                                        borderRadius: '0.75rem',
+                                        color: '#b91c1c',
+                                        fontSize: '0.85rem',
+                                        lineHeight: '1.5',
+                                        display: 'flex',
+                                        gap: '0.5rem',
+                                        alignItems: 'flex-start',
+                                    }}>
+                                        <span style={{ fontWeight: '700', flexShrink: 0 }}>⚠</span>
+                                        {payError}
+                                        <button onClick={() => setPayError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: '700', fontSize: '1rem' }} aria-label="Dismiss">×</button>
+                                    </div>
+                                )}
                                 <div className="secure">
                                     <ShieldCheck size={13} />
                                     256-bit SSL encrypted &amp; secure

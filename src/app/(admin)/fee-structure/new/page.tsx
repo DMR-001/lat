@@ -7,11 +7,13 @@ import { getAllAcademicYears } from '@/app/actions/academic-year';
 import Link from 'next/link';
 import { ArrowLeft, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Toast from '@/components/Toast';
 
 export default function NewFeeStructurePage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
     const [classes, setClasses] = useState<any[]>([]);
     const [academicYears, setAcademicYears] = useState<any[]>([]);
 
@@ -58,9 +60,9 @@ export default function NewFeeStructurePage() {
         if (result.success) {
             const msg = result.studentsAssigned
                 ? 'Fee structure created and automatically assigned to all students in the selected class.'
-                : 'Fee structure created. (No class selected — no auto-assignment.)';
-            alert(msg);
-            router.push('/fee-structure');
+                : 'Fee structure created. No class selected — fees were not auto-assigned.';
+            setSuccessMsg(msg);
+            setTimeout(() => router.push('/fee-structure'), 2500);
         } else {
             setError(result.error || 'Failed to create fee structure');
         }
@@ -291,5 +293,9 @@ export default function NewFeeStructurePage() {
                 </div>
             </form>
         </div>
+
+        {successMsg && (
+            <Toast message={successMsg} type="success" onClose={() => setSuccessMsg('')} />
+        )}
     );
 }

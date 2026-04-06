@@ -76,7 +76,10 @@ export async function getStudentFeesPublic(studentId: string) {
             studentId,
         },
         include: {
-            payments: true
+            payments: true,
+            feeStructure: {
+                select: { installments: true, name: true }
+            }
         }
     });
 

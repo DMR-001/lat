@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { getAllFeesByClass } from '@/app/actions/export';
 import { getClasses } from '@/app/actions/class';
 import { Download } from 'lucide-react';
+import Toast from '@/components/Toast';
 
 export default function ExportFeesPage() {
     const [classes, setClasses] = useState<{ id: string; name: string; section?: string | null }[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
     useEffect(() => {
         getClasses().then(cls => {
@@ -26,7 +28,7 @@ export default function ExportFeesPage() {
             const data = await getAllFeesByClass(selectedClass);
 
             if (data.length === 0) {
-                alert('No fees found for this class.');
+                setToast({ message: 'No fees found for this class.', type: 'info' });
                 return;
             }
 
@@ -58,7 +60,7 @@ export default function ExportFeesPage() {
 
         } catch (error) {
             console.error('Export failed:', error);
-            alert('Failed to export fees.');
+            setToast({ message: 'Failed to export fees. Please try again.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -101,5 +103,9 @@ export default function ExportFeesPage() {
                 </button>
             </div>
         </div>
+
+        {toast && (
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
     );
 }

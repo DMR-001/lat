@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { addClass, deleteClass } from '@/app/actions/class';
 import { Trash2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -18,6 +19,7 @@ function SubmitButton() {
 export default function ClassManager({ classes, onUpdate }: { classes: any[]; onUpdate?: () => void }) {
     const formRef = useRef<HTMLFormElement>(null);
     const router = useRouter();
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     const handleAddClass = async (formData: FormData) => {
         await addClass(formData);
@@ -76,11 +78,7 @@ export default function ClassManager({ classes, onUpdate }: { classes: any[]; on
                                 <td style={{ padding: '1rem' }}>{c._count?.students || 0}</td>
                                 <td style={{ padding: '1rem' }}>
                                     <button
-                                        onClick={() => {
-                                            if (confirm('Are you sure you want to delete this class?')) {
-                                                handleDeleteClass(c.id);
-                                            }
-                                        }}
+                                        onClick={() => setConfirmDeleteId(c.id)}
                                         style={{ padding: '0.5rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
                                         title="Delete Class"
                                     >
@@ -93,5 +91,15 @@ export default function ClassManager({ classes, onUpdate }: { classes: any[]; on
                 </tbody>
             </table>
         </div>
+
+        {confirmDeleteId && (
+            <ConfirmDialog
+                title="Delete Class"
+                message="Are you sure you want to delete this class? Students in this class will need to be reassigned."
+                confirmLabel="Delete"
+                onConfirm={() => { setConfirmDeleteId(null); handleDeleteClass(confirmDeleteId); }}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
+        )}
     );
 }

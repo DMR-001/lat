@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { addAdmin, deleteAdmin } from '@/app/actions/management';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type Admin = {
     id: string;
@@ -21,6 +22,7 @@ export default function ManagementClient({ admins, branches }: { admins: Admin[]
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<{ id: string; username: string } | null>(null);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -44,11 +46,13 @@ export default function ManagementClient({ admins, branches }: { admins: Admin[]
     };
 
     const handleDelete = async (id: string, username: string) => {
-        if (!confirm(`Are you sure you want to delete admin "${username}"?`)) {
-            return;
-        }
+        setConfirmDelete({ id, username });
+    };
 
-        const result = await deleteAdmin(id);
+    const handleConfirmDelete = async () => {
+        if (!confirmDelete) return;
+        const result = await deleteAdmin(confirmDelete.id);
+        setConfirmDelete(null);
         if (result.success) {
             router.refresh();
         } else {
@@ -184,5 +188,15 @@ export default function ManagementClient({ admins, branches }: { admins: Admin[]
                 </table>
             </div>
         </div>
+
+        {confirmDelete && (
+            <ConfirmDialog
+                title="Delete Admin"
+                message={`Are you sure you want to delete admin "${confirmDelete.username}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setConfirmDelete(null)}
+            />
+        )}
     );
 }

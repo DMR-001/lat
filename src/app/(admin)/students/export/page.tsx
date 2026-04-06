@@ -5,11 +5,13 @@ import { getStudentsByClass } from '@/app/actions/student_export';
 import { getClasses } from '@/app/actions/class';
 import { Download, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Toast from '@/components/Toast';
 
 export default function ExportStudentsPage() {
     const [classes, setClasses] = useState<{ id: string; name: string; section?: string | null }[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [isExporting, setIsExporting] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
     useEffect(() => {
         getClasses().then(cls => {
@@ -27,7 +29,7 @@ export default function ExportStudentsPage() {
             const data = await getStudentsByClass(selectedClass);
 
             if (data.length === 0) {
-                alert('No students found for this class.');
+                setToast({ message: 'No students found for this class.', type: 'info' });
                 return;
             }
 
@@ -63,7 +65,7 @@ export default function ExportStudentsPage() {
 
         } catch (error) {
             console.error('Export failed:', error);
-            alert('Failed to export students.');
+            setToast({ message: 'Failed to export students. Please try again.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -111,5 +113,9 @@ export default function ExportStudentsPage() {
                 </button>
             </div>
         </div>
+
+        {toast && (
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
     );
 }

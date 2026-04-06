@@ -30,6 +30,64 @@ type ImportResult = {
     count?: number;
 };
 
+/**
+ * For every active fee structure linked to `classId`, create a fee record for
+ * the given student IF one doesn't already exist for that structure.
+ * Pass `studentId` when the student already exists in the DB;
+ * pass `admissionNo` (and omit studentId) when called right after creation and
+ * we need to look the student up.
+ */
+async function autoAssignFeeStructures(
+    classId: string,
+    branchId: string | null,
+    admissionNo: string,
+    studentId?: string
+) {
+    try {
+        const resolvedStudentId = studentId ?? (
+            await prisma.student.findUnique({ where: { admissionNo }, select: { id: true } })
+        )?.id;
+
+        if (!resolvedStudentId) return;
+
+        const structures = await prisma.feeStructure.findMany({
+            where: {
+                classId,
+                isActive: true,
+                ...(branchId ? { branchId } : {}),
+            },
+            include: { academicYear: { select: { endDate: true } } }
+        });
+
+        for (const fs of structures) {
+            // Skip if this student already has a fee from this structure
+            const existing = await prisma.fee.findFirst({
+                where: { studentId: resolvedStudentId, feeStructureId: fs.id }
+            });
+            if (existing) continue;
+
+            const dueDate = fs.academicYear?.endDate
+                ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+
+            await prisma.fee.create({
+                data: {
+                    studentId: resolvedStudentId,
+                    feeStructureId: fs.id,
+                    academicYearId: fs.academicYearId ?? null,
+                    type: 'ANNUAL',
+                    amount: fs.totalFee,
+                    originalAmount: fs.totalFee,
+                    paidAmount: 0,
+                    dueDate,
+                    status: 'PENDING',
+                }
+            });
+        }
+    } catch {
+        // Non-fatal — fee assignment failure should not break student creation
+    }
+}
+
 function parseDate(dateString: string | undefined): Date {
     if (!dateString) return new Date();
 
@@ -156,6 +214,9 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                     });
                 }
 
+                // 3.6. Auto-assign fee structures for the class
+                await autoAssignFeeStructures(classRecord.id, branchId, admissionNo, student.id);
+
                 // 4. Create Fee Record (if provided)
                 if (row.feeAmount && !isNaN(parseFloat(row.feeAmount))) {
                     const amount = parseFloat(row.feeAmount);
@@ -262,6 +323,9 @@ export async function addStudent(formData: FormData) {
         },
     });
 
+    // Auto-assign any active fee structures for this class
+    await autoAssignFeeStructures(classId, branchId, admissionNo);
+
     revalidatePath('/students');
     redirect('/students');
 }
@@ -302,6 +366,10 @@ export async function updateStudent(formData: FormData) {
             classId,
         },
     });
+
+    // If class changed, auto-assign fee structures for the new class
+    const student = await prisma.student.findUnique({ where: { id }, select: { branchId: true, admissionNo: true } });
+    await autoAssignFeeStructures(classId, student?.branchId ?? null, student?.admissionNo ?? '', id);
 
     revalidatePath(`/students/${id}`);
     revalidatePath('/students');
