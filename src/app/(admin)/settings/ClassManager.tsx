@@ -35,6 +35,7 @@ export default function ClassManager({ classes, onUpdate }: { classes: any[]; on
     };
 
     return (
+        <>
         <div className="card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>Class Management</h2>
 
@@ -101,5 +102,6 @@ export default function ClassManager({ classes, onUpdate }: { classes: any[]; on
                 onCancel={() => setConfirmDeleteId(null)}
             />
         )}
+        </>
     );
 }

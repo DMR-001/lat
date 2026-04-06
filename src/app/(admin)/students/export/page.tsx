@@ -72,6 +72,7 @@ export default function ExportStudentsPage() {
     };
 
     return (
+        <>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Link href="/students" style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
@@ -117,5 +118,6 @@ export default function ExportStudentsPage() {
         {toast && (
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         )}
+        </>
     );
 }

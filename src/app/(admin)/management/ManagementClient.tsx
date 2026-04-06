@@ -61,6 +61,7 @@ export default function ManagementClient({ admins, branches }: { admins: Admin[]
     };
 
     return (
+        <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>Management Portal</h1>
 
@@ -198,5 +199,6 @@ export default function ManagementClient({ admins, branches }: { admins: Admin[]
                 onCancel={() => setConfirmDelete(null)}
             />
         )}
+        </>
     );
 }

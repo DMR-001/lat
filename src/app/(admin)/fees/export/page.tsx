@@ -67,6 +67,7 @@ export default function ExportFeesPage() {
     };
 
     return (
+        <>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '2rem' }}>Export Class Fees</h1>
 
@@ -107,5 +108,6 @@ export default function ExportFeesPage() {
         {toast && (
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         )}
+        </>
     );
 }

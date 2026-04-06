@@ -71,6 +71,7 @@ export default function NewFeeStructurePage() {
     };
 
     return (
+        <>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ marginBottom: '2rem' }}>
                 <Link href="/fee-structure" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem', marginBottom: '1rem' }}>
@@ -297,5 +298,6 @@ export default function NewFeeStructurePage() {
         {successMsg && (
             <Toast message={successMsg} type="success" onClose={() => setSuccessMsg('')} />
         )}
+        </>
     );
 }
