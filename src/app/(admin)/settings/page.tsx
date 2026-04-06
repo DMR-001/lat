@@ -122,7 +122,8 @@ export default function SettingsPage() {
             message: 'Are you sure you want to delete this branch? All associated data will remain but will need to be reassigned.',
             onConfirm: async () => {
                 setConfirmDialog(null);
-                        if (result.success) {
+                const result = await deleteBranch(id);
+                if (result.success) {
                     loadBranches();
                     refreshHeader();
                     setSuccess('Branch deleted');
