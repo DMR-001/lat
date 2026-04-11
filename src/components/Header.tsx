@@ -17,7 +17,7 @@ export default function Header() {
     const [loading, setLoading] = useState(true);
     const pathname = usePathname();
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (dispatchReady = false) => {
         const result = await getSelectedBranchAndYear();
         if (result.success) {
             setBranches(result.branches || []);
@@ -26,11 +26,16 @@ export default function Header() {
             setSelectedYearId(result.selectedAcademicYearId || '');
         }
         setLoading(false);
+        // After the header has confirmed/corrected the branch context, notify other
+        // components (e.g. Dashboard) so they can re-fetch with the correct cookies.
+        if (dispatchReady) {
+            window.dispatchEvent(new CustomEvent('context-ready'));
+        }
     }, []);
 
-    // Reload data on route change
+    // Reload data on route change; dispatch context-ready so Dashboard re-fetches
     useEffect(() => {
-        loadData();
+        loadData(true);
     }, [pathname, loadData]);
 
     // Listen for custom refresh event (triggered after creating branches/years)

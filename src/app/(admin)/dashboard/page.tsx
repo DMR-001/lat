@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Users, DollarSign, FileText, TrendingUp, CreditCard, GraduationCap } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [recentPayments, setRecentPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  // Track whether the initial fetch for this page visit has been superseded by context-ready
+  const initialFetchDone = useRef(false);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -29,9 +31,38 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Reload data when navigating back to dashboard
+  // On every navigation to this page, wait for the Header to confirm the branch
+  // context is ready before fetching — avoids stale-cookie race condition on login.
   useEffect(() => {
-    loadDashboardData();
+    initialFetchDone.current = false;
+    setLoading(true);
+
+    // If context-ready fires before the timeout, use it; otherwise fall back to direct fetch
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        loadDashboardData();
+      }
+    }, 600); // fallback: fetch anyway after 600ms if Header hasn't responded
+
+    const handleContextReady = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        loadDashboardData();
+      } else if (initialFetchDone.current) {
+        // Branch changed after initial load — re-fetch
+        loadDashboardData();
+      }
+      initialFetchDone.current = true;
+    };
+
+    window.addEventListener('context-ready', handleContextReady);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('context-ready', handleContextReady);
+    };
   }, [pathname, loadDashboardData]);
 
   const statsCards = [

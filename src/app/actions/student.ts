@@ -60,7 +60,7 @@ async function autoAssignFeeStructures(
         });
 
         for (const fs of structures) {
-            // Skip if this student already has a fee from this structure
+            // Skip if this student already has any fee from this structure
             const existing = await prisma.fee.findFirst({
                 where: { studentId: resolvedStudentId, feeStructureId: fs.id }
             });
@@ -69,19 +69,35 @@ async function autoAssignFeeStructures(
             const dueDate = fs.academicYear?.endDate
                 ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-            await prisma.fee.create({
-                data: {
-                    studentId: resolvedStudentId,
-                    feeStructureId: fs.id,
-                    academicYearId: fs.academicYearId ?? null,
-                    type: 'ANNUAL',
-                    amount: fs.totalFee,
-                    originalAmount: fs.totalFee,
-                    paidAmount: 0,
-                    dueDate,
-                    status: 'PENDING',
-                }
-            });
+            const baseData = {
+                studentId: resolvedStudentId,
+                feeStructureId: fs.id,
+                academicYearId: fs.academicYearId ?? null,
+                paidAmount: 0,
+                dueDate,
+                status: 'PENDING',
+            };
+
+            // Create a separate fee record for each non-zero component
+            const components: { type: string; amount: number }[] = [
+                { type: 'TUITION',   amount: fs.tuitionFee },
+                { type: 'TRANSPORT', amount: fs.transportFee },
+                { type: 'BOOKS',     amount: fs.booksFee },
+                { type: 'UNIFORM',   amount: fs.uniformFee },
+                { type: 'EXAM',      amount: fs.examFee },
+                { type: 'OTHER',     amount: fs.otherFee },
+            ].filter(c => c.amount > 0);
+
+            for (const comp of components) {
+                await prisma.fee.create({
+                    data: {
+                        ...baseData,
+                        type: comp.type,
+                        amount: comp.amount,
+                        originalAmount: comp.amount,
+                    }
+                });
+            }
         }
     } catch {
         // Non-fatal — fee assignment failure should not break student creation

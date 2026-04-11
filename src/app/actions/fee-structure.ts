@@ -65,20 +65,31 @@ export async function createFeeStructure(data: {
             }
 
             if (students.length > 0) {
-                await prisma.fee.createMany({
-                    data: students.map((s) => ({
-                        studentId: s.id,
-                        feeStructureId: feeStructure.id,
-                        academicYearId: data.academicYearId || null,
-                        type: 'ANNUAL',
-                        amount: totalFee,
-                        originalAmount: totalFee,
-                        paidAmount: 0,
-                        dueDate,
-                        status: 'PENDING'
-                    })),
-                    skipDuplicates: false
-                });
+                const components: { type: string; amount: number }[] = [
+                    { type: 'TUITION',   amount: data.tuitionFee },
+                    { type: 'TRANSPORT', amount: data.transportFee },
+                    { type: 'BOOKS',     amount: data.booksFee },
+                    { type: 'UNIFORM',   amount: data.uniformFee },
+                    { type: 'EXAM',      amount: data.examFee },
+                    { type: 'OTHER',     amount: data.otherFee },
+                ].filter(c => c.amount > 0);
+
+                for (const comp of components) {
+                    await prisma.fee.createMany({
+                        data: students.map((s) => ({
+                            studentId: s.id,
+                            feeStructureId: feeStructure.id,
+                            academicYearId: data.academicYearId || null,
+                            type: comp.type,
+                            amount: comp.amount,
+                            originalAmount: comp.amount,
+                            paidAmount: 0,
+                            dueDate,
+                            status: 'PENDING'
+                        })),
+                        skipDuplicates: false
+                    });
+                }
             }
         }
 
