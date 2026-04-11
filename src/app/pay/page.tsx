@@ -85,7 +85,9 @@ export default function PublicPaymentPage() {
 
     // --- Installment helpers ---
     const getInstallmentsForFee = (fee: any) => {
-        const n = Math.max(1, fee.feeStructure?.installments || 1);
+        // Only TUITION fees are split into installments; all other fee types are a single full payment
+        const isTuition = fee.type === 'TUITION';
+        const n = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
         const total = fee.amount;
         const perInst = total / n;
         return Array.from({ length: n }, (_, i) => {
