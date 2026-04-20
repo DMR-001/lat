@@ -79,7 +79,10 @@ export default function FeesTreeView({ studentGroups }: { studentGroups: Student
                 <div></div>
             </div>
 
-            {studentGroups.map(({ student, fees }) => {
+            {studentGroups.map(({ student, fees: rawFees }) => {
+                // Hide stale ₹0 rows left over from old fee types (EXAM, OTHER)
+                const fees = rawFees.filter(f => f.amount > 0 || f.paidAmount > 0);
+                if (fees.length === 0) return null;
                 const totalAmount = fees.reduce((s, f) => s + f.amount, 0);
                 const totalPaid   = fees.reduce((s, f) => s + f.paidAmount, 0);
                 const totalDue    = totalAmount - totalPaid;

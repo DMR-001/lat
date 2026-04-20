@@ -128,10 +128,12 @@ export default function AssignFeeForm() {
             <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Fee Type</label>
                 <select name="type" required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                    <option value="REGISTRATION">Registration Fee</option>
                     <option value="TUITION">Tuition Fee</option>
+                    <option value="SPORTS">Sports & Activity Fee</option>
+                    <option value="BOOKS">Book Fee</option>
+                    <option value="UNIFORM">Uniform & Bag Fee</option>
                     <option value="TRANSPORT">Transport Fee</option>
-                    <option value="ADMISSION">Admission Fee</option>
-                    <option value="OTHER">Other</option>
                 </select>
             </div>
 
