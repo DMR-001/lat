@@ -188,23 +188,33 @@ export async function updateFeeStructure(id: string, data: {
         });
 
         // Sync all pending fees that were auto-assigned from this structure
-        // Update their originalAmount and recalculate amount = newTotal - existing discount
+        // Each fee type gets its own updated component amount (not the total)
+        const typeAmountMap: Record<string, number> = {
+            REGISTRATION: data.registrationFee ?? existing.registrationFee,
+            TUITION:      data.tuitionFee      ?? existing.tuitionFee,
+            SPORTS:       data.sportsFee       ?? existing.sportsFee,
+            BOOKS:        data.booksFee        ?? existing.booksFee,
+            UNIFORM:      data.uniformFee      ?? existing.uniformFee,
+            TRANSPORT:    data.transportFee    ?? existing.transportFee,
+        };
+
         const linkedFees = await prisma.fee.findMany({
             where: { feeStructureId: id, status: { not: 'PAID' } },
-            select: { id: true, discountAmount: true }
+            select: { id: true, type: true, discountAmount: true }
         });
 
         if (linkedFees.length > 0) {
             await Promise.all(
-                linkedFees.map((f) =>
-                    prisma.fee.update({
+                linkedFees.map((f) => {
+                    const newAmount = typeAmountMap[f.type] ?? f.discountAmount ?? 0;
+                    return prisma.fee.update({
                         where: { id: f.id },
                         data: {
-                            originalAmount: totalFee,
-                            amount: Math.max(0, totalFee - (f.discountAmount ?? 0))
+                            originalAmount: newAmount,
+                            amount: Math.max(0, newAmount - (f.discountAmount ?? 0))
                         }
-                    })
-                )
+                    });
+                })
             );
         }
 
