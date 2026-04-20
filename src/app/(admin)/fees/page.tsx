@@ -101,8 +101,6 @@ export default async function FeesPage() {
     );
 }
 
-
-    // Build filter for fees - filter by student's branch and academic year
     const feeWhere: any = {};
     if (academicYearId) {
         feeWhere.academicYearId = academicYearId;
