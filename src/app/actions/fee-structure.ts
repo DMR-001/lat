@@ -14,19 +14,19 @@ export async function createFeeStructure(data: {
     name: string;
     classId?: string;
     academicYearId?: string;
+    registrationFee: number;
     tuitionFee: number;
-    transportFee: number;
+    sportsFee: number;
     booksFee: number;
     uniformFee: number;
-    examFee: number;
-    otherFee: number;
+    transportFee: number;
     installments: number;
     lateFeePerDay: number;
 }) {
     try {
         const branchId = await getCurrentBranchId();
-        const totalFee = data.tuitionFee + data.transportFee + data.booksFee +
-            data.uniformFee + data.examFee + data.otherFee;
+        const totalFee = data.registrationFee + data.tuitionFee + data.sportsFee +
+            data.booksFee + data.uniformFee + data.transportFee;
 
         const feeStructure = await prisma.feeStructure.create({
             data: {
@@ -66,12 +66,12 @@ export async function createFeeStructure(data: {
 
             if (students.length > 0) {
                 const components: { type: string; amount: number }[] = [
-                    { type: 'TUITION',   amount: data.tuitionFee },
-                    { type: 'TRANSPORT', amount: data.transportFee },
-                    { type: 'BOOKS',     amount: data.booksFee },
-                    { type: 'UNIFORM',   amount: data.uniformFee },
-                    { type: 'EXAM',      amount: data.examFee },
-                    { type: 'OTHER',     amount: data.otherFee },
+                    { type: 'REGISTRATION', amount: data.registrationFee },
+                    { type: 'TUITION',      amount: data.tuitionFee },
+                    { type: 'SPORTS',       amount: data.sportsFee },
+                    { type: 'BOOKS',        amount: data.booksFee },
+                    { type: 'UNIFORM',      amount: data.uniformFee },
+                    { type: 'TRANSPORT',    amount: data.transportFee },
                 ].filter(c => c.amount > 0);
 
                 for (const comp of components) {
@@ -152,12 +152,12 @@ export async function getFeeStructureById(id: string) {
 
 export async function updateFeeStructure(id: string, data: {
     name?: string;
+    registrationFee?: number;
     tuitionFee?: number;
-    transportFee?: number;
+    sportsFee?: number;
     booksFee?: number;
     uniformFee?: number;
-    examFee?: number;
-    otherFee?: number;
+    transportFee?: number;
     installments?: number;
     lateFeePerDay?: number;
     isActive?: boolean;
@@ -168,12 +168,12 @@ export async function updateFeeStructure(id: string, data: {
             return { success: false, error: 'Fee structure not found' };
         }
 
-        const totalFee = (data.tuitionFee ?? existing.tuitionFee) +
-            (data.transportFee ?? existing.transportFee) +
+        const totalFee = (data.registrationFee ?? existing.registrationFee) +
+            (data.tuitionFee ?? existing.tuitionFee) +
+            (data.sportsFee ?? existing.sportsFee) +
             (data.booksFee ?? existing.booksFee) +
             (data.uniformFee ?? existing.uniformFee) +
-            (data.examFee ?? existing.examFee) +
-            (data.otherFee ?? existing.otherFee);
+            (data.transportFee ?? existing.transportFee);
 
         const feeStructure = await prisma.feeStructure.update({
             where: { id },

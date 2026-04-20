@@ -80,12 +80,12 @@ async function autoAssignFeeStructures(
 
             // Create a separate fee record for each non-zero component
             const components: { type: string; amount: number }[] = [
-                { type: 'TUITION',   amount: fs.tuitionFee },
-                { type: 'TRANSPORT', amount: fs.transportFee },
-                { type: 'BOOKS',     amount: fs.booksFee },
-                { type: 'UNIFORM',   amount: fs.uniformFee },
-                { type: 'EXAM',      amount: fs.examFee },
-                { type: 'OTHER',     amount: fs.otherFee },
+                { type: 'REGISTRATION', amount: fs.registrationFee },
+                { type: 'TUITION',      amount: fs.tuitionFee },
+                { type: 'SPORTS',       amount: fs.sportsFee },
+                { type: 'BOOKS',        amount: fs.booksFee },
+                { type: 'UNIFORM',      amount: fs.uniformFee },
+                { type: 'TRANSPORT',    amount: fs.transportFee },
             ].filter(c => c.amount > 0);
 
             for (const comp of components) {

@@ -81,12 +81,12 @@ export default async function FeeStructurePage() {
                 <div className="card" style={{ padding: '1.5rem' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>Fee Components</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.875rem' }}>
+                        <div>• Registration Fee</div>
                         <div>• Tuition Fee</div>
+                        <div>• Sports & Activity Fee</div>
+                        <div>• Book Fee</div>
+                        <div>• Uniform & Bag Fee</div>
                         <div>• Transport Fee</div>
-                        <div>• Books Fee</div>
-                        <div>• Uniform Fee</div>
-                        <div>• Exam Fee</div>
-                        <div>• Other Fee</div>
                     </div>
                 </div>
             )}

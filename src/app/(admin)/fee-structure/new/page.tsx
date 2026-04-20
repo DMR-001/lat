@@ -21,12 +21,12 @@ export default function NewFeeStructurePage() {
         name: '',
         classId: '',
         academicYearId: '',
+        registrationFee: 0,
         tuitionFee: 0,
-        transportFee: 0,
+        sportsFee: 0,
         booksFee: 0,
         uniformFee: 0,
-        examFee: 0,
-        otherFee: 0,
+        transportFee: 0,
         installments: 1,
         lateFeePerDay: 0
     });
@@ -43,8 +43,8 @@ export default function NewFeeStructurePage() {
         if (yearsResult.success) setAcademicYears(yearsResult.years || []);
     };
 
-    const totalFee = formData.tuitionFee + formData.transportFee + formData.booksFee +
-        formData.uniformFee + formData.examFee + formData.otherFee;
+    const totalFee = formData.registrationFee + formData.tuitionFee + formData.sportsFee +
+        formData.booksFee + formData.uniformFee + formData.transportFee;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -149,6 +149,19 @@ export default function NewFeeStructurePage() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Registration Fee</label>
+                            <input
+                                type="number"
+                                value={formData.registrationFee}
+                                onChange={(e) => setFormData({ ...formData, registrationFee: parseFloat(e.target.value) || 0 })}
+                                className="input"
+                                min="0"
+                                step="0.01"
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Tuition Fee</label>
                             <input
                                 type="number"
@@ -162,11 +175,11 @@ export default function NewFeeStructurePage() {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Transport Fee</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Sports & Activity Fee</label>
                             <input
                                 type="number"
-                                value={formData.transportFee}
-                                onChange={(e) => setFormData({ ...formData, transportFee: parseFloat(e.target.value) || 0 })}
+                                value={formData.sportsFee}
+                                onChange={(e) => setFormData({ ...formData, sportsFee: parseFloat(e.target.value) || 0 })}
                                 className="input"
                                 min="0"
                                 step="0.01"
@@ -175,7 +188,7 @@ export default function NewFeeStructurePage() {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Books Fee</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Book Fee</label>
                             <input
                                 type="number"
                                 value={formData.booksFee}
@@ -188,7 +201,7 @@ export default function NewFeeStructurePage() {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Uniform Fee</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Uniform & Bag Fee</label>
                             <input
                                 type="number"
                                 value={formData.uniformFee}
@@ -201,24 +214,11 @@ export default function NewFeeStructurePage() {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Exam Fee</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Transport Fee</label>
                             <input
                                 type="number"
-                                value={formData.examFee}
-                                onChange={(e) => setFormData({ ...formData, examFee: parseFloat(e.target.value) || 0 })}
-                                className="input"
-                                min="0"
-                                step="0.01"
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Other Fee</label>
-                            <input
-                                type="number"
-                                value={formData.otherFee}
-                                onChange={(e) => setFormData({ ...formData, otherFee: parseFloat(e.target.value) || 0 })}
+                                value={formData.transportFee}
+                                onChange={(e) => setFormData({ ...formData, transportFee: parseFloat(e.target.value) || 0 })}
                                 className="input"
                                 min="0"
                                 step="0.01"

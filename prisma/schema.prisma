@@ -223,12 +223,12 @@ model FeeStructure {
   branchId       String?
   branch         Branch?       @relation(fields: [branchId], references: [id])
   
+  registrationFee Float        @default(0)
   tuitionFee     Float         @default(0)
-  transportFee   Float         @default(0)
+  sportsFee      Float         @default(0)
   booksFee       Float         @default(0)
   uniformFee     Float         @default(0)
-  examFee        Float         @default(0)
-  otherFee       Float         @default(0)
+  transportFee   Float         @default(0)
   
   totalFee       Float         // Calculated total
   

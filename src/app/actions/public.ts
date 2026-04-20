@@ -138,14 +138,14 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
             const mapping: Record<string, string> = {
                 'TRANSPORT': 'TRN',
                 'TUITION': 'TUI',
-                'ADMISSION': 'ADM',
-                'EXAM': 'EXM',
-                'LATE': 'LAT',
-                'ANNUAL': 'ANN',
+                'REGISTRATION': 'REG',
+                'SPORTS': 'SPT',
                 'BOOKS': 'BKS',
                 'UNIFORM': 'UNI',
+                'ADMISSION': 'ADM',
+                'LATE': 'LAT',
+                'ANNUAL': 'ANN',
                 'APPLICATION': 'APP',
-                'REGISTRATION': 'REG'
             };
             return mapping[upperType] || upperType.substring(0, 3);
         };
