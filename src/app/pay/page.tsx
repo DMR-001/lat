@@ -609,7 +609,7 @@ export default function PublicPaymentPage() {
 
             <div className="pr">
                 <div className="ph">
-                    <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" />
+                    <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" style={{ height: '48px', width: 'auto', maxWidth: '180px', objectFit: 'contain', display: 'block', margin: '0 auto 0.75rem' }} />
                     <div className="ph-title">Fee Payment Portal</div>
                     <div className="ph-sub">Secure online payment for school fees</div>
                 </div>
