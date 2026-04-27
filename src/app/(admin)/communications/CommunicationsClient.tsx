@@ -3,8 +3,8 @@
 import { useState, useTransition, useEffect } from 'react';
 import {
     MessageSquare, Bell, History, Send, RefreshCw,
-    CheckCircle, XCircle, Loader2, Users, Filter,
-    ChevronDown, AlertTriangle, Phone
+    CheckCircle, XCircle, Loader2, Filter,
+    AlertTriangle, Phone, Building2
 } from 'lucide-react';
 import {
     getStudentsWithPendingFees,
@@ -204,13 +204,21 @@ export default function CommunicationsClient({
             )}
 
             {/* Header */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.3rem' }}>
-                    Communications
-                </h1>
-                <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                    Send SMS notifications and reminders to parents
-                </p>
+            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.3rem' }}>
+                        Communications
+                    </h1>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                        Send SMS notifications and reminders to parents
+                    </p>
+                </div>
+                {defaultBranchId && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.625rem', padding: '0.4rem 0.875rem', fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8' }}>
+                        <Building2 size={14} />
+                        {branches.find(b => b.id === defaultBranchId)?.name ?? 'Current Branch'}
+                    </div>
+                )}
             </div>
 
             {/* Tabs */}
@@ -247,10 +255,6 @@ export default function CommunicationsClient({
                             <Filter size={13} /> Filters
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                            <select value={reminderBranch} onChange={e => setReminderBranch(e.target.value)} style={selectStyle}>
-                                <option value="">All Branches</option>
-                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                            </select>
                             <select value={reminderClass} onChange={e => setReminderClass(e.target.value)} style={selectStyle}>
                                 <option value="">All Classes</option>
                                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.section ? ` (${c.section})` : ''}</option>)}
@@ -372,10 +376,6 @@ export default function CommunicationsClient({
                             Audience
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <select value={noticeBranch} onChange={e => setNoticeBranch(e.target.value)} style={selectStyle}>
-                                <option value="">All Branches</option>
-                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                            </select>
                             <select value={noticeClass} onChange={e => setNoticeClass(e.target.value)} style={selectStyle}>
                                 <option value="">All Classes</option>
                                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.section ? ` (${c.section})` : ''}</option>)}

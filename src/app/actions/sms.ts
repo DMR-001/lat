@@ -234,10 +234,17 @@ export async function getBranchesAndClasses() {
     const session = await getSession();
     if (!session) throw new Error('Unauthorized');
 
+    const { getFilterContext } = await import('@/lib/filter-context');
+    const { branchId } = await getFilterContext();
+
     const [branches, classes] = await Promise.all([
         prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, code: true }, orderBy: { name: 'asc' } }),
-        prisma.class.findMany({ select: { id: true, name: true, section: true }, orderBy: [{ name: 'asc' }, { section: 'asc' }] }),
+        prisma.class.findMany({
+            where: branchId ? { branchId } : {},
+            select: { id: true, name: true, section: true },
+            orderBy: [{ name: 'asc' }, { section: 'asc' }],
+        }),
     ]);
 
-    return { branches, classes };
+    return { branches, classes, branchId };
 }

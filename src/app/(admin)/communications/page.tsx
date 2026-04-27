@@ -1,12 +1,10 @@
 import { getBranchesAndClasses, getSmsLogs } from '@/app/actions/sms';
-import { getFilterContext } from '@/lib/filter-context';
 import CommunicationsClient from './CommunicationsClient';
 
 export default async function CommunicationsPage() {
-    const [{ branches, classes }, { logs, total }, { branchId }] = await Promise.all([
+    const [{ branches, classes, branchId }, { logs, total }] = await Promise.all([
         getBranchesAndClasses(),
         getSmsLogs(1, 50),
-        getFilterContext(),
     ]);
 
     return (
