@@ -159,12 +159,15 @@ export default function PublicPaymentPage() {
         const isTuition = fee.type === 'TUITION';
         const n = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
         const total = fee.amount;
-        const perInst = total / n;
-        return Array.from({ length: n }, (_, i) => {
-            const instStart = i * perInst;
-            const instEnd = i === n - 1 ? total : (i + 1) * perInst;
-            const faceValue = instEnd - instStart;
-            const paidTowardThis = Math.max(0, Math.min((fee.paidAmount ?? 0) - instStart, faceValue));
+        const base = Math.round(total / n);
+        // Last installment absorbs rounding remainder so the sum is always exact
+        const faceValues = Array.from({ length: n }, (_, i) =>
+            i === n - 1 ? total - base * (n - 1) : base
+        );
+        let remaining = fee.paidAmount ?? 0;
+        return faceValues.map((faceValue, i) => {
+            const paidTowardThis = Math.min(remaining, faceValue);
+            remaining -= paidTowardThis;
             const due = faceValue - paidTowardThis;
             return {
                 index: i,

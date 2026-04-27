@@ -13,12 +13,15 @@ function getInstallments(fee: any) {
     const isTuition = fee.type === 'TUITION';
     const n = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
     const total = fee.amount;
-    const per = total / n;
-    return Array.from({ length: n }, (_, i) => {
-        const start = i * per;
-        const end = i === n - 1 ? total : (i + 1) * per;
-        const face = end - start;
-        const paid = Math.max(0, Math.min((fee.paidAmount ?? 0) - start, face));
+    const base = Math.round(total / n);
+    // Last installment absorbs the rounding remainder so the sum is always exact
+    const faceValues = Array.from({ length: n }, (_, i) =>
+        i === n - 1 ? total - base * (n - 1) : base
+    );
+    let remaining = fee.paidAmount ?? 0;
+    return faceValues.map((face, i) => {
+        const paid = Math.min(remaining, face);
+        remaining -= paid;
         const due = face - paid;
         return {
             index: i,

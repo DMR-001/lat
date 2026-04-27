@@ -19,11 +19,14 @@ export default async function RecordPaymentPage({ params }: { params: Promise<{ 
 
     // Compute installments for tuition fees only
     const installmentCount = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
-    const installments = Array.from({ length: installmentCount }, (_, i) => {
-        const instStart = i * (fee.amount / installmentCount);
-        const instEnd = i === installmentCount - 1 ? fee.amount : (i + 1) * (fee.amount / installmentCount);
-        const faceValue = instEnd - instStart;
-        const paidTowardThis = Math.max(0, Math.min(fee.paidAmount - instStart, faceValue));
+    const _base = Math.round(fee.amount / installmentCount);
+    const _faceValues = Array.from({ length: installmentCount }, (_, i) =>
+        i === installmentCount - 1 ? fee.amount - _base * (installmentCount - 1) : _base
+    );
+    let _remaining = fee.paidAmount;
+    const installments = _faceValues.map((faceValue, i) => {
+        const paidTowardThis = Math.min(_remaining, faceValue);
+        _remaining -= paidTowardThis;
         const due = faceValue - paidTowardThis;
         return {
             index: i,
