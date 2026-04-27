@@ -346,3 +346,30 @@ model Backup {
   createdBy String?
   createdAt DateTime @default(now())
 }
+
+model OtpRecord {
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+model SmsLog {
+  id           String   @id @default(cuid())
+  type         String   // REGISTRATION, FEE_COLLECTED, FEE_REMINDER, NOTICE, OTP
+  recipient    String   // phone number
+  message      String
+  status       String   // SENT, FAILED, PENDING
+  errorMessage String?
+  branchId     String?
+  sentBy       String?  // admin user id (null = system auto)
+  createdAt    DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}

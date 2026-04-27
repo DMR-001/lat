@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import Papa from 'papaparse';
 import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth';
+import { sendRegistrationSms } from '@/lib/sms';
 
 // Helper to get current branch from cookies
 async function getCurrentBranchId(): Promise<string | null> {
@@ -341,6 +342,11 @@ export async function addStudent(formData: FormData) {
 
     // Auto-assign any active fee structures for this class
     await autoAssignFeeStructures(classId, branchId, admissionNo);
+
+    // Send registration SMS to parent (non-blocking)
+    if (phone) {
+        sendRegistrationSms(phone, `${firstName} ${lastName}`, admissionNo, branchId).catch(() => null);
+    }
 
     revalidatePath('/students');
     redirect('/students');

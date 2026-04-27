@@ -6,8 +6,8 @@ import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Buil
 import Link from 'next/link';
 
 export default function PublicPaymentPage() {
-    // step: 'branch' | 'search' | 'select' | 'confirm' | 'pay' | 'success'
-    const [step, setStep] = useState<'branch' | 'search' | 'select' | 'confirm' | 'pay' | 'success'>('branch');
+    // step: 'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'
+    const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'>('branch');
     const [branches, setBranches] = useState<{ id: string; name: string; code: string }[]>([]);
 
     const [selectedBranch, setSelectedBranch] = useState<{ id: string; name: string; code: string } | null>(null);
@@ -25,6 +25,15 @@ export default function PublicPaymentPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionSuccess, setTransactionSuccess] = useState<any>(null);
     const [payError, setPayError] = useState('');
+
+    // OTP state
+    const [otpValue, setOtpValue] = useState('');
+    const [otpToken, setOtpToken] = useState('');
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+    const [otpError, setOtpError] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpResendCooldown, setOtpResendCooldown] = useState(0);
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
@@ -54,16 +63,77 @@ export default function PublicPaymentPage() {
             setSearchResults(results);
             if (results.length === 0) {
                 setNoResult(true);
-            } else if (results.length === 1) {
-                setSelectedStudent(results[0]);
-                setStep('confirm');
             } else {
-                setStep('select');
+                // Go to OTP step before revealing student info
+                setOtpValue('');
+                setOtpError('');
+                setOtpSent(false);
+                setStep('otp');
             }
         } catch {
             setNoResult(true);
         } finally {
             setIsSearching(false);
+        }
+    };
+
+    const handleSendOtp = async () => {
+        setIsSendingOtp(true);
+        setOtpError('');
+        try {
+            const res = await fetch('/api/otp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setOtpError(data.error || 'Failed to send OTP');
+            } else {
+                setOtpSent(true);
+                // Start 60s resend cooldown
+                setOtpResendCooldown(60);
+                const timer = setInterval(() => {
+                    setOtpResendCooldown(prev => {
+                        if (prev <= 1) { clearInterval(timer); return 0; }
+                        return prev - 1;
+                    });
+                }, 1000);
+            }
+        } catch {
+            setOtpError('Failed to send OTP. Please try again.');
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (otpValue.length !== 6) return;
+        setIsVerifyingOtp(true);
+        setOtpError('');
+        try {
+            const res = await fetch('/api/otp/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone.trim(), otp: otpValue }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setOtpError(data.error || 'Incorrect OTP');
+            } else {
+                setOtpToken(data.token);
+                // Proceed with already-fetched results
+                if (searchResults.length === 1) {
+                    setSelectedStudent(searchResults[0]);
+                    setStep('confirm');
+                } else {
+                    setStep('select');
+                }
+            }
+        } catch {
+            setOtpError('Verification failed. Please try again.');
+        } finally {
+            setIsVerifyingOtp(false);
         }
     };
 
@@ -229,7 +299,7 @@ export default function PublicPaymentPage() {
     const getInitials = (s: any) =>
         `${s?.firstName?.[0] ?? ''}${s?.lastName?.[0] ?? ''}`.toUpperCase();
 
-    const stepIndex = { branch: 1, search: 2, select: 2, confirm: 3, pay: 4, success: 5 }[step];
+    const stepIndex = { branch: 1, search: 2, otp: 2, select: 3, confirm: 3, pay: 4, success: 5 }[step];
 
     const Rs = '\u20B9';
 
@@ -456,6 +526,22 @@ export default function PublicPaymentPage() {
                 /* Secure */
                 .secure { display: flex; align-items: center; justify-content: center; gap: 0.35rem; font-size: 0.72rem; color: #94a3b8; }
 
+                /* OTP input */
+                .otp-input {
+                    width: 100%; padding: 0.9rem 1rem;
+                    background: #f8fafc; border: 1.5px solid #e2e8f0;
+                    border-radius: 0.75rem; color: #0f172a;
+                    font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5rem;
+                    text-align: center; outline: none;
+                    transition: border-color 0.18s, box-shadow 0.18s;
+                    margin-bottom: 0.875rem;
+                }
+                .otp-input:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+                .otp-hint { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 1rem; line-height: 1.5; }
+                .resend-row { display: flex; justify-content: center; margin-bottom: 0.875rem; }
+                .resend-btn { font-size: 0.78rem; font-weight: 600; color: #2563eb; background: none; border: none; cursor: pointer; }
+                .resend-btn:disabled { color: #94a3b8; cursor: default; }
+
                 /* Outstanding box */
                 .outstanding-box {
                     background: #0f172a; border-radius: 0.875rem; padding: 1rem;
@@ -608,6 +694,70 @@ export default function PublicPaymentPage() {
                                         : <><Search size={17} /> Search Student</>
                                     }
                                 </button>
+                            </div>
+                        )}
+
+                        {/* OTP Verification */}
+                        {step === 'otp' && (
+                            <div>
+                                <div className="sec-head">
+                                    <div>
+                                        <div className="sec-title">Verify Mobile</div>
+                                        <div className="sec-sub">Enter OTP sent to +91 {phone}</div>
+                                    </div>
+                                    <button className="back-btn" onClick={() => { setStep('search'); setOtpSent(false); setOtpValue(''); setOtpError(''); }}>Back</button>
+                                </div>
+
+                                {!otpSent ? (
+                                    <>
+                                        <p className="otp-hint">
+                                            For your security, we&apos;ll send a 6-digit OTP to the registered mobile number.
+                                        </p>
+                                        {otpError && <div className="err">{otpError}</div>}
+                                        <button className="btn-blue" onClick={handleSendOtp} disabled={isSendingOtp}>
+                                            {isSendingOtp
+                                                ? <><Loader2 size={17} className="animate-spin" /> Sending OTP...</>
+                                                : <><Phone size={17} /> Send OTP</>
+                                            }
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="otp-hint">
+                                            OTP sent to <strong>+91 {phone}</strong>. Valid for 10 minutes.
+                                        </p>
+                                        <input
+                                            className="otp-input"
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={6}
+                                            placeholder="------"
+                                            value={otpValue}
+                                            onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                                            onKeyDown={e => e.key === 'Enter' && otpValue.length === 6 && handleVerifyOtp()}
+                                            autoFocus
+                                        />
+                                        {otpError && <div className="err">{otpError}</div>}
+                                        <button className="btn-blue" onClick={handleVerifyOtp} disabled={isVerifyingOtp || otpValue.length !== 6}>
+                                            {isVerifyingOtp
+                                                ? <><Loader2 size={17} className="animate-spin" /> Verifying...</>
+                                                : <><ShieldCheck size={17} /> Verify OTP</>
+                                            }
+                                        </button>
+                                        <div className="resend-row" style={{ marginTop: '0.75rem' }}>
+                                            <button
+                                                className="resend-btn"
+                                                disabled={otpResendCooldown > 0 || isSendingOtp}
+                                                onClick={handleSendOtp}
+                                            >
+                                                {otpResendCooldown > 0
+                                                    ? `Resend OTP in ${otpResendCooldown}s`
+                                                    : 'Resend OTP'
+                                                }
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
 

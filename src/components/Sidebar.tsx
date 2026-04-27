@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Users, GraduationCap, Calendar, CreditCard, Settings, LogOut, FileText, CalendarDays } from 'lucide-react';
+import { Home, Users, GraduationCap, Calendar, CreditCard, Settings, LogOut, FileText, CalendarDays, MessageSquare } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 import styles from './Sidebar.module.css';
 
@@ -42,6 +42,7 @@ const Sidebar = async () => {
             { name: 'Receipts', href: '/receipts', icon: CreditCard },
             { name: 'Certificates', href: '/certificates', icon: FileText },
             { name: 'Academic Year', href: '/academic-year', icon: CalendarDays },
+            { name: 'Communications', href: '/communications', icon: MessageSquare },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
 

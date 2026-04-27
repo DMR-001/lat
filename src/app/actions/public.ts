@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sendFeeCollectedSms } from '@/lib/sms';
 
 export async function searchStudentsPublic(classId: string, nameQuery: string) {
     if (!classId || !nameQuery || nameQuery.length < 3) return [];
@@ -203,6 +204,13 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
 
     revalidatePath('/fees');
     revalidatePath(`/students/${studentId}`);
+
+    // Send fee collected SMS for total paid (non-blocking)
+    const totalPaid = paymentsCreated.reduce((sum, p) => sum + p.amount, 0);
+    if (student.phone && totalPaid > 0) {
+        const receiptNos = paymentsCreated.map(p => p.receiptNo).join(', ');
+        sendFeeCollectedSms(student.phone, totalPaid, student.admissionNo, receiptNos, branchId).catch(() => null);
+    }
 
     return { success: true, payments: paymentsCreated };
 }

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { sendFeeCollectedSms } from '@/lib/sms';
 
 // Helper to get current academic year from cookies
 async function getCurrentAcademicYearId(): Promise<string | null> {
@@ -126,6 +127,15 @@ export async function recordPayment(formData: FormData) {
             }
         })
     ]);
+
+    // Send fee collected SMS to parent (non-blocking)
+    const student = await prisma.student.findUnique({
+        where: { id: fee.studentId },
+        select: { phone: true, admissionNo: true }
+    });
+    if (student?.phone) {
+        sendFeeCollectedSms(student.phone, amount, student.admissionNo, receiptNo, branchId).catch(() => null);
+    }
 
     revalidatePath('/fees');
     redirect('/fees');
