@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, CheckCircle, Clock, AlertCircle, Receipt, User, Phone, GraduationCap, ChevronDown, ChevronUp } from 'lucide-react';
+import Toast from '@/components/Toast';
 
 // ---- helpers ----
 const Rs = '₹';
@@ -42,8 +43,9 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     const [payInstallments, setPayInstallments] = useState<number[]>([]);
     const [payMethod, setPayMethod] = useState('CASH');
     const [paying, setPaying] = useState(false);
-    const [payResult, setPayResult] = useState<{ ok: boolean; msg: string } | null>(null);
-    const payingRef = useRef(false); // synchronous guard against double-submit
+    const [payError, setPayError] = useState<string | null>(null);
+    const [toast, setToast] = useState<string | null>(null);
+    const payingRef = useRef(false);
 
     // expanded history rows
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -61,11 +63,10 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     function openPayModal(fee: any) {
         const insts = getInstallments(fee);
         setPayFee(fee);
-        // pre-select first unpaid installment
         const first = insts.find(i => !i.isPaid);
         setPayInstallments(first ? [first.index] : []);
         setPayMethod('CASH');
-        setPayResult(null);
+        setPayError(null);
     }
 
     function toggleInstallment(fee: any, idx: number) {
@@ -85,10 +86,10 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     async function submitPayment() {
         const amount = getPayAmount();
         if (amount <= 0 || !payFee) return;
-        if (payingRef.current) return; // block double-click synchronously
+        if (payingRef.current) return;
         payingRef.current = true;
         setPaying(true);
-        setPayResult(null);
+        setPayError(null);
         const res = await fetch('/api/fees/collect', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -96,11 +97,11 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
         });
         const data = await res.json();
         if (data.success) {
-            setPayResult({ ok: true, msg: `Payment recorded. Receipt: ${data.receiptNo}` });
             await load();
-            setTimeout(() => setPayFee(null), 1500);
+            setPayFee(null);
+            setToast(`Payment collected. Receipt: ${data.receiptNo}`);
         } else {
-            setPayResult({ ok: false, msg: data.error || 'Payment failed' });
+            setPayError(data.error || 'Payment failed');
         }
         setPaying(false);
         payingRef.current = false;
@@ -121,6 +122,9 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 900 }}>
+            {toast && (
+                <Toast message={toast} type="success" onClose={() => setToast(null)} />
+            )}
             {/* Back */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Link href="/fees/collect" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem' }}>
@@ -241,7 +245,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                 <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>Collect Payment</div>
                                 <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>{payFee.type} — {student.firstName} {student.lastName}</div>
                             </div>
-                            <button onClick={() => setPayFee(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
+                            <button onClick={() => { setPayFee(null); setPayError(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
                         </div>
 
                         {/* Installment selector */}
@@ -295,14 +299,14 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                             <span style={{ fontWeight: 800, fontSize: '1.4rem', color: '#0f172a' }}>{Rs}{fmt(getPayAmount())}</span>
                         </div>
 
-                        {payResult && (
-                            <div style={{ marginBottom: '0.875rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: payResult.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${payResult.ok ? '#bbf7d0' : '#fecaca'}`, color: payResult.ok ? '#15803d' : '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
-                                {payResult.msg}
+                        {payError && (
+                            <div style={{ marginBottom: '0.875rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
+                                {payError}
                             </div>
                         )}
 
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button onClick={() => setPayFee(null)} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <button onClick={() => { setPayFee(null); setPayError(null); }} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>
                                 Cancel
                             </button>
                             <button
