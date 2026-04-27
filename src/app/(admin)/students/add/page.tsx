@@ -21,13 +21,13 @@ export default async function AddStudentPage() {
                 </div>
 
                 <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Email</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Email <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.8rem' }}>(Optional)</span></label>
                     <input type="email" name="email" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                 </div>
 
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Parent Name</label>
-                    <input type="text" name="parentName" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    <input type="text" name="parentName" required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                 </div>
 
                 <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
@@ -59,12 +59,12 @@ export default async function AddStudentPage() {
 
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Address</label>
-                    <textarea name="address" rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}></textarea>
+                    <textarea name="address" rows={3} required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}></textarea>
                 </div>
 
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Phone</label>
-                    <input type="tel" name="phone" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    <input type="tel" name="phone" required style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
