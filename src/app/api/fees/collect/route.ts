@@ -63,6 +63,10 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, receiptNo: payment.receiptNo, paymentId: payment.id });
     } catch (err: any) {
+        // Unique constraint violation = duplicate submission
+        if (err.code === 'P2002') {
+            return NextResponse.json({ success: false, error: 'Duplicate payment detected. Please refresh.' }, { status: 409 });
+        }
         return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
 }

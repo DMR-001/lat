@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, CheckCircle, Clock, AlertCircle, Receipt, User, Phone, GraduationCap, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -43,6 +43,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     const [payMethod, setPayMethod] = useState('CASH');
     const [paying, setPaying] = useState(false);
     const [payResult, setPayResult] = useState<{ ok: boolean; msg: string } | null>(null);
+    const payingRef = useRef(false); // synchronous guard against double-submit
 
     // expanded history rows
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -84,6 +85,8 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     async function submitPayment() {
         const amount = getPayAmount();
         if (amount <= 0 || !payFee) return;
+        if (payingRef.current) return; // block double-click synchronously
+        payingRef.current = true;
         setPaying(true);
         setPayResult(null);
         const res = await fetch('/api/fees/collect', {
@@ -95,10 +98,12 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
         if (data.success) {
             setPayResult({ ok: true, msg: `Payment recorded. Receipt: ${data.receiptNo}` });
             await load();
+            setTimeout(() => setPayFee(null), 1500);
         } else {
             setPayResult({ ok: false, msg: data.error || 'Payment failed' });
         }
         setPaying(false);
+        payingRef.current = false;
     }
 
     if (loading) return (
