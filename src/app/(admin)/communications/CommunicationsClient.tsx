@@ -23,17 +23,19 @@ export default function CommunicationsClient({
     classes,
     initialLogs,
     initialLogsTotal,
+    defaultBranchId,
 }: {
     branches: { id: string; name: string; code: string }[];
     classes: { id: string; name: string; section: string | null }[];
     initialLogs: any[];
     initialLogsTotal: number;
+    defaultBranchId: string;
 }) {
     const [tab, setTab] = useState<Tab>('reminders');
     const [isPending, startTransition] = useTransition();
 
     // ── Fee Reminders Tab ──────────────────────────────────────
-    const [reminderBranch, setReminderBranch] = useState('');
+    const [reminderBranch, setReminderBranch] = useState(defaultBranchId);
     const [reminderClass, setReminderClass] = useState('');
     const [overdueOnly, setOverdueOnly] = useState(false);
     const [search, setSearch] = useState('');
@@ -47,7 +49,7 @@ export default function CommunicationsClient({
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
     // ── Notice Tab ─────────────────────────────────────────────
-    const [noticeBranch, setNoticeBranch] = useState('');
+    const [noticeBranch, setNoticeBranch] = useState(defaultBranchId);
     const [noticeClass, setNoticeClass] = useState('');
     const [noticeText, setNoticeText] = useState('');
     const [isSendingNotice, setIsSendingNotice] = useState(false);
