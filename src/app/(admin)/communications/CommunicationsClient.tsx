@@ -468,8 +468,8 @@ export default function CommunicationsClient({
                                                     </span>
                                                 </td>
                                                 <td style={{ ...td, fontFamily: 'monospace' }}>{log.recipient}</td>
-                                                <td style={{ ...td, maxWidth: 280 }}>
-                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155' }} title={log.message}>
+                                                <td style={{ ...td, maxWidth: 320 }}>
+                                                    <div style={{ color: '#334155', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: '1.45' }}>
                                                         {log.message}
                                                     </div>
                                                     {log.errorMessage && <div style={{ color: '#dc2626', fontSize: '0.68rem', marginTop: '0.15rem' }}>{log.errorMessage}</div>}

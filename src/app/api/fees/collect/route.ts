@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { sendFeeCollectedSms } from '@/lib/sms';
 
 async function getBranchId() {
     const cookieStore = await cookies();
@@ -60,6 +61,15 @@ export async function POST(req: NextRequest) {
                 data: { paidAmount: newPaidAmount, status: newStatus }
             })
         ]);
+
+        // Send fee collected SMS to parent (non-blocking)
+        const student = await prisma.student.findUnique({
+            where: { id: fee.studentId },
+            select: { phone: true, admissionNo: true },
+        });
+        if (student?.phone) {
+            sendFeeCollectedSms(student.phone, amount, student.admissionNo, payment.receiptNo, branchId).catch(() => null);
+        }
 
         return NextResponse.json({ success: true, receiptNo: payment.receiptNo, paymentId: payment.id });
     } catch (err: any) {
