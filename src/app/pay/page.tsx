@@ -357,6 +357,18 @@ export default function PublicPaymentPage() {
                     border-radius: 1.25rem;
                     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
                 }
+                .pc.pc-wide {
+                    max-width: 820px;
+                }
+                .fees-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                    margin-bottom: 0.5rem;
+                }
+                @media (min-width: 640px) {
+                    .pc-wide .fees-grid { grid-template-columns: 1fr 1fr; }
+                }
                 .pc-body { padding: 1.75rem 1.5rem 2rem; }
 
                 /* Section header */
@@ -633,7 +645,7 @@ export default function PublicPaymentPage() {
                     })}
                 </div>
 
-                <div className="pc">
+                <div className={`pc${(step === 'confirm' || step === 'pay') ? ' pc-wide' : ''}`}>
                     <div className="pc-body">
 
                         {/* Branch */}
@@ -860,6 +872,7 @@ export default function PublicPaymentPage() {
                                     </p>
                                 )}
 
+                                <div className="fees-grid">
                                 {feeDetails.fees.map(fee => {
                                     const insts = getInstallmentsForFee(fee);
                                     const selectedSet = selectedInstallments[fee.id] || [];
@@ -920,6 +933,7 @@ export default function PublicPaymentPage() {
                                         </div>
                                     );
                                 })}
+                                </div>{/* end fees-grid */}
 
                                 <div className="total-row">
                                     <span className="total-lbl">Paying Now</span>
