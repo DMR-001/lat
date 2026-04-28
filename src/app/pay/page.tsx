@@ -585,7 +585,7 @@ export default function PublicPaymentPage() {
                 .btn-receipt:hover { background: #1d4ed8; }
 
                 /* Footer */
-                .pf { text-align: center; margin-top: 1.75rem; color: #cbd5e1; font-size: 0.75rem; }
+                .pf { text-align: center; margin-top: 1.75rem; color: #1e293b; font-size: 0.75rem; }
 
                 /* iOS zoom prevention */
                 input, select, textarea { font-size: 16px !important; }
@@ -1002,7 +1002,7 @@ export default function PublicPaymentPage() {
                 </div>
 
                 <div className="pf">
-                    <div style={{ marginBottom: '0.35rem', fontWeight: 600, color: '#475569' }}>SPROUT EDUCATIONAL SOCIETY</div>
+                    <div style={{ marginBottom: '0.35rem', fontWeight: 600, color: '#111827' }}>SPROUT EDUCATIONAL SOCIETY</div>
                     <div style={{ marginBottom: '0.35rem' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
                     <div>&copy; {new Date().getFullYear()} Sprout School &middot; All rights reserved</div>
                 </div>
