@@ -40,6 +40,7 @@ export default function Footer() {
                 </div>
 
                 <div style={{ borderTop: '1px solid #374151', paddingTop: '2rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                    <p style={{ marginBottom: '0.4rem', color: '#9ca3af', fontWeight: 600, letterSpacing: '0.03em' }}>SPROUT EDUCATIONAL SOCIETY</p>
                     &copy; {new Date().getFullYear()} Sprout School - Little Leaders Learning Hub. All rights reserved.
                 </div>
             </div>

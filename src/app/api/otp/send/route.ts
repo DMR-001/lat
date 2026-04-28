@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 });
         }
 
+        // Demo phone bypass — for Razorpay/reviewer testing only
+        const demoPhone = (process.env.DEMO_PHONE ?? '').replace(/\D/g, '');
+        if (demoPhone && phone === demoPhone) {
+            // Save a static OTP of 123456 valid for 1 hour, skip SMS
+            await prisma.otpRecord.updateMany({ where: { phone, verified: false }, data: { expiresAt: new Date(0) } });
+            await prisma.otpRecord.create({ data: { phone, otp: '123456', expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
+            return NextResponse.json({ success: true, smsSent: false, demo: true });
+        }
+
         // Rate-limit: max 3 OTPs per phone in last 10 minutes
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
         const recentOtps = await prisma.otpRecord.count({
