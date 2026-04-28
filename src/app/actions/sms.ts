@@ -143,7 +143,7 @@ export async function sendBroadcastNotice(noticeText: string, filters: {
     const recipients = uniquePhones.map(phone => ({
         phone,
         message: `Dear Parent, ${noticeText} - Sprout School`,
-        variables: { VAR1: noticeText },
+        variables: { alphanumeric: noticeText },
     }));
 
     const templateId = process.env.SMS_TEMPLATE_NOTICE ?? '';
