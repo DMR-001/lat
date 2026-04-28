@@ -173,17 +173,19 @@ const styles = StyleSheet.create({
 interface ReceiptPDFProps {
     payment: any;
     logoData?: string;
+    schoolSettings?: any;
 }
 
-export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
+export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProps) => {
     const student = payment.fee.student;
     // Prioritize student's branch (always assigned) over payment's branch
     const branch = student.branch || payment.branch;
     
-    // Branch-specific or fallback info (check for empty strings too)
-    const branchAddress = (branch?.address && branch.address.trim()) || 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad';
-    const branchPhone = (branch?.phone && branch.phone.trim()) || '+91 7032252030';
-    const branchEmail = (branch?.email && branch.email.trim()) || 'sproutmeerpet@gmail.com';
+    // Branch-specific fields → SchoolSettings fallback → nothing
+    const branchAddress = (branch?.address && branch.address.trim()) || (schoolSettings?.address && schoolSettings.address.trim()) || '';
+    const branchPhone = (branch?.phone && branch.phone.trim()) || (schoolSettings?.phone && schoolSettings.phone.trim()) || '';
+    const branchEmail = (branch?.email && branch.email.trim()) || (schoolSettings?.email && schoolSettings.email.trim()) || '';
+    const schoolName = (branch?.name) || (schoolSettings?.schoolName) || 'Sprout School';
 
     return (
         <Document>
@@ -198,9 +200,10 @@ export const ReceiptPDF = ({ payment, logoData }: ReceiptPDFProps) => {
                     <View style={styles.header}>
                         {logoData && <Image src={logoData} style={styles.logo} />}
                         <View style={styles.headerContent}>
-                            <Text style={styles.receiptTitle}>Receipt</Text>
-                            <Text style={styles.addressLine}>{branchAddress}</Text>
-                            <Text style={styles.addressLine}>Ph: {branchPhone}  Email: {branchEmail}</Text>
+                            <Text style={styles.receiptTitle}>{schoolName}</Text>
+                            <Text style={styles.addressLine}>Fee Receipt</Text>
+                            {branchAddress ? <Text style={styles.addressLine}>{branchAddress}</Text> : null}
+                            {(branchPhone || branchEmail) ? <Text style={styles.addressLine}>{[branchPhone ? `Ph: ${branchPhone}` : null, branchEmail ? `Email: ${branchEmail}` : null].filter(Boolean).join('  ')}</Text> : null}
                         </View>
                     </View>
 

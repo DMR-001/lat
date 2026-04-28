@@ -30,6 +30,9 @@ export async function GET(
         return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
     }
 
+    // Also fetch school-wide settings as fallback for branch address/phone/email
+    const schoolSettings = await prisma.schoolSettings.findFirst();
+
     // Read logo file
     const fs = require('fs');
     const path = require('path');
@@ -46,7 +49,7 @@ export async function GET(
     }
 
     try {
-        const stream = await renderToStream(<ReceiptPDF payment={payment} logoData={logoBase64} />);
+        const stream = await renderToStream(<ReceiptPDF payment={payment} logoData={logoBase64} schoolSettings={schoolSettings} />);
 
         // Convert Node stream to Web ReadableStream
         const webStream = new ReadableStream({

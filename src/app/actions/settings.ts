@@ -14,7 +14,7 @@ export async function getSettings() {
                     schoolName: 'Sprout School',
                     address: 'Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad',
                     phone: '+91 7032252030',
-                    email: 'sproutmeerpet@gmail.com'
+                    email: 'info@sproutschool.edu.in'
                 }
             });
         }
