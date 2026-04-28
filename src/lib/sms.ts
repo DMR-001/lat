@@ -56,8 +56,13 @@ async function sendSingleSms(
     sentBy?: string | null
 ): Promise<boolean> {
     const enabled = process.env.SMS_ENABLED === 'true';
+    const workerUrl = process.env.SMS_WORKER_URL;
+    const workerSecret = process.env.SMS_WORKER_SECRET;
     const authkey = process.env.SMS_AUTHKEY;
     const sender = opts.sender ?? process.env.SMS_SENDER;
+
+    // Use Cloudflare Worker proxy if configured, otherwise call MSG91 directly
+    const usingWorker = !!workerUrl;
 
     // Log to DB regardless (admins can see what would have been sent)
     const logEntry = await prisma.smsLog.create({
@@ -82,12 +87,34 @@ async function sendSingleSms(
         return true;
     }
 
-    if (!authkey || !sender) {
-        console.error('[SMS] Missing env vars: SMS_AUTHKEY and SMS_SENDER (or per-type sender override)');
+    if (!sender) {
+        console.error('[SMS] Missing env var: SMS_SENDER');
         if (logEntry) {
             await prisma.smsLog.update({
                 where: { id: logEntry.id },
-                data: { status: 'FAILED', errorMessage: 'Missing SMS configuration' },
+                data: { status: 'FAILED', errorMessage: 'Missing SMS_SENDER' },
+            }).catch(() => null);
+        }
+        return false;
+    }
+
+    if (usingWorker && !workerSecret) {
+        console.error('[SMS] SMS_WORKER_URL set but SMS_WORKER_SECRET is missing');
+        if (logEntry) {
+            await prisma.smsLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'FAILED', errorMessage: 'Missing SMS_WORKER_SECRET' },
+            }).catch(() => null);
+        }
+        return false;
+    }
+
+    if (!usingWorker && !authkey) {
+        console.error('[SMS] Missing env var: SMS_AUTHKEY (or set SMS_WORKER_URL to use proxy)');
+        if (logEntry) {
+            await prisma.smsLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'FAILED', errorMessage: 'Missing SMS_AUTHKEY' },
             }).catch(() => null);
         }
         return false;
@@ -106,20 +133,29 @@ async function sendSingleSms(
     }
 
     try {
-        const res = await fetch(`${BASE_URL}/flow/`, {
+        const payload = JSON.stringify({
+            template_id: opts.templateId,
+            sender,
+            short_url: '0',
+            mobiles: `91${mobile}`,
+            ...opts.variables,
+        });
+
+        const fetchHeaders: Record<string, string> = {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        };
+
+        if (usingWorker) {
+            fetchHeaders['x-worker-secret'] = workerSecret!;
+        } else {
+            fetchHeaders['authkey'] = authkey!;
+        }
+
+        const res = await fetch(usingWorker ? workerUrl! : `${BASE_URL}/flow/`, {
             method: 'POST',
-            headers: {
-                'authkey': authkey,
-                'accept': 'application/json',
-                'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-                template_id: opts.templateId,
-                sender,
-                short_url: '0',
-                mobiles: `91${mobile}`,
-                ...opts.variables,
-            }),
+            headers: fetchHeaders,
+            body: payload,
         });
 
         const data = await res.json().catch(() => ({}));

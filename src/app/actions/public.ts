@@ -205,11 +205,11 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     revalidatePath('/fees');
     revalidatePath(`/students/${studentId}`);
 
-    // Send fee collected SMS for total paid (non-blocking)
+    // Send fee collected SMS for total paid
     const totalPaid = paymentsCreated.reduce((sum, p) => sum + p.amount, 0);
     if (student.phone && totalPaid > 0) {
         const receiptNos = paymentsCreated.map(p => p.receiptNo).join(', ');
-        sendFeeCollectedSms(student.phone, totalPaid, student.admissionNo, receiptNos, branchId).catch(() => null);
+        await sendFeeCollectedSms(student.phone, totalPaid, student.admissionNo, receiptNos, branchId).catch(() => null);
     }
 
     return { success: true, payments: paymentsCreated };

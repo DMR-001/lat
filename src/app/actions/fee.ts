@@ -128,13 +128,13 @@ export async function recordPayment(formData: FormData) {
         })
     ]);
 
-    // Send fee collected SMS to parent (non-blocking)
+    // Send fee collected SMS to parent
     const student = await prisma.student.findUnique({
         where: { id: fee.studentId },
         select: { phone: true, admissionNo: true }
     });
     if (student?.phone) {
-        sendFeeCollectedSms(student.phone, amount, student.admissionNo, receiptNo, branchId).catch(() => null);
+        await sendFeeCollectedSms(student.phone, amount, student.admissionNo, receiptNo, branchId).catch(() => null);
     }
 
     revalidatePath('/fees');
