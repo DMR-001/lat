@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, CheckCircle, Clock, AlertCircle, Receipt, User, Phone, GraduationCap, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap } from 'lucide-react';
 import Toast from '@/components/Toast';
 
 // ---- helpers ----
@@ -52,7 +52,6 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     const payingRef = useRef(false);
 
     // expanded history rows
-    const [historyOpen, setHistoryOpen] = useState(false);
 
     async function load() {
         setLoading(true);
@@ -137,7 +136,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     const totalPaid = (student.fees || []).reduce((s: number, f: any) => s + f.paidAmount, 0);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 900 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 1200 }}>
             {toast && (
                 <Toast message={toast} type="success" onClose={() => setToast(null)} />
             )}
@@ -167,36 +166,60 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                 </div>
             </div>
 
-            {/* Pending fees */}
-            <div>
-                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <AlertCircle size={16} color="var(--warning)" /> Pending Fees ({pendingFees.length})
-                </h2>
-                {pendingFees.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
-                        All fees are paid! 🎉
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {pendingFees.map((fee: any) => (
-                            <FeeCard key={fee.id} fee={fee} onPay={() => openPayModal(fee)} />
-                        ))}
-                    </div>
-                )}
-            </div>
+            {/* Two-column layout: Pending Fees | Payment History */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: '0', alignItems: 'start' }}>
 
-            {/* Payment history */}
-            {student.payments && student.payments.length > 0 && (
-                <div>
-                    <button
-                        onClick={() => setHistoryOpen(v => !v)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', padding: 0 }}
-                    >
-                        <Receipt size={16} color="var(--success)" />
-                        Payment History ({student.payments.length})
-                        {historyOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-                    {historyOpen && (
+                {/* LEFT — Pending + Paid fees */}
+                <div style={{ paddingRight: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Pending fees */}
+                    <div>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <AlertCircle size={16} color="var(--warning)" /> Pending Fees ({pendingFees.length})
+                        </h2>
+                        {pendingFees.length === 0 ? (
+                            <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
+                                All fees are paid! 🎉
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {pendingFees.map((fee: any) => (
+                                    <FeeCard key={fee.id} fee={fee} onPay={() => openPayModal(fee)} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Paid fees */}
+                    {paidFees.length > 0 && (
+                        <div>
+                            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <CheckCircle size={16} color="var(--success)" /> Paid Fees ({paidFees.length})
+                            </h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {paidFees.map((fee: any) => (
+                                    <div key={fee.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+                                        <span style={{ fontWeight: 600 }}>{fee.type}</span>
+                                        <span style={{ color: 'var(--success)', fontWeight: 700 }}>{Rs}{fmt(fee.amount)} — Paid</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Divider */}
+                <div style={{ background: 'var(--border)', width: '1px', alignSelf: 'stretch', minHeight: 200 }} />
+
+                {/* RIGHT — Payment History */}
+                <div style={{ paddingLeft: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Receipt size={16} color="var(--success)" /> Payment History ({student.payments?.length ?? 0})
+                    </h2>
+                    {(!student.payments || student.payments.length === 0) ? (
+                        <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem', fontSize: '0.875rem' }}>
+                            No payments recorded yet.
+                        </div>
+                    ) : (
                         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                                 <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
@@ -233,24 +256,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                         </div>
                     )}
                 </div>
-            )}
-
-            {/* Paid fees (collapsed) */}
-            {paidFees.length > 0 && (
-                <div>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <CheckCircle size={16} color="var(--success)" /> Paid Fees ({paidFees.length})
-                    </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {paidFees.map((fee: any) => (
-                            <div key={fee.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-                                <span style={{ fontWeight: 600 }}>{fee.type}</span>
-                                <span style={{ color: 'var(--success)', fontWeight: 700 }}>{Rs}{fmt(fee.amount)} — Paid</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            </div>
 
             {/* Payment Modal */}
             {payFee && (
