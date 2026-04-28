@@ -1,29 +1,28 @@
 /**
- * Airtel IQ SMS Service
- * API: http://iqsms.airtel.in/api/v1/send-sms (single)
- *      http://iqsms.airtel.in/api/v1/send-sms-bulk (bulk)
+ * MSG91 SMS Service
+ * API: https://control.msg91.com/api/v5/flow/
  *
  * Required env vars:
- *   SMS_ENABLED          - "true" / "false"  (flip to true once DLT headers approved)
- *   SMS_CUSTOMER_ID      - Airtel IQ customer ID
- *   SMS_ENTITY_ID        - DLT entity ID
- *   SMS_SOURCE_ADDRESS   - Approved sender header e.g. SPROUT
- *   SMS_TEMPLATE_OTP            - DLT template ID
- *   SMS_TEMPLATE_REGISTRATION   - DLT template ID
- *   SMS_TEMPLATE_FEE_COLLECTED  - DLT template ID
- *   SMS_TEMPLATE_FEE_REMINDER   - DLT template ID
- *   SMS_TEMPLATE_NOTICE         - DLT template ID
+ *   SMS_ENABLED    - "true" / "false"
+ *   SMS_AUTHKEY    - MSG91 Auth Key (from MSG91 panel → API Keys)
+ *   SMS_SENDER     - Approved 6-char sender ID e.g. SPROUT
+ *   SMS_TEMPLATE_OTP            - MSG91 template ID
+ *   SMS_TEMPLATE_REGISTRATION   - MSG91 template ID
+ *   SMS_TEMPLATE_FEE_COLLECTED  - MSG91 template ID
+ *   SMS_TEMPLATE_FEE_REMINDER   - MSG91 template ID
+ *   SMS_TEMPLATE_NOTICE         - MSG91 template ID
+ *
+ * Template variable mapping (use ##VAR1## etc. in MSG91 template text):
+ *   REGISTRATION  : VAR1=studentName, VAR2=admissionNo
+ *   FEE_COLLECTED : VAR1=amount,      VAR2=admissionNo, VAR3=receiptNo
+ *   OTP           : VAR1=otp
+ *   FEE_REMINDER  : VAR1=parentName,  VAR2=amount,      VAR3=studentName, VAR4=admissionNo
+ *   NOTICE        : VAR1=noticeText
  */
 
 import prisma from './prisma';
 
-const BASE_URL = 'http://iqsms.airtel.in/api/v1';
-
-type MessageType =
-    | 'PROMOTIONAL'
-    | 'TRANSACTIONAL'
-    | 'SERVICE_IMPLICIT'
-    | 'SERVICE_EXPLICIT';
+const BASE_URL = 'https://control.msg91.com/api/v5';
 
 type SmsType =
     | 'REGISTRATION'
@@ -33,11 +32,20 @@ type SmsType =
     | 'OTP';
 
 interface SendOptions {
-    destinationAddress: string;
-    message: string;
-    dltTemplateId: string;
-    messageType?: MessageType;
-    priority?: boolean;
+    phone: string;
+    message: string;                      // full text — DB logging only
+    templateId: string;
+    variables: Record<string, string>;    // VAR1, VAR2, … passed to MSG91
+    sender?: string;                      // override default sender ID
+}
+
+/** Normalise to 10-digit Indian mobile; returns null if invalid */
+function normalisePhone(phone: string): string | null {
+    const d = phone.replace(/\D/g, '');
+    if (d.length === 10) return d;
+    if (d.length === 12 && d.startsWith('91')) return d.slice(2);
+    if (d.length === 11 && d.startsWith('0')) return d.slice(1);
+    return null;
 }
 
 /** Core single SMS sender — all other helpers call this */
@@ -48,15 +56,14 @@ async function sendSingleSms(
     sentBy?: string | null
 ): Promise<boolean> {
     const enabled = process.env.SMS_ENABLED === 'true';
-    const customerId = process.env.SMS_CUSTOMER_ID;
-    const entityId = process.env.SMS_ENTITY_ID;
-    const sourceAddress = process.env.SMS_SOURCE_ADDRESS;
+    const authkey = process.env.SMS_AUTHKEY;
+    const sender = opts.sender ?? process.env.SMS_SENDER;
 
-    // Log to DB regardless (so admins can see what would have been sent)
+    // Log to DB regardless (admins can see what would have been sent)
     const logEntry = await prisma.smsLog.create({
         data: {
             type: smsType,
-            recipient: opts.destinationAddress,
+            recipient: opts.phone,
             message: opts.message,
             status: 'PENDING',
             branchId: branchId ?? null,
@@ -65,7 +72,7 @@ async function sendSingleSms(
     }).catch(() => null);
 
     if (!enabled) {
-        console.log(`[SMS DISABLED] Would send to ${opts.destinationAddress}: ${opts.message}`);
+        console.log(`[SMS DISABLED] Would send to ${opts.phone}: ${opts.message}`);
         if (logEntry) {
             await prisma.smsLog.update({
                 where: { id: logEntry.id },
@@ -75,8 +82,8 @@ async function sendSingleSms(
         return true;
     }
 
-    if (!customerId || !entityId || !sourceAddress) {
-        console.error('[SMS] Missing required env vars: SMS_CUSTOMER_ID, SMS_ENTITY_ID, SMS_SOURCE_ADDRESS');
+    if (!authkey || !sender) {
+        console.error('[SMS] Missing env vars: SMS_AUTHKEY and SMS_SENDER (or per-type sender override)');
         if (logEntry) {
             await prisma.smsLog.update({
                 where: { id: logEntry.id },
@@ -86,30 +93,39 @@ async function sendSingleSms(
         return false;
     }
 
+    const mobile = normalisePhone(opts.phone);
+    if (!mobile) {
+        console.error(`[SMS] Invalid phone number: ${opts.phone}`);
+        if (logEntry) {
+            await prisma.smsLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'FAILED', errorMessage: 'Invalid phone number' },
+            }).catch(() => null);
+        }
+        return false;
+    }
+
     try {
-        const res = await fetch(`${BASE_URL}/send-sms`, {
+        const res = await fetch(`${BASE_URL}/flow/`, {
             method: 'POST',
             headers: {
+                'authkey': authkey,
                 'accept': 'application/json',
                 'content-type': 'application/json',
             },
             body: JSON.stringify({
-                customerId,
-                entityId,
-                sourceAddress,
-                destinationAddress: opts.destinationAddress,
-                message: opts.message,
-                dltTemplateId: opts.dltTemplateId,
-                messageType: opts.messageType ?? 'SERVICE_IMPLICIT',
-                priority: opts.priority ?? false,
-                filterBlacklistNumbers: true,
+                template_id: opts.templateId,
+                sender,
+                short_url: '0',
+                mobiles: `91${mobile}`,
+                ...opts.variables,
             }),
         });
 
         const data = await res.json().catch(() => ({}));
 
-        if (!res.ok || data.errorMessage) {
-            throw new Error(data.errorMessage || `HTTP ${res.status}`);
+        if (!res.ok || data.type === 'error') {
+            throw new Error(data.message || `HTTP ${res.status}`);
         }
 
         if (logEntry) {
@@ -120,7 +136,7 @@ async function sendSingleSms(
         }
         return true;
     } catch (err: any) {
-        console.error(`[SMS] Failed to send to ${opts.destinationAddress}:`, err.message);
+        console.error(`[SMS] Failed to send to ${opts.phone}:`, err.message);
         if (logEntry) {
             await prisma.smsLog.update({
                 where: { id: logEntry.id },
@@ -131,101 +147,34 @@ async function sendSingleSms(
     }
 }
 
-/** Bulk SMS sender using /api/v1/send-sms-bulk */
+/**
+ * Bulk SMS — sends each recipient individually in parallel batches of 10.
+ * Each recipient can have different variables (personalised messages).
+ */
 export async function sendBulkSms(
-    recipients: Array<{ phone: string; message: string }>,
-    dltTemplateId: string,
+    recipients: Array<{ phone: string; message: string; variables: Record<string, string> }>,
+    templateId: string,
     smsType: SmsType,
-    messageType: MessageType = 'SERVICE_IMPLICIT',
     branchId?: string | null,
     sentBy?: string | null
 ): Promise<{ sent: number; failed: number }> {
-    const enabled = process.env.SMS_ENABLED === 'true';
-    const customerId = process.env.SMS_CUSTOMER_ID;
-    const entityId = process.env.SMS_ENTITY_ID;
-    const sourceAddress = process.env.SMS_SOURCE_ADDRESS;
-
-    // Log all to DB
-    const logEntries = await Promise.all(
-        recipients.map(r =>
-            prisma.smsLog.create({
-                data: {
-                    type: smsType,
-                    recipient: r.phone,
-                    message: r.message,
-                    status: 'PENDING',
-                    branchId: branchId ?? null,
-                    sentBy: sentBy ?? null,
-                },
-            }).catch(() => null)
-        )
-    );
-
-    if (!enabled) {
-        console.log(`[SMS DISABLED] Would send bulk ${smsType} to ${recipients.length} recipients`);
-        await Promise.all(
-            logEntries.map(e => e
-                ? prisma.smsLog.update({ where: { id: e.id }, data: { status: 'SENT', errorMessage: 'SMS_DISABLED' } }).catch(() => null)
-                : null
-            )
-        );
-        return { sent: recipients.length, failed: 0 };
-    }
-
-    if (!customerId || !entityId || !sourceAddress) {
-        await Promise.all(
-            logEntries.map(e => e
-                ? prisma.smsLog.update({ where: { id: e.id }, data: { status: 'FAILED', errorMessage: 'Missing SMS config' } }).catch(() => null)
-                : null
-            )
-        );
-        return { sent: 0, failed: recipients.length };
-    }
-
-    // Batch into chunks of 100 (safe bulk limit)
-    const CHUNK = 100;
     let sent = 0;
     let failed = 0;
+    const BATCH = 10; // parallel concurrency
 
-    for (let i = 0; i < recipients.length; i += CHUNK) {
-        const chunk = recipients.slice(i, i + CHUNK);
-        const payload = chunk.map(r => ({
-            customerId,
-            entityId,
-            sourceAddress,
-            destinationAddress: r.phone,
-            message: r.message,
-            dltTemplateId,
-            messageType,
-            priority: false,
-            filterBlacklistNumbers: true,
-        }));
-
-        try {
-            const res = await fetch(`${BASE_URL}/send-sms-bulk`, {
-                method: 'POST',
-                headers: {
-                    'accept': 'application/json',
-                    'content-type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (res.ok) {
-                sent += chunk.length;
-                const ids = logEntries.slice(i, i + CHUNK).map(e => e?.id).filter(Boolean) as string[];
-                await prisma.smsLog.updateMany({ where: { id: { in: ids } }, data: { status: 'SENT' } }).catch(() => null);
-            } else {
-                failed += chunk.length;
-                const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-                const ids = logEntries.slice(i, i + CHUNK).map(e => e?.id).filter(Boolean) as string[];
-                await prisma.smsLog.updateMany({ where: { id: { in: ids } }, data: { status: 'FAILED', errorMessage: errorText } }).catch(() => null);
-            }
-        } catch (err: any) {
-            failed += chunk.length;
-            const ids = logEntries.slice(i, i + CHUNK).map(e => e?.id).filter(Boolean) as string[];
-            await prisma.smsLog.updateMany({ where: { id: { in: ids } }, data: { status: 'FAILED', errorMessage: err.message } }).catch(() => null);
-        }
+    for (let i = 0; i < recipients.length; i += BATCH) {
+        const chunk = recipients.slice(i, i + BATCH);
+        const results = await Promise.all(
+            chunk.map(r =>
+                sendSingleSms(
+                    { phone: r.phone, message: r.message, templateId, variables: r.variables },
+                    smsType,
+                    branchId,
+                    sentBy
+                )
+            )
+        );
+        results.forEach(ok => (ok ? sent++ : failed++));
     }
 
     return { sent, failed };
@@ -243,7 +192,11 @@ export async function sendRegistrationSms(
 ): Promise<void> {
     const templateId = process.env.SMS_TEMPLATE_REGISTRATION ?? '';
     const message = `Dear Parent, ${studentName} has been registered at Sprout School. Admission No: ${admissionNo}. Welcome to our family! - Sprout School`;
-    await sendSingleSms({ destinationAddress: phone, message, dltTemplateId: templateId, messageType: 'TRANSACTIONAL' }, 'REGISTRATION', branchId);
+    await sendSingleSms(
+        { phone, message, templateId, variables: { VAR1: studentName, VAR2: admissionNo } },
+        'REGISTRATION',
+        branchId
+    );
 }
 
 export async function sendFeeCollectedSms(
@@ -254,8 +207,13 @@ export async function sendFeeCollectedSms(
     branchId?: string | null
 ): Promise<void> {
     const templateId = process.env.SMS_TEMPLATE_FEE_COLLECTED ?? '';
-    const message = `Dear Parent, payment of Rs.${amount.toLocaleString('en-IN')} received for Adm No: ${admissionNo}. Receipt: ${receiptNo}. Thank you! - Sprout School`;
-    await sendSingleSms({ destinationAddress: phone, message, dltTemplateId: templateId, messageType: 'TRANSACTIONAL' }, 'FEE_COLLECTED', branchId);
+    const amountStr = amount.toLocaleString('en-IN');
+    const message = `Dear Parent, Fee payment of Rs ${amountStr} received for ${admissionNo}. Thank you. Regards, Sprout School`;
+    await sendSingleSms(
+        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: admissionNo } },
+        'FEE_COLLECTED',
+        branchId
+    );
 }
 
 export async function sendOtpSms(
@@ -263,8 +221,11 @@ export async function sendOtpSms(
     otp: string
 ): Promise<boolean> {
     const templateId = process.env.SMS_TEMPLATE_OTP ?? '';
-    const message = `Your OTP for Sprout School fee portal is ${otp}. Valid for 10 minutes. Do not share with anyone. - Sprout School`;
-    return sendSingleSms({ destinationAddress: phone, message, dltTemplateId: templateId, messageType: 'TRANSACTIONAL', priority: true }, 'OTP');
+    const message = `Dear User, your OTP for Sprout School fee portal login is ${otp}. Valid for 10 minutes. -Sprout IT`;
+    return sendSingleSms(
+        { phone, message, templateId, variables: { numeric: otp }, sender: 'SPTSEC' },
+        'OTP'
+    );
 }
 
 export async function sendFeeReminderSms(
@@ -277,8 +238,14 @@ export async function sendFeeReminderSms(
     sentBy?: string | null
 ): Promise<boolean> {
     const templateId = process.env.SMS_TEMPLATE_FEE_REMINDER ?? '';
-    const message = `Dear ${parentName}, fee of Rs.${amount.toLocaleString('en-IN')} is pending for ${studentName} (Adm: ${admissionNo}). Please pay at the earliest. - Sprout School`;
-    return sendSingleSms({ destinationAddress: phone, message, dltTemplateId: templateId, messageType: 'SERVICE_IMPLICIT' }, 'FEE_REMINDER', branchId, sentBy);
+    const amountStr = amount.toLocaleString('en-IN');
+    const message = `Dear Parent, fee of Rs ${amountStr} for ${studentName} is pending. Kindly pay at earliest. Regards, Sprout School`;
+    return sendSingleSms(
+        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: studentName } },
+        'FEE_REMINDER',
+        branchId,
+        sentBy
+    );
 }
 
 export async function sendNoticeSms(
@@ -289,5 +256,10 @@ export async function sendNoticeSms(
 ): Promise<boolean> {
     const templateId = process.env.SMS_TEMPLATE_NOTICE ?? '';
     const message = `Dear Parent, ${noticeText} - Sprout School`;
-    return sendSingleSms({ destinationAddress: phone, message, dltTemplateId: templateId, messageType: 'SERVICE_IMPLICIT' }, 'NOTICE', branchId, sentBy);
+    return sendSingleSms(
+        { phone, message, templateId, variables: { VAR1: noticeText } },
+        'NOTICE',
+        branchId,
+        sentBy
+    );
 }

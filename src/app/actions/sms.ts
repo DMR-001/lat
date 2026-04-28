@@ -98,16 +98,19 @@ export async function sendBulkFeeReminders(filters: {
 
     const recipients = eligible.map(s => {
         const totalDue = s.fees.reduce((sum, f) => sum + (f.amount - f.paidAmount), 0);
+        const amountStr = totalDue.toLocaleString('en-IN');
+        const studentName = `${s.firstName} ${s.lastName}`;
         return {
             phone: s.phone!,
-            message: `Dear ${s.parentName ?? 'Parent'}, fee of Rs.${totalDue.toLocaleString('en-IN')} is pending for ${s.firstName} ${s.lastName} (Adm: ${s.admissionNo}). Please pay at the earliest. - Sprout School`,
+            message: `Dear Parent, fee of Rs ${amountStr} for ${studentName} is pending. Kindly pay at earliest. Regards, Sprout School`,
+            variables: { numeric: amountStr, alphanumeric: studentName },
         };
     });
 
     if (recipients.length === 0) return { sent: 0, failed: 0, total: 0 };
 
     const templateId = process.env.SMS_TEMPLATE_FEE_REMINDER ?? '';
-    const { sent, failed } = await sendBulkSms(recipients, templateId, 'FEE_REMINDER', 'SERVICE_IMPLICIT', filters.branchId ?? null, sentBy);
+    const { sent, failed } = await sendBulkSms(recipients, templateId, 'FEE_REMINDER', filters.branchId ?? null, sentBy);
 
     return { sent, failed, total: recipients.length };
 }
@@ -140,10 +143,11 @@ export async function sendBroadcastNotice(noticeText: string, filters: {
     const recipients = uniquePhones.map(phone => ({
         phone,
         message: `Dear Parent, ${noticeText} - Sprout School`,
+        variables: { VAR1: noticeText },
     }));
 
     const templateId = process.env.SMS_TEMPLATE_NOTICE ?? '';
-    const { sent, failed } = await sendBulkSms(recipients, templateId, 'NOTICE', 'SERVICE_IMPLICIT', filters.branchId ?? null, sentBy);
+    const { sent, failed } = await sendBulkSms(recipients, templateId, 'NOTICE', filters.branchId ?? null, sentBy);
 
     return { sent, failed, total: uniquePhones.length };
 }
