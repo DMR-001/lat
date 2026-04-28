@@ -25,7 +25,7 @@ function getInstallments(fee: any) {
         const due = face - paid;
         return {
             index: i,
-            label: n === 1 ? 'Full Payment' : `Installment ${i + 1} of ${n}`,
+            label: n === 1 ? 'Full Payment' : `Term ${i + 1}`,
             face,
             paid,
             due,
@@ -44,6 +44,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     // payment modal state
     const [payFee, setPayFee] = useState<any>(null);
     const [payInstallments, setPayInstallments] = useState<number[]>([]);
+    const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({});
     const [payMethod, setPayMethod] = useState('CASH');
     const [paying, setPaying] = useState(false);
     const [payError, setPayError] = useState<string | null>(null);
@@ -68,22 +69,34 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
         setPayFee(fee);
         const first = insts.find(i => !i.isPaid);
         setPayInstallments(first ? [first.index] : []);
+        setCustomAmounts(first ? { [first.index]: String(Math.round(first.due)) } : {});
         setPayMethod('CASH');
         setPayError(null);
     }
 
     function toggleInstallment(fee: any, idx: number) {
         const insts = getInstallments(fee);
-        setPayInstallments(prev => {
-            if (prev.includes(idx)) return prev.filter(i => i !== idx);
-            return [...prev, idx];
-        });
+        const inst = insts.find(i => i.index === idx);
+        const isRemoving = payInstallments.includes(idx);
+        setPayInstallments(prev => isRemoving ? prev.filter(i => i !== idx) : [...prev, idx]);
+        if (!isRemoving && inst) {
+            setCustomAmounts(prev => ({ ...prev, [idx]: String(Math.round(inst.due)) }));
+        } else {
+            setCustomAmounts(prev => { const n = { ...prev }; delete n[idx]; return n; });
+        }
     }
 
     function getPayAmount() {
         if (!payFee) return 0;
         const insts = getInstallments(payFee);
-        return insts.filter(i => payInstallments.includes(i.index) && !i.isPaid).reduce((s, i) => s + i.due, 0);
+        return insts
+            .filter(i => payInstallments.includes(i.index) && !i.isPaid)
+            .reduce((s, i) => {
+                const customStr = customAmounts[i.index];
+                const custom = parseFloat(customStr ?? '');
+                const amt = (!isNaN(custom) && custom >= 1 && custom <= i.due) ? custom : i.due;
+                return s + amt;
+            }, 0);
     }
 
     async function submitPayment() {
@@ -274,7 +287,17 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                     <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>{inst.label}</span>
                                     {inst.isPaid
                                         ? <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: '0.25rem' }}>PAID</span>
-                                        : <span style={{ fontSize: '0.85rem', fontWeight: 700, color: payInstallments.includes(inst.index) ? '#1d4ed8' : '#475569' }}>{Rs}{fmt(inst.due)}</span>
+                                        : payInstallments.includes(inst.index)
+                                            ? <input
+                                                type="number"
+                                                min={1}
+                                                max={inst.due}
+                                                value={customAmounts[inst.index] ?? String(Math.round(inst.due))}
+                                                onClick={e => e.stopPropagation()}
+                                                onChange={e => setCustomAmounts(prev => ({ ...prev, [inst.index]: e.target.value }))}
+                                                style={{ width: 90, padding: '0.2rem 0.4rem', border: '1.5px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.85rem', fontWeight: 700, color: '#1d4ed8', textAlign: 'right', outline: 'none' }}
+                                              />
+                                            : <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>{Rs}{fmt(inst.due)}</span>
                                     }
                                 </div>
                             ))}

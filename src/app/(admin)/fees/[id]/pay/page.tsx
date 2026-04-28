@@ -30,7 +30,7 @@ export default async function RecordPaymentPage({ params }: { params: Promise<{ 
         const due = faceValue - paidTowardThis;
         return {
             index: i,
-            label: installmentCount === 1 ? 'Full Fee' : `Installment ${i + 1} of ${installmentCount}`,
+            label: installmentCount === 1 ? 'Full Fee' : `Term ${i + 1}`,
             faceValue,
             paid: paidTowardThis,
             due,
