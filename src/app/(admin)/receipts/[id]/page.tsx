@@ -1,27 +1,37 @@
 import prisma from '@/lib/prisma';
-import { Printer } from 'lucide-react';
 import PrintButton from '@/components/PrintButton';
 
 export default async function ReceiptViewPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const payment = await prisma.payment.findUnique({
-        where: { id },
-        include: {
-            fee: {
-                include: {
-                    student: {
-                        include: {
-                            class: true
+    const [payment, schoolSettings] = await Promise.all([
+        prisma.payment.findUnique({
+            where: { id },
+            include: {
+                fee: {
+                    include: {
+                        student: {
+                            include: {
+                                class: true,
+                                branch: true,
+                            }
                         }
                     }
-                }
+                },
+                branch: true,
             }
-        }
-    });
+        }),
+        prisma.schoolSettings.findFirst(),
+    ]);
 
     if (!payment) return <div>Receipt not found</div>;
 
     const student = payment.fee.student;
+    const branch = student.branch || payment.branch;
+
+    const schoolName = (schoolSettings?.schoolName && schoolSettings.schoolName.trim()) || 'Sprout School';
+    const address = (branch?.address && branch.address.trim()) || (schoolSettings?.address && schoolSettings.address.trim()) || '';
+    const phone = (branch?.phone && branch.phone.trim()) || (schoolSettings?.phone && schoolSettings.phone.trim()) || '';
+    const email = (branch?.email && branch.email.trim()) || (schoolSettings?.email && schoolSettings.email.trim()) || '';
 
     return (
         <div className="container" style={{ maxWidth: '800px', margin: '2rem auto' }}>
@@ -34,12 +44,15 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                     <img src="/sprout-logo.png" alt="Sprout School Logo" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
                     <div style={{ flex: 1 }}>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.2', color: 'black' }}>Receipt</h1>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad</p>
-                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            <span>Ph: +91 7032252030</span>
-                            <span>Email: sproutmeerpet@gmail.com</span>
-                        </div>
+                        <h1 style={{ fontSize: '1.1rem', fontWeight: 'bold', lineHeight: '1.2', color: 'black' }}>{schoolName}</h1>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>Fee Receipt{branch?.name ? ` — ${branch.name}` : ''}</p>
+                        {address && <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>{address}</p>}
+                        {(phone || email) && (
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                {phone && <span>Ph: {phone}</span>}
+                                {email && <span>Email: {email}</span>}
+                            </div>
+                        )}
                     </div>
                 </div>
 

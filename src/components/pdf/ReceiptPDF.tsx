@@ -185,7 +185,8 @@ export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProp
     const branchAddress = (branch?.address && branch.address.trim()) || (schoolSettings?.address && schoolSettings.address.trim()) || '';
     const branchPhone = (branch?.phone && branch.phone.trim()) || (schoolSettings?.phone && schoolSettings.phone.trim()) || '';
     const branchEmail = (branch?.email && branch.email.trim()) || (schoolSettings?.email && schoolSettings.email.trim()) || '';
-    const schoolName = (branch?.name) || (schoolSettings?.schoolName) || 'Sprout School';
+    const schoolName = (schoolSettings?.schoolName && schoolSettings.schoolName.trim()) || 'Sprout School';
+    const branchLabel = branch?.name && branch.name.trim() ? branch.name : null;
 
     return (
         <Document>
@@ -201,7 +202,7 @@ export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProp
                         {logoData && <Image src={logoData} style={styles.logo} />}
                         <View style={styles.headerContent}>
                             <Text style={styles.receiptTitle}>{schoolName}</Text>
-                            <Text style={styles.addressLine}>Fee Receipt</Text>
+                            <Text style={styles.addressLine}>Fee Receipt{branchLabel ? ` — ${branchLabel}` : ''}</Text>
                             {branchAddress ? <Text style={styles.addressLine}>{branchAddress}</Text> : null}
                             {(branchPhone || branchEmail) ? <Text style={styles.addressLine}>{[branchPhone ? `Ph: ${branchPhone}` : null, branchEmail ? `Email: ${branchEmail}` : null].filter(Boolean).join('  ')}</Text> : null}
                         </View>
