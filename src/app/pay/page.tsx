@@ -22,6 +22,7 @@ export default function PublicPaymentPage() {
 
     const [paymentInputs, setPaymentInputs] = useState<Record<string, string>>({});
     const [selectedInstallments, setSelectedInstallments] = useState<Record<string, number[]>>({});
+    const [customAmounts, setCustomAmounts] = useState<Record<string, Record<number, string>>>({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionSuccess, setTransactionSuccess] = useState<any>(null);
     const [payError, setPayError] = useState('');
@@ -144,6 +145,7 @@ export default function PublicPaymentPage() {
             const data = await getStudentFeesPublic(student.id);
             setFeeDetails(data);
             setSelectedInstallments({});
+            setCustomAmounts({});
             setPaymentInputs({});
             setStep('pay');
         } catch {
@@ -171,7 +173,7 @@ export default function PublicPaymentPage() {
             const due = faceValue - paidTowardThis;
             return {
                 index: i,
-                label: n === 1 ? 'Full Fee' : `Installment ${i + 1} of ${n}`,
+                label: n === 1 ? 'Full Fee' : `Term ${i + 1}`,  
                 faceValue,
                 paid: paidTowardThis,
                 due,
@@ -185,25 +187,55 @@ export default function PublicPaymentPage() {
         const selected = selectedInstallments[fee.id] || [];
         return insts
             .filter(inst => selected.includes(inst.index) && !inst.isPaid)
-            .reduce((sum, inst) => sum + inst.due, 0);
+            .reduce((sum, inst) => {
+                const customStr = customAmounts[fee.id]?.[inst.index];
+                const custom = parseFloat(customStr ?? '');
+                const amt = (!isNaN(custom) && custom >= 1 && custom <= inst.due) ? custom : inst.due;
+                return sum + amt;
+            }, 0);
     };
 
     const handleInstallmentToggle = (feeId: string, instIndex: number) => {
+        const current = selectedInstallments[feeId] || [];
+        const isRemoving = current.includes(instIndex);
         setSelectedInstallments(prev => {
-            const current = prev[feeId] || [];
-            const updated = current.includes(instIndex)
-                ? current.filter(i => i !== instIndex)
-                : [...current, instIndex];
+            const curr = prev[feeId] || [];
+            const updated = curr.includes(instIndex) ? curr.filter(i => i !== instIndex) : [...curr, instIndex];
             return { ...prev, [feeId]: updated };
         });
+        if (!isRemoving && feeDetails) {
+            const fee = feeDetails.fees.find(f => f.id === feeId);
+            if (fee) {
+                const inst = getInstallmentsForFee(fee).find(i => i.index === instIndex);
+                if (inst) {
+                    setCustomAmounts(prev => ({
+                        ...prev,
+                        [feeId]: { ...(prev[feeId] || {}), [instIndex]: String(Math.round(inst.due)) }
+                    }));
+                }
+            }
+        } else {
+            setCustomAmounts(prev => {
+                const fc = { ...(prev[feeId] || {}) };
+                delete fc[instIndex];
+                return { ...prev, [feeId]: fc };
+            });
+        }
     };
 
     const handleSelectAll = (fee: any) => {
         const insts = getInstallmentsForFee(fee);
-        const unpaid = insts.filter(i => !i.isPaid).map(i => i.index);
+        const unpaid = insts.filter(i => !i.isPaid);
         const current = selectedInstallments[fee.id] || [];
-        const allSelected = unpaid.every(i => current.includes(i));
-        setSelectedInstallments(prev => ({ ...prev, [fee.id]: allSelected ? [] : unpaid }));
+        const allSelected = unpaid.every(i => current.includes(i.index));
+        setSelectedInstallments(prev => ({ ...prev, [fee.id]: allSelected ? [] : unpaid.map(i => i.index) }));
+        if (!allSelected) {
+            const newCustoms: Record<number, string> = {};
+            unpaid.forEach(i => { newCustoms[i.index] = String(Math.round(i.due)); });
+            setCustomAmounts(prev => ({ ...prev, [fee.id]: newCustoms }));
+        } else {
+            setCustomAmounts(prev => ({ ...prev, [fee.id]: {} }));
+        }
     };
     // --- end installment helpers ---
 
@@ -516,6 +548,8 @@ export default function PublicPaymentPage() {
                 .inst-amt { font-size: 0.82rem; font-weight: 700; color: #475569; }
                 .inst-row.selected .inst-amt { color: #1d4ed8; }
                 .inst-row.paid-row .inst-amt { color: #15803d; }
+                .inst-custom-input { width: 88px; padding: 0.18rem 0.4rem; border: 1.5px solid #2563eb; border-radius: 0.375rem; font-size: 0.82rem; font-weight: 700; color: #1d4ed8; text-align: right; background: white; outline: none; }
+                .inst-custom-input:focus { border-color: #1d4ed8; box-shadow: 0 0 0 2px #bfdbfe; }
                 .inst-badge {
                     font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
                     padding: 0.15rem 0.45rem; border-radius: 0.25rem;
@@ -911,6 +945,22 @@ export default function PublicPaymentPage() {
                                                     <span className="inst-label">{inst.label}</span>
                                                     {inst.isPaid ? (
                                                         <span className="inst-badge badge-paid">Paid</span>
+                                                    ) : selectedSet.includes(inst.index) ? (
+                                                        <input
+                                                            className="inst-custom-input"
+                                                            type="number"
+                                                            min={1}
+                                                            max={inst.due}
+                                                            value={customAmounts[fee.id]?.[inst.index] ?? String(Math.round(inst.due))}
+                                                            onClick={e => e.stopPropagation()}
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                setCustomAmounts(prev => ({
+                                                                    ...prev,
+                                                                    [fee.id]: { ...(prev[fee.id] || {}), [inst.index]: val }
+                                                                }));
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <span className="inst-amt">{Rs}{inst.due.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                                     )}
