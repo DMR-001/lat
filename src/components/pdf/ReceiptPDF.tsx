@@ -257,7 +257,7 @@ export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProp
                                 {payment.fee.type} Fee <Text style={{ color: '#6b7280', fontSize: 9 }}>({payment.method})</Text>
                             </Text>
                             <Text style={[styles.colAmount, { fontWeight: 'bold' }]}>
-                                {payment.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                Rs. {payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Text>
                         </View>
                     </View>
@@ -266,7 +266,7 @@ export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProp
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Total:</Text>
                         <Text style={styles.totalValue}>
-                            {payment.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                            Rs. {payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                     </View>
 
