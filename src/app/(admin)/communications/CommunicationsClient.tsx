@@ -387,16 +387,17 @@ export default function CommunicationsClient({
                         </div>
                         <textarea
                             value={noticeText}
-                            onChange={e => setNoticeText(e.target.value.slice(0, 300))}
-                            placeholder="Type your notice here... e.g. School will remain closed on 15th August for Independence Day"
+                            onChange={e => setNoticeText(e.target.value.slice(0, 30))}
+                            placeholder="Short notice, max 30 chars. e.g. School closed on 15th Aug"
                             rows={4}
-                            style={{ width: '100%', padding: '0.875rem', border: '1.5px solid #e2e8f0', borderRadius: '0.75rem', fontSize: '0.9rem', color: '#0f172a', background: '#f8fafc', outline: 'none', resize: 'vertical', fontFamily: 'inherit', marginBottom: '0.375rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '0.875rem', border: `1.5px solid ${noticeText.length >= 28 ? '#f97316' : '#e2e8f0'}`, borderRadius: '0.75rem', fontSize: '0.9rem', color: '#0f172a', background: '#f8fafc', outline: 'none', resize: 'vertical', fontFamily: 'inherit', marginBottom: '0.375rem', boxSizing: 'border-box' }}
                         />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{noticeText.length}/300 chars</span>
-                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                                Message will be: &ldquo;Dear Parent, {noticeText || '[your message]'} - Sprout School&rdquo;
-                            </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: noticeText.length >= 28 ? '#ea580c' : '#94a3b8' }}>{noticeText.length}/30 chars {noticeText.length === 30 && '— limit reached'}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>DLT variable limit: 30 characters</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '1.25rem', background: '#f1f5f9', borderRadius: '0.5rem', padding: '0.5rem 0.75rem' }}>
+                            Preview: &ldquo;Dear Parent, <strong>{noticeText || '[your message]'}</strong> - Sprout School&rdquo;
                         </div>
 
                         {noticeResult && (
@@ -408,7 +409,7 @@ export default function CommunicationsClient({
 
                         <button
                             onClick={handleSendNotice}
-                            disabled={isSendingNotice || !noticeText.trim()}
+                            disabled={isSendingNotice || !noticeText.trim() || noticeText.length > 30}
                             style={{ ...btnPrimary, width: '100%', justifyContent: 'center', padding: '0.875rem' }}
                         >
                             {isSendingNotice ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
