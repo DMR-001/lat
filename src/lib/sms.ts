@@ -238,15 +238,15 @@ export async function sendRegistrationSms(
 export async function sendFeeCollectedSms(
     phone: string,
     amount: number,
-    admissionNo: string,
+    studentName: string,
     receiptNo: string,
     branchId?: string | null
 ): Promise<void> {
     const templateId = process.env.SMS_TEMPLATE_FEE_COLLECTED ?? '';
     const amountStr = amount.toLocaleString('en-IN');
-    const message = `Dear Parent, Fee payment of Rs ${amountStr} received for ${admissionNo}. Thank you. Regards, Sprout School`;
+    const message = `Dear Parent, Fee payment of Rs ${amountStr} received for ${studentName}. Thank you. Regards, Sprout School`;
     await sendSingleSms(
-        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: admissionNo } },
+        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: studentName } },
         'FEE_COLLECTED',
         branchId
     );

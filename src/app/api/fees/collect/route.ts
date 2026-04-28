@@ -65,10 +65,11 @@ export async function POST(req: NextRequest) {
         // Send fee collected SMS to parent
         const student = await prisma.student.findUnique({
             where: { id: fee.studentId },
-            select: { phone: true, admissionNo: true },
+            select: { phone: true, firstName: true, lastName: true },
         });
         if (student?.phone) {
-            await sendFeeCollectedSms(student.phone, amount, student.admissionNo, payment.receiptNo, branchId).catch(() => null);
+            const studentName = `${student.firstName} ${student.lastName}`;
+            await sendFeeCollectedSms(student.phone, amount, studentName, payment.receiptNo, branchId).catch(() => null);
         }
 
         return NextResponse.json({ success: true, receiptNo: payment.receiptNo, paymentId: payment.id });

@@ -209,7 +209,8 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     const totalPaid = paymentsCreated.reduce((sum, p) => sum + p.amount, 0);
     if (student.phone && totalPaid > 0) {
         const receiptNos = paymentsCreated.map(p => p.receiptNo).join(', ');
-        await sendFeeCollectedSms(student.phone, totalPaid, student.admissionNo, receiptNos, branchId).catch(() => null);
+        const studentName = `${student.firstName} ${student.lastName}`;
+        await sendFeeCollectedSms(student.phone, totalPaid, studentName, receiptNos, branchId).catch(() => null);
     }
 
     return { success: true, payments: paymentsCreated };
