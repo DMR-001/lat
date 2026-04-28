@@ -48,7 +48,7 @@ export default function AboutPage() {
             <div style={{ marginTop: '3rem', padding: '1.25rem 1.5rem', background: '#f1f5f9', borderRadius: '0.75rem', fontSize: '0.85rem', color: '#64748b' }}>
                 <strong style={{ color: '#374151' }}>Legal Entity:</strong> SPROUT EDUCATIONAL SOCIETY &nbsp;|&nbsp;
                 <strong style={{ color: '#374151' }}>Registered Address:</strong> Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;|&nbsp;
-                <strong style={{ color: '#374151' }}>Email:</strong> sproutmeerpet@gmail.com
+                <strong style={{ color: '#374151' }}>Email:</strong> info@sproutschool.edu.in
             </div>
         </div>
     );

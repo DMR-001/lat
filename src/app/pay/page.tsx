@@ -1001,7 +1001,11 @@ export default function PublicPaymentPage() {
                     </div>
                 </div>
 
-                <div className="pf">&copy; {new Date().getFullYear()} Sprout School &middot; All rights reserved</div>
+                <div className="pf">
+                    <div style={{ marginBottom: '0.35rem', fontWeight: 600, color: '#475569' }}>SPROUT EDUCATIONAL SOCIETY</div>
+                    <div style={{ marginBottom: '0.35rem' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
+                    <div>&copy; {new Date().getFullYear()} Sprout School &middot; All rights reserved</div>
+                </div>
             </div>
         </>
     );
