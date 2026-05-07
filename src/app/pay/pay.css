@@ -232,17 +232,21 @@ body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Seg
 /* Secure */
 .secure { display: flex; align-items: center; justify-content: center; gap: 0.35rem; font-size: 0.72rem; color: #94a3b8; }
 
-/* OTP input */
-.otp-input {
-    width: 100%; padding: 0.9rem 1rem;
+/* OTP boxes */
+.otp-boxes { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.875rem; }
+.otp-box {
+    width: 44px; height: 54px;
     background: #f8fafc; border: 1.5px solid #e2e8f0;
-    border-radius: 0.75rem; color: #0f172a;
-    font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5rem;
+    border-radius: 0.625rem; color: #0f172a;
+    font-size: 1.5rem; font-weight: 700;
     text-align: center; outline: none;
     transition: border-color 0.18s, box-shadow 0.18s;
-    margin-bottom: 0.875rem;
+    caret-color: #2563eb;
+    /* override the global iOS 16px rule for these boxes */
+    font-size: 1.35rem !important;
 }
-.otp-input:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.otp-box:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.otp-box.otp-filled { border-color: #2563eb; background: #eff6ff; }
 .otp-hint { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 1rem; line-height: 1.5; }
 .resend-row { display: flex; justify-content: center; margin-bottom: 0.875rem; }
 .resend-btn { font-size: 0.78rem; font-weight: 600; color: #2563eb; background: none; border: none; cursor: pointer; }
@@ -253,16 +257,28 @@ body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Seg
     background: #0f172a; border-radius: 0.875rem; padding: 1rem;
     text-align: center; margin-bottom: 1.25rem;
 }
-.outstanding-lbl { font-size: 0.63rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+.outstanding-lbl { font-size: 0.63rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
 .outstanding-val { font-size: 2rem; font-weight: 800; color: #f8fafc; }
 
 /* Success */
+@keyframes ring-pop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    80%  { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+@keyframes check-draw {
+    0%   { stroke-dashoffset: 40; opacity: 0; }
+    50%  { opacity: 1; }
+    100% { stroke-dashoffset: 0; }
+}
 .success-wrap { text-align: center; padding: 0.5rem 0; }
 .success-ring {
     width: 72px; height: 72px; border-radius: 50%;
     background: #f0fdf4; border: 2px solid #86efac;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 1.25rem; color: #16a34a;
+    animation: ring-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 .success-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem; }
 .success-sub { font-size: 0.82rem; color: #64748b; margin-bottom: 1.75rem; line-height: 1.6; }
@@ -274,6 +290,21 @@ body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Seg
     margin-bottom: 0.625rem; transition: background 0.18s;
 }
 .btn-receipt:hover { background: #1d4ed8; }
+
+/* Branch skeleton */
+@keyframes pay-pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.branch-skeleton { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.branch-skel-item {
+    height: 72px; border-radius: 0.875rem;
+    background: #e2e8f0;
+    animation: pay-pulse 1.5s ease-in-out infinite;
+}
+
+/* Pay hint */
+.pay-hint {
+    text-align: center; font-size: 0.75rem; color: #94a3b8;
+    margin-top: -0.5rem; margin-bottom: 0.875rem;
+}
 
 /* Footer */
 .pf { text-align: center; margin-top: 1.75rem; color: #1e293b; font-size: 0.75rem; }

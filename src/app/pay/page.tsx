@@ -1,10 +1,22 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment } from '@/app/actions/public';
-import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, User, GraduationCap, UserCircle2, ShieldCheck } from 'lucide-react';
+import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
+
+const FEE_LABELS: Record<string, string> = {
+    TUITION: 'Tuition Fee',
+    REGISTRATION: 'Registration Fee',
+    TRANSPORT: 'Transport Fee',
+    SPORTS: 'Sports Fee',
+    BOOKS: 'Books & Stationery',
+    UNIFORM: 'Uniform Fee',
+    EXAM: 'Exam Fee',
+    MISCELLANEOUS: 'Miscellaneous',
+};
+const feeLabel = (type: string) => FEE_LABELS[type] ?? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function PublicPaymentPage() {
     // step: 'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'
@@ -36,6 +48,46 @@ export default function PublicPaymentPage() {
     const [otpError, setOtpError] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const [otpResendCooldown, setOtpResendCooldown] = useState(0);
+
+    const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    const handleOtpBoxChange = (index: number, value: string) => {
+        const digit = value.replace(/\D/g, '').slice(-1);
+        const chars = otpValue.split('');
+        chars[index] = digit;
+        const next = chars.join('');
+        setOtpValue(next);
+        setOtpError('');
+        if (digit && index < 5) otpRefs.current[index + 1]?.focus();
+        if (next.length === 6 && next.replace(/\s/g,'').length === 6) handleVerifyOtpValue(next);
+    };
+
+    const handleOtpBoxKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace') {
+            if (otpValue[index]) {
+                const chars = otpValue.split('');
+                chars[index] = '';
+                setOtpValue(chars.join(''));
+            } else if (index > 0) {
+                otpRefs.current[index - 1]?.focus();
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            otpRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            otpRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpBoxPaste = (e: React.ClipboardEvent) => {
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (pasted.length === 6) {
+            setOtpValue(pasted);
+            setOtpError('');
+            otpRefs.current[5]?.focus();
+            handleVerifyOtpValue(pasted);
+        }
+        e.preventDefault();
+    };
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
@@ -109,22 +161,21 @@ export default function PublicPaymentPage() {
         }
     };
 
-    const handleVerifyOtp = async () => {
-        if (otpValue.length !== 6) return;
+    const handleVerifyOtpValue = async (otp: string) => {
+        if (otp.length !== 6) return;
         setIsVerifyingOtp(true);
         setOtpError('');
         try {
             const res = await fetch('/api/otp/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: phone.trim(), otp: otpValue }),
+                body: JSON.stringify({ phone: phone.trim(), otp }),
             });
             const data = await res.json();
             if (!res.ok) {
                 setOtpError(data.error || 'Incorrect OTP');
             } else {
                 setOtpToken(data.token);
-                // Proceed with already-fetched results
                 if (searchResults.length === 1) {
                     setSelectedStudent(searchResults[0]);
                     setStep('confirm');
@@ -138,6 +189,8 @@ export default function PublicPaymentPage() {
             setIsVerifyingOtp(false);
         }
     };
+
+    const handleVerifyOtp = () => handleVerifyOtpValue(otpValue);
 
     const handleConfirmStudent = async (student: any) => {
         setSelectedStudent(student);
@@ -388,7 +441,9 @@ export default function PublicPaymentPage() {
                                     ))}
                                 </div>
                                 {branches.length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#94a3b8', padding: '1.5rem 0', fontSize: '0.85rem' }}>Loading...</p>
+                                    <div className="branch-skeleton">
+                                        {[1,2].map(i => <div key={i} className="branch-skel-item" />)}
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -462,17 +517,24 @@ export default function PublicPaymentPage() {
                                         <p className="otp-hint">
                                             OTP sent to <strong>+91 {phone}</strong>. Valid for 10 minutes.
                                         </p>
-                                        <input
-                                            className="otp-input"
-                                            type="text"
-                                            inputMode="numeric"
-                                            maxLength={6}
-                                            placeholder="------"
-                                            value={otpValue}
-                                            onChange={e => { setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
-                                            onKeyDown={e => e.key === 'Enter' && otpValue.length === 6 && handleVerifyOtp()}
-                                            autoFocus
-                                        />
+                                        <div className="otp-boxes" onPaste={handleOtpBoxPaste}>
+                                            {Array.from({ length: 6 }).map((_, i) => (
+                                                <input
+                                                    key={i}
+                                                    ref={el => { otpRefs.current[i] = el; }}
+                                                    className={`otp-box${otpValue[i] ? ' otp-filled' : ''}`}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    maxLength={1}
+                                                    value={otpValue[i] || ''}
+                                                    onChange={e => handleOtpBoxChange(i, e.target.value)}
+                                                    onKeyDown={e => handleOtpBoxKeyDown(i, e)}
+                                                    autoFocus={i === 0}
+                                                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                                                    disabled={isVerifyingOtp}
+                                                />
+                                            ))}
+                                        </div>
                                         {otpError && <div className="err">{otpError}</div>}
                                         <button className="btn-blue" onClick={handleVerifyOtp} disabled={isVerifyingOtp || otpValue.length !== 6}>
                                             {isVerifyingOtp
@@ -605,7 +667,7 @@ export default function PublicPaymentPage() {
                                         <div key={fee.id} className="fc">
                                             <div className="fc-head">
                                                 <div>
-                                                    <span className="fc-type">{fee.type}</span>
+                                                    <span className="fc-type">{feeLabel(fee.type)}</span>
                                                     {hasDiscount && (
                                                         <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#16a34a', background: '#dcfce7', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', marginLeft: '0.4rem' }}>
                                                             -{Rs}{fee.discountAmount.toLocaleString('en-IN')} off
@@ -677,10 +739,13 @@ export default function PublicPaymentPage() {
                                     <span className="total-val">{Rs}{getTotalPayAmount().toLocaleString('en-IN')}</span>
                                 </div>
 
+                                {getTotalPayAmount() <= 0 && feeDetails.fees.length > 0 && (
+                                    <p className="pay-hint">Select at least one fee above to continue</p>
+                                )}
                                 <button className="btn-green" onClick={handlePayment} disabled={isProcessing || getTotalPayAmount() <= 0}>
                                     {isProcessing
                                         ? <><Loader2 size={20} className="animate-spin" /> Processing...</>
-                                        : <><CreditCard size={20} /> Pay Securely</>
+                                        : <><CreditCard size={20} /> Pay {getTotalPayAmount() > 0 ? `₹${getTotalPayAmount().toLocaleString('en-IN')}` : 'Securely'}</>
                                     }
                                 </button>
                                 {payError && (
@@ -722,7 +787,7 @@ export default function PublicPaymentPage() {
                                 {transactionSuccess?.payments.map((p: any) => (
                                     <Link key={p.id} href={`/api/receipts/${p.id}/download`} target="_blank" className="btn-receipt">
                                         <Download size={17} />
-                                        Receipt &mdash; {p.fee?.type || 'General'}
+                                        Receipt &mdash; {feeLabel(p.fee?.type || 'General')}
                                     </Link>
                                 ))}
                                 <button
