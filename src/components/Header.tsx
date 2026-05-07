@@ -79,6 +79,7 @@ export default function Header() {
         <header style={{
             height: '64px',
             borderBottom: '1px solid var(--border)',
+            boxShadow: '0 1px 4px 0 rgb(0 0 0 / 0.04)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

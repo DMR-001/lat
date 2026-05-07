@@ -117,47 +117,50 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
+                <table>
+                    <thead>
                         <tr>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Receipt No</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Date</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Student</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Fee Type</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Amount</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Method</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Actions</th>
+                            <th>Receipt No</th>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Fee Type</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {payments.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2.5rem' }}>
                                     No transactions found.
                                 </td>
                             </tr>
                         ) : (
                             payments.map((payment) => (
-                                <tr key={payment.id} style={{ borderTop: '1px solid var(--border)' }}>
-                                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>{payment.receiptNo}</td>
-                                    <td style={{ padding: '1rem' }}>{payment.date.toLocaleDateString()}</td>
-                                    <td style={{ padding: '1rem' }}>
+                                <tr key={payment.id}>
+                                    <td style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '0.82rem' }}>{payment.receiptNo}</td>
+                                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{payment.date.toLocaleDateString()}</td>
+                                    <td>
                                         <div style={{ fontWeight: '500' }}>{payment.fee.student.firstName} {payment.fee.student.lastName}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{payment.fee.student.admissionNo}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                            {payment.fee.student.class?.name} {payment.fee.student.class?.section ? `(${payment.fee.student.class.section})` : ''}
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                                            {payment.fee.student.admissionNo} &middot; {payment.fee.student.class?.name}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '1rem' }}>{payment.fee.type}</td>
-                                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>₹{payment.amount.toFixed(2)}</td>
-                                    <td style={{ padding: '1rem' }}>
+                                    <td>
+                                        <span className="badge" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
+                                            {payment.fee.type}
+                                        </span>
+                                    </td>
+                                    <td style={{ fontWeight: '700', color: 'var(--success)' }}>₹{payment.amount.toFixed(2)}</td>
+                                    <td>
                                         <span className={`badge badge-${payment.method.toLowerCase()}`}>
                                             {payment.method}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <Link href={`/receipts/${payment.id}`} target="_blank" className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', gap: '0.25rem' }}>
-                                            <Printer size={16} />
+                                    <td>
+                                        <Link href={`/receipts/${payment.id}`} target="_blank" className="btn btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}>
+                                            <Printer size={14} />
                                             Print
                                         </Link>
                                     </td>

@@ -236,39 +236,39 @@ export default function DashboardPage() {
       <div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>Recent Payments</h2>
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
+          <table>
+            <thead>
               <tr>
-                <th style={{ padding: '1rem', fontWeight: '500' }}>Student</th>
-                <th style={{ padding: '1rem', fontWeight: '500' }}>Receipt No</th>
-                <th style={{ padding: '1rem', fontWeight: '500' }}>Amount</th>
-                <th style={{ padding: '1rem', fontWeight: '500' }}>Date</th>
-                <th style={{ padding: '1rem', fontWeight: '500' }}>Method</th>
+                <th>Student</th>
+                <th>Receipt No</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Method</th>
               </tr>
             </thead>
             <tbody>
               {recentPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2.5rem' }}>
                     No recent payments
                   </td>
                 </tr>
               ) : (
                 recentPayments.map((payment) => (
-                  <tr key={payment.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '1rem', fontWeight: '500' }}>
+                  <tr key={payment.id}>
+                    <td style={{ fontWeight: '500' }}>
                       {payment.fee.student.firstName} {payment.fee.student.lastName}
                     </td>
-                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {payment.receiptNo}
                     </td>
-                    <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--success)' }}>
+                    <td style={{ fontWeight: '700', color: 'var(--success)' }}>
                       ₹{payment.amount.toFixed(2)}
                     </td>
-                    <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+                    <td style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                       {new Date(payment.date).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: '1rem' }}>
+                    <td>
                       <span className={`badge badge-${payment.method.toLowerCase()}`}>
                         {payment.method}
                       </span>

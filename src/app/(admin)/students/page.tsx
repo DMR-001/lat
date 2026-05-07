@@ -76,41 +76,41 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead style={{ backgroundColor: 'var(--background)', color: 'var(--text-secondary)' }}>
+                <table>
+                    <thead>
                         <tr>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Admission No</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Name</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Class</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Gender</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Parent Contact</th>
-                            <th style={{ padding: '1rem', fontWeight: '500' }}>Actions</th>
+                            <th>Admission No</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Gender</th>
+                            <th>Parent Contact</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {students.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2.5rem' }}>
                                     No students found.
                                 </td>
                             </tr>
                         ) : (
                             students.map((student) => (
-                                <tr key={student.id} style={{ borderTop: '1px solid var(--border)' }}>
-                                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>{student.admissionNo}</td>
-                                    <td style={{ padding: '1rem' }}>
+                                <tr key={student.id}>
+                                    <td style={{ fontWeight: '600', fontFamily: 'monospace', fontSize: '0.85rem' }}>{student.admissionNo}</td>
+                                    <td>
                                         <div style={{ fontWeight: '500', color: 'var(--text-main)' }}>{student.firstName} {student.lastName}</div>
-                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{student.email}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>{student.email}</div>
                                     </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '0.25rem', fontSize: '0.875rem' }}>
+                                    <td>
+                                        <span className="badge" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
                                             {student.class.name}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{student.gender}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{student.phone || '-'}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <Link href={`/students/${student.id}`} style={{ color: 'var(--primary)', fontWeight: '500' }}>View</Link>
+                                    <td style={{ color: 'var(--text-secondary)' }}>{student.gender}</td>
+                                    <td style={{ color: 'var(--text-secondary)' }}>{student.phone || '-'}</td>
+                                    <td>
+                                        <Link href={`/students/${student.id}`} className="btn btn-primary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}>View</Link>
                                     </td>
                                 </tr>
                             ))

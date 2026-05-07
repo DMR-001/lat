@@ -31,10 +31,18 @@ export default function ClientLayout({
                 <main style={{
                     marginLeft: showSidebar ? '260px' : '0',
                     flex: 1,
-                    padding: session ? '2rem' : '0',
-                    width: '100%'
+                    padding: session ? '2rem 2.5rem' : '0',
+                    width: '100%',
+                    minWidth: 0,
+                    backgroundColor: 'var(--background)',
                 }}>
-                    {children}
+                    <div
+                        key={pathname}
+                        className="page-content"
+                        style={{ maxWidth: '1280px', margin: '0 auto' }}
+                    >
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

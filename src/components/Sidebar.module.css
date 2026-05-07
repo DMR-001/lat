@@ -2,6 +2,7 @@
     width: 260px;
     background-color: var(--surface);
     border-right: 1px solid var(--border);
+    box-shadow: 2px 0 8px 0 rgb(0 0 0 / 0.04);
     height: calc(100vh - 64px);
     position: fixed;
     left: 0;
