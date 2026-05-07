@@ -150,7 +150,11 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
                                     </td>
                                     <td style={{ padding: '1rem' }}>{payment.fee.type}</td>
                                     <td style={{ padding: '1rem', fontWeight: 'bold' }}>₹{payment.amount.toFixed(2)}</td>
-                                    <td style={{ padding: '1rem' }}>{payment.method}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span className={`badge badge-${payment.method.toLowerCase()}`}>
+                                            {payment.method}
+                                        </span>
+                                    </td>
                                     <td style={{ padding: '1rem' }}>
                                         <Link href={`/receipts/${payment.id}`} target="_blank" className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', gap: '0.25rem' }}>
                                             <Printer size={16} />

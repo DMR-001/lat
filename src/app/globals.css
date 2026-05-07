@@ -194,6 +194,62 @@ label {
   }
 }
 
+/* Table row hover */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+tbody tr:hover {
+  background-color: var(--primary-light);
+}
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-paid {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-pending {
+  background-color: #fef9c3;
+  color: #a16207;
+}
+
+.badge-overdue {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-cash {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-card {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-online {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+/* Skeleton pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 @media print {
   aside,
   header {

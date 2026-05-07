@@ -37,7 +37,10 @@ export default function SettingsPage() {
         principalName: '',
         receiptHeader: '',
         receiptFooter: '',
-        receiptTerms: ''
+        receiptTerms: '',
+        logoUrl: '',
+        principalSignature: '',
+        schoolSeal: ''
     });
 
     useEffect(() => {
@@ -59,7 +62,10 @@ export default function SettingsPage() {
                 principalName: result.settings.principalName || '',
                 receiptHeader: result.settings.receiptHeader || '',
                 receiptFooter: result.settings.receiptFooter || '',
-                receiptTerms: result.settings.receiptTerms || ''
+                receiptTerms: result.settings.receiptTerms || '',
+                logoUrl: result.settings.logoUrl || '',
+                principalSignature: result.settings.principalSignature || '',
+                schoolSeal: result.settings.schoolSeal || ''
             });
         }
     };
@@ -454,13 +460,10 @@ export default function SettingsPage() {
                                             id="logo-upload"
                                         />
                                         <label htmlFor="logo-upload" style={{ cursor: 'pointer' }}>
-                                            {formData.schoolName && formData.schoolName !== 'Sprout School' ? (
+                                            {formData.logoUrl ? (
                                                 <div>
-                                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🏫</div>
-                                                    <div style={{ color: 'var(--primary)', fontWeight: '500' }}>Click to upload logo</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                                        PNG, JPG up to 5MB
-                                                    </div>
+                                                    <img src={formData.logoUrl} alt="School Logo" style={{ maxHeight: '80px', maxWidth: '100%', marginBottom: '0.5rem', objectFit: 'contain' }} />
+                                                    <div style={{ color: 'var(--primary)', fontWeight: '500', fontSize: '0.875rem' }}>Click to replace logo</div>
                                                 </div>
                                             ) : (
                                                 <div>
@@ -517,13 +520,20 @@ export default function SettingsPage() {
                                             id="signature-upload"
                                         />
                                         <label htmlFor="signature-upload" style={{ cursor: 'pointer' }}>
-                                            <div>
-                                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✍️</div>
-                                                <div style={{ color: 'var(--primary)', fontWeight: '500' }}>Click to upload signature</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                                    PNG with transparent background
+                                            {formData.principalSignature ? (
+                                                <div>
+                                                    <img src={formData.principalSignature} alt="Principal Signature" style={{ maxHeight: '60px', maxWidth: '100%', marginBottom: '0.5rem', objectFit: 'contain' }} />
+                                                    <div style={{ color: 'var(--primary)', fontWeight: '500', fontSize: '0.875rem' }}>Click to replace signature</div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div>
+                                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✍️</div>
+                                                    <div style={{ color: 'var(--primary)', fontWeight: '500' }}>Click to upload signature</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                                        PNG with transparent background
+                                                    </div>
+                                                </div>
+                                            )}
                                         </label>
                                     </div>
                                 </div>
@@ -570,6 +580,12 @@ export default function SettingsPage() {
                                             id="seal-upload"
                                         />
                                         <label htmlFor="seal-upload" style={{ cursor: 'pointer' }}>
+                                            {formData.schoolSeal ? (
+                                                <div>
+                                                    <img src={formData.schoolSeal} alt="School Seal" style={{ maxHeight: '70px', maxWidth: '100%', marginBottom: '0.5rem', objectFit: 'contain' }} />
+                                                    <div style={{ color: 'var(--primary)', fontWeight: '500', fontSize: '0.875rem' }}>Click to replace seal</div>
+                                                </div>
+                                            ) : (
                                             <div>
                                                 <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔖</div>
                                                 <div style={{ color: 'var(--primary)', fontWeight: '500' }}>Click to upload seal</div>
@@ -577,6 +593,7 @@ export default function SettingsPage() {
                                                     PNG with transparent background
                                                 </div>
                                             </div>
+                                            )}
                                         </label>
                                     </div>
                                 </div>
@@ -590,42 +607,6 @@ export default function SettingsPage() {
                                 color: 'var(--text-secondary)'
                             }}>
                                 <strong>Note:</strong> Uploaded images will be automatically used in certificates and official documents.
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'receipt' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>Receipt Customization</h2>
-
-                            <div>
-                                <label>Receipt Header</label>
-                                <input
-                                    type="text"
-                                    value={formData.receiptHeader}
-                                    onChange={(e) => setFormData({ ...formData, receiptHeader: e.target.value })}
-                                    placeholder="e.g., Thank you for your payment"
-                                />
-                            </div>
-
-                            <div>
-                                <label>Receipt Footer</label>
-                                <input
-                                    type="text"
-                                    value={formData.receiptFooter}
-                                    onChange={(e) => setFormData({ ...formData, receiptFooter: e.target.value })}
-                                    placeholder="e.g., This is a computer generated receipt"
-                                />
-                            </div>
-
-                            <div>
-                                <label>Terms & Conditions</label>
-                                <textarea
-                                    value={formData.receiptTerms}
-                                    onChange={(e) => setFormData({ ...formData, receiptTerms: e.target.value })}
-                                    rows={4}
-                                    placeholder="Enter terms and conditions for receipts..."
-                                />
                             </div>
                         </div>
                     )}

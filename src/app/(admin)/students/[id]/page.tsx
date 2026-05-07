@@ -156,13 +156,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                                         <td style={{ padding: '1rem' }}>₹{fee.amount.toFixed(2)}</td>
                                         <td style={{ padding: '1rem', color: 'var(--success)' }}>₹{fee.paidAmount.toFixed(2)}</td>
                                         <td style={{ padding: '1rem' }}>
-                                            <span style={{
-                                                padding: '0.25rem 0.5rem',
-                                                borderRadius: '0.25rem',
-                                                fontSize: '0.75rem',
-                                                backgroundColor: fee.status === 'PAID' ? 'var(--success)' : 'var(--warning)',
-                                                color: 'white'
-                                            }}>
+                                            <span className={`badge badge-${fee.status.toLowerCase()}`}>
                                                 {fee.status}
                                             </span>
                                         </td>
@@ -210,13 +204,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                                             <td style={{ padding: '1rem' }}>{payment.date.toLocaleDateString()}</td>
                                             <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--success)' }}>₹{payment.amount.toFixed(2)}</td>
                                             <td style={{ padding: '1rem' }}>
-                                                <span style={{
-                                                    padding: '0.25rem 0.5rem',
-                                                    backgroundColor: 'var(--primary-light)',
-                                                    color: 'var(--primary)',
-                                                    borderRadius: '0.25rem',
-                                                    fontSize: '0.75rem'
-                                                }}>
+                                                <span className={`badge badge-${payment.method.toLowerCase()}`}>
                                                     {payment.method}
                                                 </span>
                                             </td>

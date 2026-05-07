@@ -104,8 +104,30 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <div style={{ fontSize: '1.125rem', color: 'var(--text-secondary)' }}>Loading dashboard...</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div>
+          <div style={{ width: '160px', height: '32px', borderRadius: '0.5rem', backgroundColor: 'var(--border)', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ width: '280px', height: '20px', borderRadius: '0.5rem', backgroundColor: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+          {[1,2,3,4].map(i => (
+            <div key={i} className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '12px', backgroundColor: 'var(--border)', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ width: '80px', height: '14px', borderRadius: '0.25rem', backgroundColor: 'var(--border)', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ width: '100px', height: '24px', borderRadius: '0.25rem', backgroundColor: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ width: '140px', height: '24px', borderRadius: '0.5rem', backgroundColor: 'var(--border)', marginBottom: '1rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1,2,3,4,5].map(i => (
+              <div key={i} style={{ height: '20px', borderRadius: '0.25rem', backgroundColor: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite', width: `${70 + (i * 5) % 30}%` }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -247,14 +269,7 @@ export default function DashboardPage() {
                       {new Date(payment.date).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <span style={{
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        backgroundColor: 'var(--primary-light)',
-                        color: 'var(--primary)',
-                        fontWeight: '500'
-                      }}>
+                      <span className={`badge badge-${payment.method.toLowerCase()}`}>
                         {payment.method}
                       </span>
                     </td>
