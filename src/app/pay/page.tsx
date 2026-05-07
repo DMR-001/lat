@@ -425,18 +425,19 @@ export default function PublicPaymentPage() {
                         {/* Branch */}
                         {step === 'branch' && (
                             <div>
-                                <div className="sec-head" style={{ alignItems: 'center' }}>
+                                <div className="sec-head">
                                     <div>
                                         <div className="sec-title">Select Branch</div>
                                         <div className="sec-sub">Choose your ward&apos;s school branch</div>
                                     </div>
-                                    <Building2 size={20} color="#94a3b8" />
+                                    <Building2 size={20} color="#a5b4fc" />
                                 </div>
                                 <div className="bg">
                                     {branches.map(b => (
                                         <button key={b.id} className="bb" onClick={() => handleBranchSelect(b)}>
-                                            <div className="bb-code">{b.code}</div>
+                                            <div className="bb-icon">🏫</div>
                                             <div className="bb-name">{b.name}</div>
+                                            <div className="bb-code">{b.code}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -455,7 +456,7 @@ export default function PublicPaymentPage() {
                                     <div>
                                         <div className="sec-title">Find Student</div>
                                         <div className="sec-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />
+                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
                                             {selectedBranch?.name}
                                         </div>
                                     </div>
@@ -637,7 +638,7 @@ export default function PublicPaymentPage() {
                                     <div>
                                         <div className="sec-title">Fee Details</div>
                                         <div className="sec-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
                                             {selectedStudent?.firstName} {selectedStudent?.lastName}
                                         </div>
                                     </div>
@@ -647,6 +648,7 @@ export default function PublicPaymentPage() {
                                 <div className="outstanding-box">
                                     <div className="outstanding-lbl">Total Outstanding</div>
                                     <div className="outstanding-val">{Rs}{feeDetails.totalDue.toLocaleString('en-IN')}</div>
+                                    <div className="outstanding-sub">Select fees below to pay now</div>
                                 </div>
 
                                 {feeDetails.fees.length === 0 && (
@@ -662,18 +664,10 @@ export default function PublicPaymentPage() {
                                     const allUnpaidSelected = insts.filter(i => !i.isPaid).length > 0 &&
                                         insts.filter(i => !i.isPaid).every(i => selectedSet.includes(i.index));
                                     const feePayAmt = getInstallmentPayAmount(fee);
-                                    const hasDiscount = fee.discountAmount > 0;
                                     return (
                                         <div key={fee.id} className="fc">
                                             <div className="fc-head">
-                                                <div>
-                                                    <span className="fc-type">{feeLabel(fee.type)}</span>
-                                                    {hasDiscount && (
-                                                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#16a34a', background: '#dcfce7', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', marginLeft: '0.4rem' }}>
-                                                            -{Rs}{fee.discountAmount.toLocaleString('en-IN')} off
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                <span className="fc-type">{feeLabel(fee.type)}</span>
                                                 <span className="fc-due">{Rs}{fee.due.toLocaleString('en-IN')} due</span>
                                             </div>
 
@@ -724,11 +718,6 @@ export default function PublicPaymentPage() {
                                                 )}
                                             </div>
 
-                                            {feePayAmt > 0 && (
-                                                <div style={{ marginTop: '0.25rem', textAlign: 'right', fontSize: '0.78rem', color: '#1d4ed8', fontWeight: 700 }}>
-                                                    Paying: {Rs}{feePayAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                </div>
-                                            )}
                                         </div>
                                     );
                                 })}
@@ -778,22 +767,31 @@ export default function PublicPaymentPage() {
                         {step === 'success' && (
                             <div className="success-wrap">
                                 <div className="success-ring">
-                                    <Check size={36} strokeWidth={2.5} />
+                                    <Check size={38} strokeWidth={2.5} />
                                 </div>
-                                <div className="success-title">Payment Successful</div>
+                                {transactionSuccess && (
+                                    <>
+                                        <div className="success-amount">
+                                            {Rs}{transactionSuccess.payments.reduce((s: number, p: any) => s + p.amount, 0).toLocaleString('en-IN')}
+                                        </div>
+                                        <div className="success-amount-lbl">Amount Paid</div>
+                                    </>
+                                )}
+                                <div className="success-title">Payment Successful!</div>
                                 <div className="success-sub">
-                                    Your payment has been recorded.<br />Download your receipt(s) below.
+                                    Thank you! Your payment has been recorded.<br />
+                                    Download your receipt(s) below.
                                 </div>
                                 {transactionSuccess?.payments.map((p: any) => (
                                     <Link key={p.id} href={`/api/receipts/${p.id}/download`} target="_blank" className="btn-receipt">
                                         <Download size={17} />
-                                        Receipt &mdash; {feeLabel(p.fee?.type || 'General')}
+                                        Download Receipt — {feeLabel(p.fee?.type || 'General')}
                                     </Link>
                                 ))}
                                 <button
                                     className="btn-outline"
-                                    style={{ marginTop: '0.5rem' }}
-                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); }}
+                                    style={{ marginTop: '0.625rem' }}
+                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setTransactionSuccess(null); }}
                                 >
                                     Make Another Payment
                                 </button>
@@ -804,8 +802,8 @@ export default function PublicPaymentPage() {
                 </div>
 
                 <div className="pf">
-                    <div style={{ marginBottom: '0.35rem', fontWeight: 600, color: '#111827' }}>SPROUT EDUCATIONAL SOCIETY</div>
-                    <div style={{ marginBottom: '0.35rem' }}>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
+                    <div className="pf-name">SPROUT EDUCATIONAL SOCIETY</div>
+                    <div>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
                     <div>&copy; {new Date().getFullYear()} Sprout School &middot; All rights reserved</div>
                 </div>
             </div>
