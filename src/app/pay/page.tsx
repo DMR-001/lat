@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment } from '@/app/actions/public';
-import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, Lock, BadgeCheck, XCircle, RotateCcw } from 'lucide-react';
+import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
 
@@ -415,11 +415,6 @@ export default function PublicPaymentPage() {
                     <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" />
                     <div className="ph-title">Fee Payment Portal</div>
                     <div className="ph-sub">Secure online payment for school fees</div>
-                    <div className="ph-trust">
-                        <span className="ph-badge"><Lock size={11} strokeWidth={2.5} /> 256-bit SSL</span>
-                        <span className="ph-badge"><ShieldCheck size={11} strokeWidth={2.5} /> HDFC SmartGateway</span>
-                        <span className="ph-badge"><BadgeCheck size={11} strokeWidth={2.5} /> Verified School</span>
-                    </div>
                 </div>
 
                 <div className="steps">
@@ -852,7 +847,7 @@ export default function PublicPaymentPage() {
 
                 <div className="pf">
                     <div className="pf-name">SPROUT EDUCATIONAL SOCIETY</div>
-                    <div>Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
+                    <div>#14-218/5, Raghavanagar Colony, Meerpet, Hyderabad &nbsp;&middot;&nbsp; info@sproutschool.edu.in</div>
                     <div>&copy; {new Date().getFullYear()} Sprout School &middot; All rights reserved</div>
                 </div>
             </div>
