@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
+function parsePem(val: string | undefined): string {
+    return (val || '').replace(/\\n/g, '\n');
+}
+
 function getJuspay() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Juspay } = require('expresscheckout-nodejs') as { Juspay: new (cfg: object) => any };
@@ -10,8 +14,8 @@ function getJuspay() {
         baseUrl,
         jweAuth: {
             keyId: process.env.HDFC_KEY_UUID,
-            publicKey: process.env.HDFC_PUBLIC_KEY,
-            privateKey: process.env.HDFC_PRIVATE_KEY,
+            publicKey: parsePem(process.env.HDFC_PUBLIC_KEY),
+            privateKey: parsePem(process.env.HDFC_PRIVATE_KEY),
         },
     });
 }
