@@ -1,4 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Juspay, APIError } = require('expresscheckout-nodejs');
+
+function parsePem(val: string | undefined): string {
+    return (val || '').replace(/\\n/g, '\n');
+}
+
+function getJuspay() {
+    return new Juspay({
+        merchantId: process.env.HDFC_MERCHANT_ID,
+        baseUrl: process.env.HDFC_BASE_URL || 'https://smartgateway.hdfcuat.bank.in',
+        jweAuth: {
+            keyId: process.env.HDFC_KEY_UUID,
+            publicKey: parsePem(process.env.HDFC_PUBLIC_KEY),
+            privateKey: parsePem(process.env.HDFC_PRIVATE_KEY),
+        },
+    });
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -8,23 +26,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        const merchantId = process.env.HDFC_MERCHANT_ID;
-        const apiKey = process.env.HDFC_API_KEY;
         const paymentPageClientId = process.env.HDFC_PAYMENT_PAGE_CLIENT_ID;
-        const baseUrl = process.env.HDFC_BASE_URL || 'https://smartgateway.hdfcuat.bank.in';
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-        if (!merchantId || !apiKey || !paymentPageClientId) {
+        if (!process.env.HDFC_MERCHANT_ID || !paymentPageClientId || !process.env.HDFC_KEY_UUID) {
             return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
         }
 
-        const credentials = Buffer.from(`${merchantId}:${apiKey}`).toString('base64');
+        const juspay = getJuspay();
         const orderId = `order_${Date.now()}`;
         const returnUrl = `${appUrl}/pay`;
 
-        const formParams = new URLSearchParams({
+        const sessionResponse = await juspay.orderSession.create({
             order_id: orderId,
-            amount: String(amount),
+            amount: amount,
             payment_page_client_id: paymentPageClientId,
             customer_id: studentId || 'guest',
             action: 'paymentPage',
@@ -32,32 +47,20 @@ export async function POST(req: NextRequest) {
             currency: 'INR',
         });
 
-        const response = await fetch(`${baseUrl}/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': `Basic ${credentials}`,
-                'x-merchantid': merchantId,
-            },
-            body: formParams.toString(),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || data.status !== 'NEW') {
-            console.error('HDFC session failed:', JSON.stringify(data));
+        if (sessionResponse.status !== 'NEW') {
+            console.error('HDFC session failed:', JSON.stringify(sessionResponse));
             return NextResponse.json({
-                error: data.error_message || data.message || data.error || data.status || 'Failed to create payment session',
-                raw: data,
+                error: sessionResponse.error_message || sessionResponse.message || sessionResponse.status || 'Failed to create payment session',
             }, { status: 502 });
         }
 
         return NextResponse.json({
             orderId,
-            paymentLink: data.payment_links?.web,
+            paymentLink: sessionResponse.payment_links?.web,
         });
     } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+        const isApiError = error instanceof APIError;
+        const msg = isApiError ? (error as Error).message : (error instanceof Error ? error.message : String(error));
         console.error('HDFC session error:', msg);
         return NextResponse.json({ error: msg }, { status: 500 });
     }

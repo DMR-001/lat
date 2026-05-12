@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Juspay, APIError } = require('expresscheckout-nodejs');
+
+function parsePem(val: string | undefined): string {
+    return (val || '').replace(/\\n/g, '\n');
+}
+
+function getJuspay() {
+    return new Juspay({
+        merchantId: process.env.HDFC_MERCHANT_ID,
+        baseUrl: process.env.HDFC_BASE_URL || 'https://smartgateway.hdfcuat.bank.in',
+        jweAuth: {
+            keyId: process.env.HDFC_KEY_UUID,
+            publicKey: parsePem(process.env.HDFC_PUBLIC_KEY),
+            privateKey: parsePem(process.env.HDFC_PRIVATE_KEY),
+        },
+    });
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -23,38 +41,21 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const merchantId = process.env.HDFC_MERCHANT_ID;
-        const apiKey = process.env.HDFC_API_KEY;
-        const baseUrl = process.env.HDFC_BASE_URL || 'https://smartgateway.hdfcuat.bank.in';
-
-        if (!merchantId || !apiKey) {
+        if (!process.env.HDFC_MERCHANT_ID || !process.env.HDFC_KEY_UUID) {
             return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
         }
 
-        const credentials = Buffer.from(`${merchantId}:${apiKey}`).toString('base64');
-
-        const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${credentials}`,
-                'x-merchantid': merchantId,
-            },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('HDFC status failed:', data);
-            return NextResponse.json({ error: data.error_message || 'Failed to fetch order status' }, { status: 502 });
-        }
+        const juspay = getJuspay();
+        const statusResponse = await juspay.order.status(orderId);
 
         return NextResponse.json({
-            status: data.status,
-            orderId: data.order_id,
-            amount: data.amount,
+            status: statusResponse.status,
+            orderId: statusResponse.order_id,
+            amount: statusResponse.amount,
         });
     } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+        const isApiError = error instanceof APIError;
+        const msg = isApiError ? (error as Error).message : (error instanceof Error ? error.message : String(error));
         console.error('HDFC status error:', msg);
         return NextResponse.json({ error: msg }, { status: 500 });
     }
