@@ -96,9 +96,11 @@ export default function PublicPaymentPage() {
         const params = new URLSearchParams(window.location.search);
         const returnOrderId = params.get('order_id');
         if (!returnOrderId) return;
+        const signature = params.get('signature') ?? undefined;
+        const signatureAlgorithm = params.get('signature_algorithm') ?? undefined;
         // Clean the URL so a reload doesn't re-trigger
         window.history.replaceState({}, '', '/pay');
-        handleHdfcReturn(returnOrderId);
+        handleHdfcReturn(returnOrderId, signature, signatureAlgorithm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -304,7 +306,7 @@ export default function PublicPaymentPage() {
         return feeDetails.fees.reduce((sum, fee) => sum + getInstallmentPayAmount(fee), 0);
     };
 
-    const handleHdfcReturn = async (orderId: string) => {
+    const handleHdfcReturn = async (orderId: string, signature?: string, signatureAlgorithm?: string) => {
         setStep('verifying');
         setIsProcessing(true);
         try {
@@ -322,7 +324,7 @@ export default function PublicPaymentPage() {
             const statusRes = await fetch('/api/hdfc/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId }),
+                body: JSON.stringify({ orderId, signature, signatureAlgorithm }),
             });
             const { status } = await statusRes.json();
 
