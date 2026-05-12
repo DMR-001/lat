@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
         const data = await response.json();
 
         if (!response.ok || data.status !== 'NEW') {
-            console.error('HDFC session failed:', data);
-            return NextResponse.json({ error: data.error_message || data.message || 'Failed to create payment session' }, { status: 502 });
+            console.error('HDFC session failed:', JSON.stringify(data));
+            return NextResponse.json({ error: data.error_message || data.message || data.status || 'Failed to create payment session', raw: data }, { status: 502 });
         }
 
         return NextResponse.json({
