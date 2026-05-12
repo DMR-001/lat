@@ -4,6 +4,10 @@ const { Juspay, APIError } = require('expresscheckout-nodejs');
 
 export const runtime = 'nodejs';
 
+// Vercel's filesystem is read-only — silence the SDK's Winston file transport
+// which tries to mkdir('logs') on every cold start.
+Juspay.customLogger = Juspay.silentLogger;
+
 function parsePem(val: string | undefined): string {
     return (val || '').replace(/\\n/g, '\n');
 }
