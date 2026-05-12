@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
+export const runtime = 'nodejs';
+
 function parsePem(val: string | undefined): string {
     return (val || '').replace(/\\n/g, '\n');
 }
