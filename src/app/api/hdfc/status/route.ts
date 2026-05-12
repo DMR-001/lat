@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { importPKCS8, compactDecrypt } from 'jose';
+import { createPrivateKey } from 'crypto';
 
 function parsePem(val: string | undefined): string {
     return (val || '').replace(/\\n/g, '\n');
+}
+
+function toPkcs8(pem: string): string {
+    return createPrivateKey(pem).export({ type: 'pkcs8', format: 'pem' }) as string;
 }
 
 async function parseHdfcResponse(text: string, privateKeyPem: string): Promise<any> {
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
         const merchantId = process.env.HDFC_MERCHANT_ID;
         const apiKey = process.env.HDFC_API_KEY;
         const baseUrl = process.env.HDFC_BASE_URL || 'https://smartgateway.hdfcuat.bank.in';
-        const privateKeyPem = parsePem(process.env.HDFC_PRIVATE_KEY);
+        const privateKeyPem = toPkcs8(parsePem(process.env.HDFC_PRIVATE_KEY));
 
         if (!merchantId || !apiKey) {
             return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
