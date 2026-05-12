@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
+export const maxDuration = 30;
 
 // Vercel's filesystem is read-only — silence the SDK's Winston file transport
 // which tries to mkdir('logs') on every cold start.
 Juspay.customLogger = Juspay.silentLogger;
+Juspay.DEFAULT_REQUEST_TIMEOUT = 25000;
 
 function parsePem(val: string | undefined): string {
     return (val || '').replace(/\\n/g, '\n');

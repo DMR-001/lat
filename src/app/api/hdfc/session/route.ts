@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
 export const runtime = 'nodejs';
+export const maxDuration = 30;
+export const maxDuration = 30;
 
 // Vercel's filesystem is read-only — silence the SDK's Winston file transport
 // which tries to mkdir('logs') on every cold start.
 Juspay.customLogger = Juspay.silentLogger;
+Juspay.DEFAULT_REQUEST_TIMEOUT = 25000;
 
 function parsePem(val: string | undefined): string {
     return (val || '').replace(/\\n/g, '\n');
@@ -53,17 +56,15 @@ export async function POST(req: NextRequest) {
             currency: 'INR',
         });
 
-        if (sessionResponse.status !== 'NEW') {
-            console.error('HDFC session failed:', JSON.stringify(sessionResponse));
+        const paymentLink = sessionResponse.payment_links?.web;
+        if (!paymentLink) {
+            console.error('HDFC session — no payment link:', JSON.stringify(sessionResponse));
             return NextResponse.json({
-                error: sessionResponse.error_message || sessionResponse.message || sessionResponse.status || 'Failed to create payment session',
+                error: sessionResponse.error_message || sessionResponse.message || 'Failed to create payment session',
             }, { status: 502 });
         }
 
-        return NextResponse.json({
-            orderId,
-            paymentLink: sessionResponse.payment_links?.web,
-        });
+        return NextResponse.json({ orderId, paymentLink });
     } catch (error) {
         const isApiError = error instanceof APIError;
         const msg = isApiError ? (error as Error).message : (error instanceof Error ? error.message : String(error));

@@ -97,30 +97,45 @@ export default function PublicPaymentPage() {
         const params = new URLSearchParams(window.location.search);
         const returnOrderId = params.get('order_id');
         const returnStatus = (params.get('status') || '').toUpperCase();
-        // Clean the URL so a reload doesn't re-trigger
-        if (returnOrderId || returnStatus) {
-            window.history.replaceState({}, '', '/pay');
-        }
+
+        if (!returnOrderId && !returnStatus) return; // normal page load, not a return
+
+        // Clean URL immediately so reload doesn't re-trigger
+        window.history.replaceState({}, '', '/pay');
+
+        // Statuses that mean "definitely not paid" — resolve instantly, no polling
+        const FAILED_STATUSES = new Set([
+            'CANCELLED', 'CANCEL',
+            'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED',
+            'FAILED', 'FAILURE',
+            'JUSPAY_DECLINED', 'DECLINED',
+            'PENDING',       // timed out on bank side
+            'PENDING_VBV',
+        ]);
+
         if (!returnOrderId) {
-            if (returnStatus) {
-                setFailedMessage('Payment was cancelled. You can try again below.');
-                setStep('failed');
-            }
+            // Returned without order_id — session expired or hard cancel
+            setFailedMessage('Payment was cancelled. You can try again below.');
+            setStep('failed');
             return;
         }
-        // If HDFC already tells us the terminal status in the URL, skip polling
-        const TERMINAL_FAILURES = new Set(['CANCELLED', 'CANCEL', 'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED', 'FAILED', 'JUSPAY_DECLINED']);
-        if (TERMINAL_FAILURES.has(returnStatus)) {
-            const msg = returnStatus === 'CANCELLED' || returnStatus === 'CANCEL'
-                ? 'Payment was cancelled. You can try again below.'
-                : 'Payment was not authorised by your bank. Please try again.';
+
+        if (FAILED_STATUSES.has(returnStatus)) {
+            const msg =
+                returnStatus === 'CANCELLED' || returnStatus === 'CANCEL'
+                    ? 'Payment was cancelled. You can try again below.'
+                    : returnStatus === 'AUTHORIZATION_FAILED' || returnStatus === 'AUTHENTICATION_FAILED' || returnStatus === 'DECLINED' || returnStatus === 'JUSPAY_DECLINED'
+                        ? 'Payment was declined by your bank. Please try again.'
+                        : returnStatus === 'PENDING' || returnStatus === 'PENDING_VBV'
+                            ? 'Payment timed out. Please check with your bank and contact the school office if amount was debited.'
+                            : 'Payment failed. Please try again.';
             setFailedMessage(msg);
             setStep('failed');
             return;
         }
-        const signature = params.get('signature') ?? undefined;
-        const signatureAlgorithm = params.get('signature_algorithm') ?? undefined;
-        handleHdfcReturn(returnOrderId, signature, signatureAlgorithm);
+
+        // Only poll when status is CHARGED or unknown — needs server verification
+        handleHdfcReturn(returnOrderId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -326,7 +341,7 @@ export default function PublicPaymentPage() {
         return feeDetails.fees.reduce((sum, fee) => sum + getInstallmentPayAmount(fee), 0);
     };
 
-    const handleHdfcReturn = async (orderId: string, signature?: string, signatureAlgorithm?: string) => {
+    const handleHdfcReturn = async (orderId: string) => {
         setStep('verifying');
         setIsProcessing(true);
         try {
