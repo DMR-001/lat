@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment } from '@/app/actions/public';
-import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck } from 'lucide-react';
+import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, Lock, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
 
@@ -404,9 +404,9 @@ export default function PublicPaymentPage() {
                     <div className="ph-title">Fee Payment Portal</div>
                     <div className="ph-sub">Secure online payment for school fees</div>
                     <div className="ph-trust">
-                        <span className="ph-badge">🔒 256-bit SSL</span>
-                        <span className="ph-badge">🏦 HDFC SmartGateway</span>
-                        <span className="ph-badge">✅ Verified School</span>
+                        <span className="ph-badge"><Lock size={11} strokeWidth={2.5} /> 256-bit SSL</span>
+                        <span className="ph-badge"><ShieldCheck size={11} strokeWidth={2.5} /> HDFC SmartGateway</span>
+                        <span className="ph-badge"><BadgeCheck size={11} strokeWidth={2.5} /> Verified School</span>
                     </div>
                 </div>
 
@@ -445,7 +445,7 @@ export default function PublicPaymentPage() {
                                 <div className="bg">
                                     {branches.map(b => (
                                         <button key={b.id} className="bb" onClick={() => handleBranchSelect(b)}>
-                                            <div className="bb-icon">🏫</div>
+                                            <div className="bb-icon"><Building2 size={28} strokeWidth={1.5} /></div>
                                             <div className="bb-name">{b.name}</div>
                                             <div className="bb-code">{b.code}</div>
                                         </button>
