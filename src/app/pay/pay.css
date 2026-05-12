@@ -15,7 +15,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 1rem 5rem;
+    justify-content: center;
+    padding: 1rem 1rem 1.5rem;
     position: relative;
 }
 
@@ -31,33 +32,33 @@ body {
 /* ─── Header ─── */
 .ph {
     text-align: center;
-    padding: 2.5rem 1rem 1.75rem;
-    margin-bottom: 0.25rem;
+    padding: 0 1rem 0.875rem;
+    margin-bottom: 0;
     width: 100%;
 }
 
 .ph-logo {
-    height: 48px; width: auto; max-width: 160px;
-    object-fit: contain; display: block; margin: 0 auto 1.1rem;
+    height: 38px; width: auto; max-width: 140px;
+    object-fit: contain; display: block; margin: 0 auto 0.6rem;
 }
 
 .ph-title {
-    font-size: 1.35rem; font-weight: 800; color: #0f172a;
+    font-size: 1.15rem; font-weight: 800; color: #0f172a;
     letter-spacing: -0.025em;
 }
 .ph-sub {
-    font-size: 0.8rem; color: #64748b; margin-top: 0.3rem;
+    font-size: 0.75rem; color: #64748b; margin-top: 0.2rem;
     font-weight: 500;
 }
 
 /* Trust badges */
 .ph-trust {
     display: flex; align-items: center; justify-content: center;
-    gap: 1.25rem; margin-top: 1.1rem; flex-wrap: wrap;
+    gap: 1rem; margin-top: 0.625rem; flex-wrap: wrap;
 }
 .ph-badge {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.72rem; font-weight: 600; color: #475569;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.68rem; font-weight: 600; color: #475569;
     white-space: nowrap;
 }
 .ph-badge svg { color: #1d4ed8; flex-shrink: 0; }
@@ -65,7 +66,7 @@ body {
 /* ─── Step indicator ─── */
 .steps {
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.875rem;
 }
 .step-pill {
     display: flex; align-items: center; gap: 0.45rem;
@@ -98,16 +99,16 @@ body {
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 6px 24px rgba(0,0,0,0.07);
 }
 .pc.pc-wide { max-width: 860px; }
-.pc-body { padding: 2rem 1.875rem 2.25rem; }
+.pc-body { padding: 1.25rem 1.5rem 1.5rem; }
 
 /* ─── Fees grid ─── */
-.fees-grid { display: grid; grid-template-columns: 1fr; gap: 0.875rem; margin-bottom: 0.75rem; }
+.fees-grid { display: grid; grid-template-columns: 1fr; gap: 0.625rem; margin-bottom: 0.5rem; }
 @media (min-width: 640px) { .pc-wide .fees-grid { grid-template-columns: 1fr 1fr; } }
 
 /* ─── Section header ─── */
-.sec-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.625rem; }
-.sec-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
-.sec-sub   { font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; font-weight: 500; }
+.sec-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+.sec-title { font-size: 1rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+.sec-sub   { font-size: 0.75rem; color: #64748b; margin-top: 0.15rem; font-weight: 500; }
 
 .back-btn {
     font-size: 0.75rem; font-weight: 600; color: #1d4ed8;
@@ -123,7 +124,7 @@ body {
 
 .bb {
     background: #ffffff; border: 1.5px solid #e2e8f0;
-    border-radius: 1rem; padding: 1.5rem 1rem 1.25rem;
+    border-radius: 1rem; padding: 1rem 0.875rem 0.875rem;
     cursor: pointer; text-align: center; font-family: inherit;
     transition: border-color 0.18s, box-shadow 0.18s, transform 0.14s;
     position: relative;
@@ -136,10 +137,10 @@ body {
 .bb:active { transform: translateY(0); box-shadow: none; }
 
 .bb-icon {
-    width: 48px; height: 48px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: 10px;
     background: #eff6ff; border: 1.5px solid #dbeafe;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 0.875rem; color: #1d4ed8;
+    margin: 0 auto 0.625rem; color: #1d4ed8;
     transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 .bb:hover .bb-icon { background: #1d4ed8; border-color: #1d4ed8; color: white; }
@@ -147,13 +148,13 @@ body {
 .bb-code { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 0.2rem; letter-spacing: 0.06em; text-transform: uppercase; }
 
 /* ─── Input field ─── */
-.fl { display: block; font-size: 0.72rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.45rem; }
-.fw { position: relative; margin-bottom: 1rem; }
+.fl { display: block; font-size: 0.72rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; }
+.fw { position: relative; margin-bottom: 0.75rem; }
 .fi-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; transition: color 0.15s; }
 .fw:focus-within .fi-icon { color: #1d4ed8; }
 
 .fi {
-    width: 100%; padding: 0.875rem 1rem 0.875rem 2.75rem;
+    width: 100%; padding: 0.7rem 1rem 0.7rem 2.6rem;
     background: #f8fafc; border: 1.5px solid #e2e8f0;
     border-radius: 0.75rem; color: #0f172a;
     font-size: 1rem; font-family: inherit; font-weight: 500;
@@ -165,10 +166,10 @@ body {
 
 /* ─── Buttons ─── */
 .btn-blue {
-    width: 100%; padding: 0.875rem;
+    width: 100%; padding: 0.7rem;
     background: #1d4ed8; color: white;
     border: none; border-radius: 0.75rem;
-    font-size: 0.925rem; font-weight: 700; font-family: inherit;
+    font-size: 0.9rem; font-weight: 700; font-family: inherit;
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     margin-top: 0.25rem;
@@ -179,13 +180,13 @@ body {
 .btn-blue:disabled { background: #93c5fd; cursor: not-allowed; box-shadow: none; }
 
 .btn-green {
-    width: 100%; padding: 0.9rem;
+    width: 100%; padding: 0.75rem;
     background: #16a34a; color: white;
     border: none; border-radius: 0.75rem;
-    font-size: 1rem; font-weight: 700; font-family: inherit;
+    font-size: 0.95rem; font-weight: 700; font-family: inherit;
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.6rem;
     transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    margin-bottom: 0.875rem;
+    margin-bottom: 0.625rem;
     box-shadow: 0 1px 3px rgba(22,163,74,0.3), 0 4px 12px rgba(22,163,74,0.18);
     letter-spacing: -0.01em;
 }
@@ -231,53 +232,53 @@ body {
 /* ─── Confirm card ─── */
 .confirm-card {
     background: #f8fafc; border: 1.5px solid #e2e8f0;
-    border-radius: 1rem; padding: 1.625rem; margin-bottom: 1.25rem;
+    border-radius: 0.875rem; padding: 1.125rem; margin-bottom: 0.875rem;
 }
 .confirm-avatar {
-    width: 64px; height: 64px; border-radius: 50%;
+    width: 48px; height: 48px; border-radius: 50%;
     background: #dbeafe; color: #1d4ed8;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem; font-weight: 800; margin: 0 auto 1rem;
+    font-size: 1rem; font-weight: 800; margin: 0 auto 0.625rem;
 }
-.confirm-name { font-size: 1.1rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 1.1rem; letter-spacing: -0.02em; }
-.confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-.confirm-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem 0.875rem; }
-.confirm-item-label { font-size: 0.62rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.25rem; }
-.confirm-item-value { font-size: 0.875rem; font-weight: 700; color: #0f172a; }
+.confirm-name { font-size: 1rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 0.75rem; letter-spacing: -0.02em; }
+.confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+.confirm-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.5rem 0.75rem; }
+.confirm-item-label { font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.2rem; }
+.confirm-item-value { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
 .confirm-check {
     display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-    font-size: 0.72rem; color: #16a34a; font-weight: 600; margin-top: 1rem;
+    font-size: 0.7rem; color: #16a34a; font-weight: 600; margin-top: 0.625rem;
 }
 
 /* ─── Outstanding box ─── */
 .outstanding-box {
     background: #0f172a;
-    border-radius: 1rem; padding: 1.5rem 1.75rem;
-    text-align: center; margin-bottom: 1.5rem;
+    border-radius: 0.875rem; padding: 0.875rem 1.25rem;
+    text-align: center; margin-bottom: 1rem;
 }
 .outstanding-lbl {
-    font-size: 0.63rem; font-weight: 700; color: #64748b;
-    text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 0.35rem;
+    font-size: 0.6rem; font-weight: 700; color: #64748b;
+    text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 0.2rem;
 }
 .outstanding-val {
-    font-size: 2.75rem; font-weight: 800; color: #ffffff;
-    letter-spacing: -0.035em; line-height: 1;
+    font-size: 2.1rem; font-weight: 800; color: #ffffff;
+    letter-spacing: -0.035em; line-height: 1.1;
 }
 .outstanding-sub {
-    font-size: 0.72rem; color: #475569; margin-top: 0.4rem; font-weight: 500;
+    font-size: 0.68rem; color: #475569; margin-top: 0.25rem; font-weight: 500;
 }
 
 /* ─── Fee card ─── */
 .fc {
     background: #fff; border: 1.5px solid #e2e8f0;
-    border-radius: 1rem; padding: 1.1rem 1.1rem 0.875rem;
+    border-radius: 0.875rem; padding: 0.875rem 0.875rem 0.625rem;
     transition: border-color 0.18s, box-shadow 0.18s;
 }
 .fc:has(.inst-row.selected) { border-color: #1d4ed8; box-shadow: 0 2px 12px rgba(29,78,216,0.09); }
 
 .fc-head {
     display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 0.875rem; padding-bottom: 0.75rem;
+    margin-bottom: 0.625rem; padding-bottom: 0.5rem;
     border-bottom: 1px solid #f1f5f9;
 }
 .fc-type { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
@@ -286,8 +287,8 @@ body {
 /* ─── Installment rows ─── */
 .inst-row {
     display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.65rem 0.75rem; border-radius: 0.625rem;
-    margin-bottom: 0.375rem; cursor: pointer;
+    padding: 0.5rem 0.625rem; border-radius: 0.5rem;
+    margin-bottom: 0.3rem; cursor: pointer;
     transition: background 0.12s, border-color 0.12s;
     border: 1.5px solid transparent;
 }
@@ -334,11 +335,11 @@ body {
 /* ─── Total row ─── */
 .total-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 1.1rem 0 1.25rem;
-    border-top: 2px solid #f1f5f9; margin-top: 0.25rem;
+    padding: 0.75rem 0 0.875rem;
+    border-top: 1.5px solid #f1f5f9; margin-top: 0.125rem;
 }
-.total-lbl { font-size: 0.85rem; color: #475569; font-weight: 600; }
-.total-val { font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -0.03em; }
+.total-lbl { font-size: 0.82rem; color: #475569; font-weight: 600; }
+.total-val { font-size: 1.6rem; font-weight: 800; color: #0f172a; letter-spacing: -0.03em; }
 
 /* ─── Secure badge ─── */
 .secure {
@@ -352,9 +353,9 @@ body {
 .pay-hint { text-align: center; font-size: 0.78rem; color: #94a3b8; margin-top: -0.375rem; margin-bottom: 0.875rem; font-weight: 500; }
 
 /* ─── OTP boxes ─── */
-.otp-boxes { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }
+.otp-boxes { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.75rem; }
 .otp-box {
-    width: 48px; height: 58px;
+    width: 44px; height: 52px;
     background: #f8fafc; border: 1.5px solid #e2e8f0;
     border-radius: 0.75rem; color: #0f172a;
     text-align: center; outline: none; font-family: inherit;
@@ -363,8 +364,8 @@ body {
 }
 .otp-box:focus { border-color: #1d4ed8; background: #fff; box-shadow: 0 0 0 3px rgba(29,78,216,0.1); }
 .otp-box.otp-filled { border-color: #1d4ed8; background: #eff6ff; color: #1d4ed8; }
-.otp-hint { font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 1.1rem; line-height: 1.65; }
-.resend-row { display: flex; justify-content: center; margin-bottom: 0.875rem; }
+.otp-hint { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 0.75rem; line-height: 1.6; }
+.resend-row { display: flex; justify-content: center; margin-bottom: 0.5rem; }
 .resend-btn { font-size: 0.78rem; font-weight: 700; color: #1d4ed8; background: none; border: none; cursor: pointer; font-family: inherit; padding: 0.3rem 0.75rem; border-radius: 0.375rem; transition: background 0.12s; }
 .resend-btn:hover:not(:disabled) { background: #eff6ff; }
 .resend-btn:disabled { color: #94a3b8; cursor: default; }
@@ -381,19 +382,19 @@ body {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-.success-wrap { text-align: center; padding: 0.5rem 0; }
+.success-wrap { text-align: center; padding: 0.25rem 0; }
 .success-ring {
-    width: 80px; height: 80px; border-radius: 50%;
+    width: 64px; height: 64px; border-radius: 50%;
     background: #dcfce7; border: 2px solid #86efac;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1.25rem; color: #16a34a;
+    margin: 0 auto 0.875rem; color: #16a34a;
     animation: ring-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
     box-shadow: 0 4px 20px rgba(22,163,74,0.18);
 }
-.success-amount     { font-size: 2.25rem; font-weight: 800; color: #16a34a; letter-spacing: -0.03em; margin-bottom: 0.2rem; animation: fade-up 0.35s 0.15s ease both; }
-.success-amount-lbl { font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 1.75rem; animation: fade-up 0.35s 0.2s ease both; }
-.success-title      { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem; letter-spacing: -0.02em; animation: fade-up 0.35s 0.22s ease both; }
-.success-sub        { font-size: 0.84rem; color: #64748b; margin-bottom: 2rem; line-height: 1.7; animation: fade-up 0.35s 0.28s ease both; }
+.success-amount     { font-size: 1.875rem; font-weight: 800; color: #16a34a; letter-spacing: -0.03em; margin-bottom: 0.15rem; animation: fade-up 0.35s 0.15s ease both; }
+.success-amount-lbl { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 1.25rem; animation: fade-up 0.35s 0.2s ease both; }
+.success-title      { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 0.3rem; letter-spacing: -0.02em; animation: fade-up 0.35s 0.22s ease both; }
+.success-sub        { font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.65; animation: fade-up 0.35s 0.28s ease both; }
 
 .btn-receipt {
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -413,8 +414,8 @@ body {
 .branch-skel-item { height: 90px; border-radius: 1rem; background: #e2e8f0; animation: pay-pulse 1.5s ease-in-out infinite; }
 
 /* ─── Footer ─── */
-.pf { text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.72rem; line-height: 1.9; }
-.pf-name { font-weight: 700; color: #64748b; margin-bottom: 0.15rem; }
+.pf { text-align: center; margin-top: 1.25rem; color: #94a3b8; font-size: 0.68rem; line-height: 1.7; }
+.pf-name { font-weight: 700; color: #64748b; margin-bottom: 0.1rem; }
 
 /* ─── iOS zoom prevention ─── */
 input, select, textarea { font-size: 16px !important; }
@@ -422,20 +423,20 @@ input, select, textarea { font-size: 16px !important; }
 
 /* ─── Mobile 480px ─── */
 @media (max-width: 480px) {
-    .pr { padding: 0 0.875rem 4rem; }
-    .ph { padding: 2rem 0 1.5rem; }
-    .ph-logo { height: 42px; }
-    .ph-title { font-size: 1.2rem; }
-    .ph-trust { gap: 0.875rem; }
-    .ph-badge { font-size: 0.68rem; }
-    .step-pill { font-size: 0.65rem; padding: 0.28rem 0.6rem; gap: 0.3rem; }
-    .step-num { width: 19px; height: 19px; font-size: 0.6rem; }
-    .step-line { width: 16px; }
+    .pr { padding: 0.75rem 0.875rem 1.25rem; }
+    .ph { padding: 0 0 0.625rem; }
+    .ph-logo { height: 34px; }
+    .ph-title { font-size: 1.05rem; }
+    .ph-trust { gap: 0.75rem; margin-top: 0.5rem; }
+    .step-pill { font-size: 0.65rem; padding: 0.25rem 0.55rem; gap: 0.28rem; }
+    .step-num { width: 18px; height: 18px; font-size: 0.58rem; }
+    .step-line { width: 14px; }
+    .steps { margin-bottom: 0.625rem; }
     .pc { border-radius: 1rem; }
-    .pc-body { padding: 1.5rem 1.25rem 1.75rem; }
-    .outstanding-val { font-size: 2.2rem; }
-    .total-val { font-size: 1.6rem; }
-    .otp-box { width: 42px; height: 52px; }
+    .pc-body { padding: 1.125rem 1.125rem 1.375rem; }
+    .outstanding-val { font-size: 1.8rem; }
+    .total-val { font-size: 1.4rem; }
+    .otp-box { width: 40px; height: 48px; }
 }
 
 /* ─── Mobile 360px ─── */
