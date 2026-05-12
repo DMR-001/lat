@@ -20,7 +20,7 @@ const feeLabel = (type: string) => FEE_LABELS[type] ?? type.replace(/_/g, ' ').r
 
 export default function PublicPaymentPage() {
     // step: 'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'
-    const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'>('branch');
+    const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success' | 'verifying'>('branch');
     const [branches, setBranches] = useState<{ id: string; name: string; code: string }[]>([]);
 
     const [selectedBranch, setSelectedBranch] = useState<{ id: string; name: string; code: string } | null>(null);
@@ -91,13 +91,15 @@ export default function PublicPaymentPage() {
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
-    // Load Razorpay checkout script once on mount
+    // Detect return from HDFC payment page
     useEffect(() => {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = true;
-        document.body.appendChild(script);
-        return () => { document.body.removeChild(script); };
+        const params = new URLSearchParams(window.location.search);
+        const returnOrderId = params.get('order_id');
+        if (!returnOrderId) return;
+        // Clean the URL so a reload doesn't re-trigger
+        window.history.replaceState({}, '', '/pay');
+        handleHdfcReturn(returnOrderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleBranchSelect = (branch: { id: string; name: string; code: string }) => {
@@ -302,83 +304,84 @@ export default function PublicPaymentPage() {
         return feeDetails.fees.reduce((sum, fee) => sum + getInstallmentPayAmount(fee), 0);
     };
 
+    const handleHdfcReturn = async (orderId: string) => {
+        setStep('verifying');
+        setIsProcessing(true);
+        try {
+            // 1. Retrieve pending payment context stored before redirect
+            const raw = localStorage.getItem(`hdfc_pending_${orderId}`);
+            if (!raw) {
+                setPayError(`Payment context not found. Please contact the school office with HDFC Order ID: ${orderId}`);
+                setStep('branch');
+                setIsProcessing(false);
+                return;
+            }
+            const { studentId, payments } = JSON.parse(raw) as { studentId: string; payments: { feeId: string; amount: number }[] };
+
+            // 2. Server-to-server order status check
+            const statusRes = await fetch('/api/hdfc/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId }),
+            });
+            const { status } = await statusRes.json();
+
+            if (status !== 'CHARGED') {
+                setPayError(
+                    status === 'AUTHORIZATION_FAILED' || status === 'AUTHENTICATION_FAILED'
+                        ? 'Payment was not authorised. Please try again.'
+                        : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`
+                );
+                setStep('branch');
+                setIsProcessing(false);
+                return;
+            }
+
+            // 3. Record payment in database
+            const result = await processPublicPayment(studentId, payments, orderId);
+            localStorage.removeItem(`hdfc_pending_${orderId}`);
+            setTransactionSuccess(result);
+            setStep('success');
+        } catch {
+            setPayError('Payment was captured but recording failed. Please contact the school office.');
+            setStep('branch');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handlePayment = async () => {
         const total = getTotalPayAmount();
         if (total <= 0) return;
         setIsProcessing(true);
+        setPayError('');
 
         const payments = feeDetails!.fees
             .map(fee => ({ feeId: fee.id, amount: getInstallmentPayAmount(fee) }))
             .filter(p => p.amount > 0.01);
 
         try {
-            // 1. Create Razorpay order on the server
-            const orderRes = await fetch('/api/razorpay/order', {
+            // 1. Create HDFC order session on the server
+            const sessionRes = await fetch('/api/hdfc/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: total }),
+                body: JSON.stringify({ amount: total, studentId: selectedStudent?.id }),
             });
 
-            if (!orderRes.ok) throw new Error('Failed to create payment order');
+            if (!sessionRes.ok) throw new Error('Failed to create payment session');
 
-            const { orderId, amount: orderAmount, currency } = await orderRes.json();
+            const { orderId, paymentLink } = await sessionRes.json();
 
-            // 2. Open Razorpay checkout
-            const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-                amount: orderAmount,
-                currency,
-                name: 'Sprout School',
-                description: 'Fee Payment',
-                image: '/sprout-logo.png',
-                order_id: orderId,
-                prefill: {
-                    name: selectedStudent?.parentName || `${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
-                    contact: selectedStudent?.phone || '',
-                },
-                theme: { color: '#2563eb' },
-                handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-                    try {
-                        // 3. Verify payment signature on the server
-                        const verifyRes = await fetch('/api/razorpay/verify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                            }),
-                        });
+            if (!paymentLink) throw new Error('No payment link returned');
 
-                        const { verified } = await verifyRes.json();
+            // 2. Store pending context in localStorage before leaving the page
+            localStorage.setItem(`hdfc_pending_${orderId}`, JSON.stringify({
+                studentId: selectedStudent!.id,
+                payments,
+            }));
 
-                        if (!verified) {
-                            setPayError('Payment verification failed. Please contact the school office.');
-                            setIsProcessing(false);
-                            return;
-                        }
-
-                        // 4. Record the payment in the database
-                        const result = await processPublicPayment(selectedStudent.id, payments);
-                        setTransactionSuccess(result);
-                        setStep('success');
-                    } catch {
-                        setPayError('Payment was captured but recording failed. Please contact the school office with your Razorpay ID: ' + response.razorpay_payment_id);
-                    } finally {
-                        setIsProcessing(false);
-                    }
-                },
-                modal: {
-                    ondismiss: () => { setIsProcessing(false); },
-                },
-            };
-
-            const rzp = new (window as any).Razorpay(options);
-            rzp.on('payment.failed', () => {
-                setPayError('Payment failed. Please try again.');
-                setIsProcessing(false);
-            });
-            rzp.open();
+            // 3. Redirect to HDFC payment page
+            window.location.href = paymentLink;
         } catch {
             setPayError('Could not initiate payment. Please try again.');
             setIsProcessing(false);
@@ -388,7 +391,7 @@ export default function PublicPaymentPage() {
     const getInitials = (s: any) =>
         `${s?.firstName?.[0] ?? ''}${s?.lastName?.[0] ?? ''}`.toUpperCase();
 
-    const stepIndex = { branch: 1, search: 2, otp: 2, select: 3, confirm: 3, pay: 4, success: 5 }[step];
+    const stepIndex = { branch: 1, search: 2, otp: 2, select: 3, confirm: 3, pay: 4, success: 5, verifying: 5 }[step];
 
     const Rs = '\u20B9';
 
@@ -760,6 +763,15 @@ export default function PublicPaymentPage() {
                                     <ShieldCheck size={13} />
                                     256-bit SSL encrypted &amp; secure
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Verifying HDFC return */}
+                        {step === 'verifying' && (
+                            <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                                <Loader2 size={40} className="animate-spin" style={{ color: '#6366f1', margin: '0 auto' }} />
+                                <div style={{ marginTop: '1.25rem', color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Verifying your payment…</div>
+                                <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.825rem' }}>Please wait, do not close this tab.</div>
                             </div>
                         )}
 

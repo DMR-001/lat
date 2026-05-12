@@ -208,7 +208,7 @@ model Payment {
   fee               Fee      @relation(fields: [feeId], references: [id])
   branchId          String?
   branch            Branch?  @relation(fields: [branchId], references: [id])
-  razorpayPaymentId String?
+  hdfcOrderId       String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

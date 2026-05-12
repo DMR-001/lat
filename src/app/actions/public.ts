@@ -100,7 +100,7 @@ export async function getStudentFeesPublic(studentId: string) {
     return { fees, totalDue };
 }
 
-export async function processPublicPayment(studentId: string, payments: { feeId: string; amount: number }[]) {
+export async function processPublicPayment(studentId: string, payments: { feeId: string; amount: number }[], hdfcOrderId?: string) {
     // 1. Validate student exists
     const student = await prisma.student.findUnique({
         where: { id: studentId },
@@ -184,7 +184,8 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
                     method: 'ONLINE', // Generic for public portal
                     feeId: fee.id,
                     receiptNo: receiptNo,
-                    branchId: branchId
+                    branchId: branchId,
+                    hdfcOrderId: hdfcOrderId || null,
                 }
             }),
             prisma.fee.update({
