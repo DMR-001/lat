@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         }
 
         const juspay = getJuspay();
-        const orderId = `order_${Date.now()}`;
+        const orderId = `spr_${Date.now()}`;
         const returnUrl = `${appUrl}/api/hdfc/return`;
 
         const sessionResponse = await juspay.orderSession.create({
