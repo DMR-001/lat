@@ -371,6 +371,11 @@ body {
 .resend-btn:disabled { color: #94a3b8; cursor: default; }
 
 /* ─── Success ─── */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.spin { animation: spin 0.75s linear infinite; display: inline-block; }
+
 @keyframes ring-pop {
     0%   { transform: scale(0.4); opacity: 0; }
     55%  { transform: scale(1.12); opacity: 1; }

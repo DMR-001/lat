@@ -331,20 +331,29 @@ export default function PublicPaymentPage() {
             }
             const { studentId, payments } = JSON.parse(raw) as { studentId: string; payments: { feeId: string; amount: number }[] };
 
-            // 2. Server-to-server order status check
-            const statusRes = await fetch('/api/hdfc/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, signature, signatureAlgorithm }),
-            });
-            const { status } = await statusRes.json();
+            // 2. Server-to-server order status check — retry up to 4x if still PENDING
+            // (HDFC redirects before their status API reflects CHARGED)
+            const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+            let status = '';
+            for (let attempt = 0; attempt < 5; attempt++) {
+                if (attempt > 0) await sleep(2000);
+                const statusRes = await fetch('/api/hdfc/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId }),
+                });
+                ({ status } = await statusRes.json());
+                if (status !== 'PENDING' && status !== 'PENDING_VBV') break;
+            }
 
             if (status !== 'CHARGED') {
                 const msg = status === 'CANCELLED' || status === 'CANCEL'
                     ? 'Payment was cancelled. You can try again below.'
                     : status === 'AUTHORIZATION_FAILED' || status === 'AUTHENTICATION_FAILED'
                         ? 'Payment was not authorised by your bank. Please try again.'
-                        : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`;
+                        : status === 'PENDING' || status === 'PENDING_VBV'
+                            ? 'Payment is still processing. Please wait a moment and check back, or contact the school office.'
+                            : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`;
                 setFailedMessage(msg);
                 setStep('failed');
                 setIsProcessing(false);
@@ -499,7 +508,7 @@ export default function PublicPaymentPage() {
                                 )}
                                 <button className="btn-blue" onClick={handleSearch} disabled={isSearching || phone.length < 10}>
                                     {isSearching
-                                        ? <><Loader2 size={17} className="animate-spin" /> Searching...</>
+                                        ? <><Loader2 size={17} className="spin" /> Searching...</>
                                         : <><Search size={17} /> Search Student</>
                                     }
                                 </button>
@@ -525,7 +534,7 @@ export default function PublicPaymentPage() {
                                         {otpError && <div className="err">{otpError}</div>}
                                         <button className="btn-blue" onClick={handleSendOtp} disabled={isSendingOtp}>
                                             {isSendingOtp
-                                                ? <><Loader2 size={17} className="animate-spin" /> Sending OTP...</>
+                                                ? <><Loader2 size={17} className="spin" /> Sending OTP...</>
                                                 : <><Phone size={17} /> Send OTP</>
                                             }
                                         </button>
@@ -556,7 +565,7 @@ export default function PublicPaymentPage() {
                                         {otpError && <div className="err">{otpError}</div>}
                                         <button className="btn-blue" onClick={handleVerifyOtp} disabled={isVerifyingOtp || otpValue.length !== 6}>
                                             {isVerifyingOtp
-                                                ? <><Loader2 size={17} className="animate-spin" /> Verifying...</>
+                                                ? <><Loader2 size={17} className="spin" /> Verifying...</>
                                                 : <><ShieldCheck size={17} /> Verify OTP</>
                                             }
                                         </button>
@@ -641,7 +650,7 @@ export default function PublicPaymentPage() {
                                 </div>
                                 <button className="btn-blue" onClick={() => handleConfirmStudent(selectedStudent)} disabled={isLoadingFees}>
                                     {isLoadingFees
-                                        ? <><Loader2 size={17} className="animate-spin" /> Loading fees...</>
+                                        ? <><Loader2 size={17} className="spin" /> Loading fees...</>
                                         : <>Proceed to Pay <ChevronRight size={16} /></>
                                     }
                                 </button>
@@ -750,7 +759,7 @@ export default function PublicPaymentPage() {
                                 )}
                                 <button className="btn-green" onClick={handlePayment} disabled={isProcessing || getTotalPayAmount() <= 0}>
                                     {isProcessing
-                                        ? <><Loader2 size={20} className="animate-spin" /> Processing...</>
+                                        ? <><Loader2 size={20} className="spin" /> Processing...</>
                                         : <><CreditCard size={20} /> Pay {getTotalPayAmount() > 0 ? `₹${getTotalPayAmount().toLocaleString('en-IN')}` : 'Securely'}</>
                                     }
                                 </button>
@@ -783,7 +792,7 @@ export default function PublicPaymentPage() {
                         {/* Verifying HDFC return */}
                         {step === 'verifying' && (
                             <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
-                                <Loader2 size={40} className="animate-spin" style={{ color: '#6366f1', margin: '0 auto' }} />
+                                <Loader2 size={40} className="spin" style={{ color: '#1d4ed8', margin: '0 auto' }} />
                                 <div style={{ marginTop: '1.25rem', color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Verifying your payment…</div>
                                 <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.825rem' }}>Please wait, do not close this tab.</div>
                             </div>
