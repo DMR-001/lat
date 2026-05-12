@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         }
 
         const paymentPageClientId = process.env.HDFC_PAYMENT_PAGE_CLIENT_ID;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in';
 
         if (!process.env.HDFC_MERCHANT_ID || !paymentPageClientId || !process.env.HDFC_KEY_UUID) {
             return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
         const juspay = getJuspay();
         const orderId = `order_${Date.now()}`;
-        const returnUrl = `${appUrl}/pay`;
+        const returnUrl = `${appUrl}/api/hdfc/return`;
 
         const sessionResponse = await juspay.orderSession.create({
             order_id: orderId,
