@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment } from '@/app/actions/public';
-import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, Lock, BadgeCheck } from 'lucide-react';
+import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, Lock, BadgeCheck, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
 
@@ -20,7 +20,8 @@ const feeLabel = (type: string) => FEE_LABELS[type] ?? type.replace(/_/g, ' ').r
 
 export default function PublicPaymentPage() {
     // step: 'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'
-    const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success' | 'verifying'>('branch');
+    const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success' | 'verifying' | 'failed'>('branch');
+    const [failedMessage, setFailedMessage] = useState('');
     const [branches, setBranches] = useState<{ id: string; name: string; code: string }[]>([]);
 
     const [selectedBranch, setSelectedBranch] = useState<{ id: string; name: string; code: string } | null>(null);
@@ -95,11 +96,21 @@ export default function PublicPaymentPage() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const returnOrderId = params.get('order_id');
-        if (!returnOrderId) return;
+        const returnStatus = params.get('status');
+        // Clean the URL so a reload doesn't re-trigger
+        if (returnOrderId || returnStatus) {
+            window.history.replaceState({}, '', '/pay');
+        }
+        if (!returnOrderId) {
+            // HDFC returned without an order_id — user cancelled or session expired
+            if (returnStatus || window.location.search.includes('status')) {
+                setFailedMessage('Payment was cancelled. You can try again below.');
+                setStep('failed');
+            }
+            return;
+        }
         const signature = params.get('signature') ?? undefined;
         const signatureAlgorithm = params.get('signature_algorithm') ?? undefined;
-        // Clean the URL so a reload doesn't re-trigger
-        window.history.replaceState({}, '', '/pay');
         handleHdfcReturn(returnOrderId, signature, signatureAlgorithm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -313,8 +324,8 @@ export default function PublicPaymentPage() {
             // 1. Retrieve pending payment context stored before redirect
             const raw = localStorage.getItem(`hdfc_pending_${orderId}`);
             if (!raw) {
-                setPayError(`Payment context not found. Please contact the school office with HDFC Order ID: ${orderId}`);
-                setStep('branch');
+                setFailedMessage(`Payment session not found. Please contact the school office with Order ID: ${orderId}`);
+                setStep('failed');
                 setIsProcessing(false);
                 return;
             }
@@ -329,12 +340,13 @@ export default function PublicPaymentPage() {
             const { status } = await statusRes.json();
 
             if (status !== 'CHARGED') {
-                setPayError(
-                    status === 'AUTHORIZATION_FAILED' || status === 'AUTHENTICATION_FAILED'
-                        ? 'Payment was not authorised. Please try again.'
-                        : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`
-                );
-                setStep('branch');
+                const msg = status === 'CANCELLED' || status === 'CANCEL'
+                    ? 'Payment was cancelled. You can try again below.'
+                    : status === 'AUTHORIZATION_FAILED' || status === 'AUTHENTICATION_FAILED'
+                        ? 'Payment was not authorised by your bank. Please try again.'
+                        : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`;
+                setFailedMessage(msg);
+                setStep('failed');
                 setIsProcessing(false);
                 return;
             }
@@ -345,8 +357,8 @@ export default function PublicPaymentPage() {
             setTransactionSuccess(result);
             setStep('success');
         } catch {
-            setPayError('Payment was captured but recording failed. Please contact the school office.');
-            setStep('branch');
+            setFailedMessage('Something went wrong verifying your payment. Please contact the school office.');
+            setStep('failed');
         } finally {
             setIsProcessing(false);
         }
@@ -393,7 +405,7 @@ export default function PublicPaymentPage() {
     const getInitials = (s: any) =>
         `${s?.firstName?.[0] ?? ''}${s?.lastName?.[0] ?? ''}`.toUpperCase();
 
-    const stepIndex = { branch: 1, search: 2, otp: 2, select: 3, confirm: 3, pay: 4, success: 5, verifying: 5 }[step];
+    const stepIndex = { branch: 1, search: 2, otp: 2, select: 3, confirm: 3, pay: 4, success: 5, verifying: 5, failed: 5 }[step];
 
     const Rs = '\u20B9';
 
@@ -779,6 +791,24 @@ export default function PublicPaymentPage() {
                                 <Loader2 size={40} className="animate-spin" style={{ color: '#6366f1', margin: '0 auto' }} />
                                 <div style={{ marginTop: '1.25rem', color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Verifying your payment…</div>
                                 <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.825rem' }}>Please wait, do not close this tab.</div>
+                            </div>
+                        )}
+
+                        {/* Failed / Cancelled */}
+                        {step === 'failed' && (
+                            <div className="success-wrap">
+                                <div className="failed-ring">
+                                    <XCircle size={36} strokeWidth={1.75} />
+                                </div>
+                                <div className="success-title" style={{ color: '#0f172a' }}>Payment Unsuccessful</div>
+                                <div className="success-sub">{failedMessage}</div>
+                                <button
+                                    className="btn-blue"
+                                    style={{ marginBottom: '0.625rem' }}
+                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setFailedMessage(''); }}
+                                >
+                                    <RotateCcw size={16} /> Try Again
+                                </button>
                             </div>
                         )}
 

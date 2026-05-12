@@ -383,6 +383,14 @@ body {
 }
 
 .success-wrap { text-align: center; padding: 0.25rem 0; }
+.failed-ring {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #fef2f2; border: 2px solid #fca5a5;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem; color: #dc2626;
+    animation: ring-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow: 0 4px 16px rgba(220,38,38,0.14);
+}
 .success-ring {
     width: 64px; height: 64px; border-radius: 50%;
     background: #dcfce7; border: 2px solid #86efac;
