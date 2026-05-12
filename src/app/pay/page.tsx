@@ -400,9 +400,14 @@ export default function PublicPaymentPage() {
     return (
             <div className="pr">
                 <div className="ph">
-                    <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" style={{ height: '48px', width: 'auto', maxWidth: '180px', objectFit: 'contain', display: 'block', margin: '0 auto 0.75rem' }} />
+                    <img src="/sprout-logo.png" alt="Sprout School" className="ph-logo" />
                     <div className="ph-title">Fee Payment Portal</div>
                     <div className="ph-sub">Secure online payment for school fees</div>
+                    <div className="ph-trust">
+                        <span className="ph-badge">🔒 256-bit SSL</span>
+                        <span className="ph-badge">🏦 HDFC SmartGateway</span>
+                        <span className="ph-badge">✅ Verified School</span>
+                    </div>
                 </div>
 
                 <div className="steps">
