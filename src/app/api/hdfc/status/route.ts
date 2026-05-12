@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
@@ -27,24 +26,10 @@ function getJuspay() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { orderId, signature, signatureAlgorithm } = await req.json();
+        const { orderId } = await req.json();
 
         if (!orderId || typeof orderId !== 'string') {
             return NextResponse.json({ error: 'Missing orderId' }, { status: 400 });
-        }
-
-        // Verify HMAC signature from HDFC return URL if provided
-        if (signature && signatureAlgorithm === 'HMAC-SHA256') {
-            const responseKey = process.env.HDFC_RESPONSE_KEY;
-            if (responseKey) {
-                const expected = crypto
-                    .createHmac('sha256', responseKey)
-                    .update(orderId)
-                    .digest('base64');
-                if (expected !== decodeURIComponent(signature)) {
-                    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-                }
-            }
         }
 
         if (!process.env.HDFC_MERCHANT_ID || !process.env.HDFC_KEY_UUID) {
