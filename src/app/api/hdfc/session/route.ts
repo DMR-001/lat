@@ -3,12 +3,15 @@ import { SignJWT, importPKCS8, compactDecrypt } from 'jose';
 import { createPrivateKey } from 'crypto';
 
 function parsePem(val: string | undefined): string {
+    // Handle both literal \n (from .env file) and real newlines (from Vercel)
     return (val || '').replace(/\\n/g, '\n');
 }
 
 function toPkcs8(pem: string): string {
-    // Converts PKCS#1 (RSA PRIVATE KEY) to PKCS#8 (PRIVATE KEY) that jose accepts
-    return createPrivateKey(pem).export({ type: 'pkcs8', format: 'pem' }) as string;
+    // If only base64 content was provided (no PEM headers), wrap it
+    const key = pem.includes('-----') ? pem :
+        `-----BEGIN RSA PRIVATE KEY-----\n${pem}\n-----END RSA PRIVATE KEY-----`;
+    return createPrivateKey(key).export({ type: 'pkcs8', format: 'pem' }) as string;
 }
 
 async function parseHdfcResponse(text: string, privateKeyPem: string): Promise<any> {
