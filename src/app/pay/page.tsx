@@ -96,17 +96,26 @@ export default function PublicPaymentPage() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const returnOrderId = params.get('order_id');
-        const returnStatus = params.get('status');
+        const returnStatus = (params.get('status') || '').toUpperCase();
         // Clean the URL so a reload doesn't re-trigger
         if (returnOrderId || returnStatus) {
             window.history.replaceState({}, '', '/pay');
         }
         if (!returnOrderId) {
-            // HDFC returned without an order_id — user cancelled or session expired
-            if (returnStatus || window.location.search.includes('status')) {
+            if (returnStatus) {
                 setFailedMessage('Payment was cancelled. You can try again below.');
                 setStep('failed');
             }
+            return;
+        }
+        // If HDFC already tells us the terminal status in the URL, skip polling
+        const TERMINAL_FAILURES = new Set(['CANCELLED', 'CANCEL', 'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED', 'FAILED', 'JUSPAY_DECLINED']);
+        if (TERMINAL_FAILURES.has(returnStatus)) {
+            const msg = returnStatus === 'CANCELLED' || returnStatus === 'CANCEL'
+                ? 'Payment was cancelled. You can try again below.'
+                : 'Payment was not authorised by your bank. Please try again.';
+            setFailedMessage(msg);
+            setStep('failed');
             return;
         }
         const signature = params.get('signature') ?? undefined;
