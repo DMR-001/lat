@@ -331,19 +331,22 @@ export default function PublicPaymentPage() {
             }
             const { studentId, payments } = JSON.parse(raw) as { studentId: string; payments: { feeId: string; amount: number }[] };
 
-            // 2. Server-to-server order status check — retry up to 4x if still PENDING
-            // (HDFC redirects before their status API reflects CHARGED)
+            // 2. Poll HDFC until we get a definitive status — never decide on PENDING.
+            // Timeout after 2 minutes to avoid waiting forever.
             const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+            const PENDING_STATUSES = new Set(['PENDING', 'PENDING_VBV', 'AUTHORIZING']);
+            const deadline = Date.now() + 2 * 60 * 1000;
             let status = '';
-            for (let attempt = 0; attempt < 5; attempt++) {
-                if (attempt > 0) await sleep(2000);
+            while (true) {
                 const statusRes = await fetch('/api/hdfc/status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderId }),
                 });
                 ({ status } = await statusRes.json());
-                if (status !== 'PENDING' && status !== 'PENDING_VBV') break;
+                if (!PENDING_STATUSES.has(status)) break;
+                if (Date.now() >= deadline) break;
+                await sleep(3000);
             }
 
             if (status !== 'CHARGED') {
@@ -793,8 +796,8 @@ export default function PublicPaymentPage() {
                         {step === 'verifying' && (
                             <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
                                 <Loader2 size={40} className="spin" style={{ color: '#1d4ed8', margin: '0 auto' }} />
-                                <div style={{ marginTop: '1.25rem', color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Verifying your payment…</div>
-                                <div style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.825rem' }}>Please wait, do not close this tab.</div>
+                                <div style={{ marginTop: '1.25rem', color: '#0f172a', fontSize: '1rem', fontWeight: 600 }}>Confirming your payment…</div>
+                                <div style={{ marginTop: '0.5rem', color: '#64748b', fontSize: '0.825rem' }}>Waiting for bank confirmation. Please do not close this tab.</div>
                             </div>
                         )}
 
