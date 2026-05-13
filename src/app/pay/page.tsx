@@ -107,6 +107,7 @@ export default function PublicPaymentPage() {
         const FAILED_STATUSES = new Set([
             'CANCELLED', 'CANCEL',
             'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED',
+            'AUTHORIZING',   // cancelled/timed-out during auth phase — redirect means it won't complete
             'FAILED', 'FAILURE',
             'JUSPAY_DECLINED', 'DECLINED',
             'PENDING',       // timed out on bank side
@@ -122,7 +123,7 @@ export default function PublicPaymentPage() {
 
         if (FAILED_STATUSES.has(returnStatus)) {
             const msg =
-                returnStatus === 'CANCELLED' || returnStatus === 'CANCEL'
+                returnStatus === 'CANCELLED' || returnStatus === 'CANCEL' || returnStatus === 'AUTHORIZING'
                     ? 'Payment was cancelled. You can try again below.'
                     : returnStatus === 'AUTHORIZATION_FAILED' || returnStatus === 'AUTHENTICATION_FAILED' || returnStatus === 'DECLINED' || returnStatus === 'JUSPAY_DECLINED'
                         ? 'Payment was declined by your bank. Please try again.'
