@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, BookOpen, Beaker, Music, Palette, Globe, Calculator } from 'lucide-react';
 

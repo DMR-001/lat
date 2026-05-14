@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { BookOpen, Users, Sun, Star, CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
 

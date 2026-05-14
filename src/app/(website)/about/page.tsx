@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, Heart, Target, Eye, Award } from 'lucide-react';
 
