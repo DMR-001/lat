@@ -4,7 +4,6 @@ const { Juspay, APIError } = require('expresscheckout-nodejs');
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
-export const maxDuration = 30;
 
 // Vercel's filesystem is read-only — silence the SDK's Winston file transport
 // which tries to mkdir('logs') on every cold start.
