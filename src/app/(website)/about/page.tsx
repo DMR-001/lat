@@ -198,7 +198,8 @@ export default function AboutPage() {
                         <div style={{ flex: 1, fontSize: '0.875rem', color: '#64748b', lineHeight: 1.7 }}>
                             <strong style={{ color: '#374151' }}>Registered As:</strong> SPROUT EDUCATIONAL SOCIETY &nbsp;·&nbsp;
                             <strong style={{ color: '#374151' }}>Address:</strong> Hno-14-218/5, Raghavanagar Colony, Meerpet, Hyderabad, Telangana &nbsp;·&nbsp;
-                            <strong style={{ color: '#374151' }}>Email:</strong> info@sproutschool.edu.in
+                            <strong style={{ color: '#374151' }}>Email:</strong> info@sproutschool.edu.in &nbsp;·&nbsp;
+                            <strong style={{ color: '#374151' }}>UDISE:</strong> 36230500631
                         </div>
                     </div>
                 </div>
