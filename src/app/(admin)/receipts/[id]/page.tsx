@@ -23,7 +23,7 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
         prisma.schoolSettings.findFirst(),
     ]);
 
-    if (!payment) return <div>Receipt not found</div>;
+    if (!payment || !payment.fee) return <div>Receipt not found</div>;
 
     const student = payment.fee.student;
     const branch = student.branch || payment.branch;
