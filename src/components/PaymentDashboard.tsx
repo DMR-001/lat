@@ -38,7 +38,7 @@ export default function PaymentDashboard() {
         const csvContent = [
             headers.join(','),
             ...payments.map(p => [
-                p.receiptNo,
+                p.receiptNo ?? '',
                 new Date(p.date).toLocaleDateString(),
                 `"${p.studentName}"`,
                 p.admissionNo,

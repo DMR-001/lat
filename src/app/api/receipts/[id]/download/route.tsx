@@ -60,7 +60,7 @@ export async function GET(
             }
         });
 
-        const filename = `Receipt-${payment.receiptNo.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+        const filename = `Receipt-${(payment.receiptNo ?? payment.id).replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
 
         return new NextResponse(webStream, {
             headers: {

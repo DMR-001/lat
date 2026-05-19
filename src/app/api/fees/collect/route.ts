@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         });
         if (student?.phone) {
             const studentName = `${student.firstName} ${student.lastName}`;
-            await sendFeeCollectedSms(student.phone, amount, studentName, payment.receiptNo, branchId).catch(() => null);
+            await sendFeeCollectedSms(student.phone, amount, studentName, payment.receiptNo ?? '', branchId).catch(() => null);
         }
 
         return NextResponse.json({ success: true, receiptNo: payment.receiptNo, paymentId: payment.id });
