@@ -22,11 +22,8 @@ export default function Footer() {
                 }}>
                     {/* Brand */}
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <img src="/sprout-logo.png" alt="Sprout School" style={{ height: '44px', filter: 'brightness(0) invert(1)' }} />
-                            <span style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: '1.2rem', color: 'white' }}>
-                                Sprout School
-                            </span>
                         </div>
                         <p style={{ color: '#94a3b8', lineHeight: '1.7', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                             Nurturing Little Leaders for a Bright Tomorrow. A safe, loving, and stimulating environment where every child blooms.
@@ -155,7 +152,7 @@ export default function Footer() {
                         &nbsp;·&nbsp; © {new Date().getFullYear()} Sprout School. All rights reserved.
                     </div>
                     <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-                        Designed with ❤️ for little learners
+                        Designed for little learners
                     </div>
                 </div>
             </div>

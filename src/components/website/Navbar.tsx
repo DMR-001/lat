@@ -40,20 +40,8 @@ export default function Navbar() {
             <div className="w-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '76px' }}>
 
                 {/* Logo */}
-                <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
+                <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                     <img src="/sprout-logo.png" alt="Sprout School" style={{ height: '48px', width: 'auto' }} />
-                    <span style={{
-                        fontFamily: "'Nunito', sans-serif",
-                        fontWeight: 900,
-                        fontSize: '1.2rem',
-                        color: '#0f172a',
-                        lineHeight: 1.2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                    }}>
-                        <span style={{ color: 'var(--w-primary)' }}>Sprout</span>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>School · Meerpet</span>
-                    </span>
                 </Link>
 
                 {/* Desktop Links */}
@@ -84,7 +72,7 @@ export default function Navbar() {
                         className="w-btn w-btn-primary"
                         style={{ padding: '0.5rem 1.1rem', fontSize: '0.85rem' }}
                     >
-                        💳 Pay Fees
+                        Pay Fees
                     </a>
                 </div>
 
@@ -146,7 +134,7 @@ export default function Navbar() {
                 ))}
                 <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }} />
                 <a href="https://admin.sproutschool.edu.in" className="w-btn w-btn-outline" style={{ textAlign: 'center', borderRadius: '0.75rem' }}>Staff Login</a>
-                <a href="https://pay.sproutschool.edu.in" className="w-btn w-btn-primary" style={{ textAlign: 'center', borderRadius: '0.75rem', marginTop: '0.5rem' }}>💳 Pay Fees</a>
+                <a href="https://pay.sproutschool.edu.in" className="w-btn w-btn-primary" style={{ textAlign: 'center', borderRadius: '0.75rem', marginTop: '0.5rem' }}>Pay Fees</a>
             </div>
         </nav>
     );

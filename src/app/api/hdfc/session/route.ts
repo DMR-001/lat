@@ -42,14 +42,14 @@ export async function POST(req: NextRequest) {
         }
 
         const juspay = getJuspay();
-        const orderId = `spr_${Date.now()}`;
+        const orderId = `SPR${Date.now()}`; // alphanumeric only, <21 chars, non-sequential via timestamp
         const returnUrl = `${appUrl}/api/hdfc/return`;
 
         const sessionResponse = await juspay.orderSession.create({
             order_id: orderId,
             amount: amount,
             payment_page_client_id: paymentPageClientId,
-            customer_id: studentId || 'guest',
+            customer_id: studentId ? `cust_${studentId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 45)}` : 'guest',
             action: 'paymentPage',
             return_url: returnUrl,
             currency: 'INR',
