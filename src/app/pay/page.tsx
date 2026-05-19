@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment } from '@/app/actions/public';
+import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment, recordFailedPayment } from '@/app/actions/public';
 import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
@@ -375,6 +375,11 @@ export default function PublicPaymentPage() {
             }
 
             if (status !== 'CHARGED') {
+                // Store failed/cancelled transaction in DB for HDFC audit compliance
+                const pendingData = JSON.parse(raw);
+                const totalAmt = (pendingData.payments as {amount:number}[]).reduce((s,p) => s + p.amount, 0);
+                recordFailedPayment(orderId, status || 'UNKNOWN', totalAmt, studentId).catch(() => null);
+
                 const msg = status === 'CANCELLED' || status === 'CANCEL'
                     ? 'Payment was cancelled. You can try again below.'
                     : status === 'AUTHORIZATION_FAILED' || status === 'AUTHENTICATION_FAILED'

@@ -101,6 +101,21 @@ export async function getStudentFeesPublic(studentId: string) {
 }
 
 export async function processPublicPayment(studentId: string, payments: { feeId: string; amount: number }[], hdfcOrderId?: string) {
+    // Duplicate order guard — if this HDFC order was already recorded, return existing payments
+    if (hdfcOrderId) {
+        const existing = await prisma.payment.findFirst({
+            where: { hdfcOrderId },
+            include: { fee: { select: { type: true } } }
+        });
+        if (existing) {
+            const all = await prisma.payment.findMany({
+                where: { hdfcOrderId },
+                include: { fee: { select: { type: true } } }
+            });
+            return { success: true, payments: all };
+        }
+    }
+
     // 1. Validate student exists
     const student = await prisma.student.findUnique({
         where: { id: studentId },
@@ -181,7 +196,9 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
                 data: {
                     amount: paymentItem.amount,
                     date: new Date(),
-                    method: 'ONLINE', // Generic for public portal
+                    method: 'ONLINE',
+                    status: 'SUCCESS',
+                    hdfcStatus: 'CHARGED',
                     feeId: fee.id,
                     receiptNo: receiptNo,
                     branchId: branchId,
@@ -215,4 +232,39 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     }
 
     return { success: true, payments: paymentsCreated };
+}
+
+// Records failed/cancelled HDFC transactions — required for HDFC security audit
+export async function recordFailedPayment(
+    hdfcOrderId: string,
+    hdfcStatus: string,
+    amount: number,
+    studentId?: string
+) {
+    // Don't double-record
+    const existing = await prisma.payment.findFirst({ where: { hdfcOrderId } });
+    if (existing) return;
+
+    let branchId: string | null = null;
+    if (studentId) {
+        const student = await prisma.student.findUnique({
+            where: { id: studentId },
+            include: { class: { include: { branch: true } } }
+        });
+        branchId = student?.class?.branchId || null;
+    }
+
+    await prisma.payment.create({
+        data: {
+            amount,
+            date: new Date(),
+            method: 'ONLINE',
+            status: hdfcStatus === 'CANCELLED' || hdfcStatus === 'CANCEL' ? 'CANCELLED' : 'FAILED',
+            hdfcStatus,
+            feeId: null,
+            receiptNo: null,
+            branchId,
+            hdfcOrderId,
+        }
+    });
 }

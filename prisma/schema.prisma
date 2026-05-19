@@ -200,12 +200,14 @@ model Fee {
 
 model Payment {
   id                String   @id @default(cuid())
-  receiptNo         String   @unique
+  receiptNo         String?  @unique  // null for failed transactions
   amount            Float
   date              DateTime @default(now())
   method            String   // CASH, CARD, ONLINE
-  feeId             String
-  fee               Fee      @relation(fields: [feeId], references: [id])
+  status            String   @default("SUCCESS") // SUCCESS, FAILED, CANCELLED
+  hdfcStatus        String?  // raw status from HDFC: CHARGED, AUTHORIZATION_FAILED, etc.
+  feeId             String?  // nullable — failed txn may have no fee update
+  fee               Fee?     @relation(fields: [feeId], references: [id])
   branchId          String?
   branch            Branch?  @relation(fields: [branchId], references: [id])
   hdfcOrderId       String?
