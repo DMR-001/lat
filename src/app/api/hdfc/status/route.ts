@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
         const juspay = getJuspay();
         const statusResponse = await juspay.order.status(orderId);
 
+        console.log('[HDFC_STATUS_API_RESPONSE]', JSON.stringify(statusResponse, null, 2));
+
         return NextResponse.json({
             status: statusResponse.status,
             orderId: statusResponse.order_id,
