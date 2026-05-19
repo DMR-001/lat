@@ -139,17 +139,17 @@ export default async function ReceiptsPage({ searchParams }: { searchParams: Pro
                         ) : (
                             payments.map((payment) => (
                                 <tr key={payment.id}>
-                                    <td style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '0.82rem' }}>{payment.receiptNo}</td>
+                                    <td style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '0.82rem' }}>{payment.receiptNo ?? '—'}</td>
                                     <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{payment.date.toLocaleDateString()}</td>
                                     <td>
-                                        <div style={{ fontWeight: '500' }}>{payment.fee.student.firstName} {payment.fee.student.lastName}</div>
+                                        <div style={{ fontWeight: '500' }}>{payment.fee?.student.firstName} {payment.fee?.student.lastName}</div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
-                                            {payment.fee.student.admissionNo} &middot; {payment.fee.student.class?.name}
+                                            {payment.fee?.student.admissionNo} &middot; {payment.fee?.student.class?.name}
                                         </div>
                                     </td>
                                     <td>
                                         <span className="badge" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
-                                            {payment.fee.type}
+                                            {payment.fee?.type ?? payment.status}
                                         </span>
                                     </td>
                                     <td style={{ fontWeight: '700', color: 'var(--success)' }}>₹{payment.amount.toFixed(2)}</td>

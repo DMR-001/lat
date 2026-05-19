@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 recentPayments.map((payment) => (
                   <tr key={payment.id}>
                     <td style={{ fontWeight: '500' }}>
-                      {payment.fee.student.firstName} {payment.fee.student.lastName}
+                      {payment.fee?.student.firstName ?? '—'} {payment.fee?.student.lastName ?? ''}
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {payment.receiptNo}

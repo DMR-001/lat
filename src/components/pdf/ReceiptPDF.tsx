@@ -177,6 +177,7 @@ interface ReceiptPDFProps {
 }
 
 export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProps) => {
+    if (!payment.fee) return null;
     const student = payment.fee.student;
     // Prioritize student's branch (always assigned) over payment's branch
     const branch = student.branch || payment.branch;
@@ -254,7 +255,7 @@ export const ReceiptPDF = ({ payment, logoData, schoolSettings }: ReceiptPDFProp
                         </View>
                         <View style={styles.tableRow}>
                             <Text style={styles.colDesc}>
-                                {payment.fee.type} Fee <Text style={{ color: '#6b7280', fontSize: 9 }}>({payment.method})</Text>
+                                {payment.fee?.type} Fee <Text style={{ color: '#6b7280', fontSize: 9 }}>({payment.method})</Text>
                             </Text>
                             <Text style={[styles.colAmount, { fontWeight: 'bold' }]}>
                                 Rs. {payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
