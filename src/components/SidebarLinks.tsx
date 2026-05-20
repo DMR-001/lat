@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     Home, Users, GraduationCap, CreditCard, Settings, FileText,
-    CalendarDays, MessageSquare, Banknote, LayoutList, Receipt, UserCheck
+    CalendarDays, MessageSquare, Banknote, LayoutList, Receipt, UserCheck, ArrowLeftRight
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -37,6 +37,7 @@ function getLinks(role: string | undefined, isPayrollDomain: boolean): SidebarLi
         links.push(
             { name: 'Attendance', href: '/management/attendance', icon: UserCheck },
             { name: 'Salaries', href: '/management/salaries', icon: Banknote },
+            { name: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
             { name: 'Management', href: '/management', icon: Users }
         );
     }
