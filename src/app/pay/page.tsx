@@ -437,6 +437,9 @@ export default function PublicPaymentPage() {
             setStep('success');
         } catch (error) {
             console.error('[HDFC_RETURN] Error processing payment:', error);
+            // Record the failed payment for audit trail
+            recordFailedPayment(orderId, 'PROCESSING_ERROR', 0).catch(() => null);
+            failPendingPayment(orderId).catch(() => null);
             setFailedMessage(`Something went wrong verifying your payment. Please contact the school office with Order ID: ${orderId}`);
             setStep('failed');
         } finally {

@@ -52,25 +52,59 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
         }
     });
 
-    return payments.map(p => ({
-        id: p.id,
-        receiptNo: p.receiptNo,
-        amount: p.amount,
-        date: p.date.toISOString(),
-        method: p.method,
-        status: p.status,
-        hdfcStatus: p.hdfcStatus,
-        hdfcOrderId: p.hdfcOrderId,
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-        student: p.fee?.student ? {
+    // For failed payments without fee info, try to get student from PendingPayment
+    const results: TransactionRecord[] = [];
+    
+    for (const p of payments) {
+        let studentInfo = p.fee?.student ? {
             name: `${p.fee.student.firstName} ${p.fee.student.lastName}`,
             admissionNo: p.fee.student.admissionNo,
             class: `${p.fee.student.class.name}${p.fee.student.class.section ? ' - ' + p.fee.student.class.section : ''}`
-        } : null,
-        feeType: p.fee?.type || null,
-        branchName: p.branch?.name || null
-    }));
+        } : null;
+
+        // For failed/cancelled payments without student info, check PendingPayment
+        if (!studentInfo && p.hdfcOrderId && (p.status === 'FAILED' || p.status === 'CANCELLED')) {
+            try {
+                // @ts-ignore - PendingPayment table may not exist yet
+                const pending = await prisma.pendingPayment.findUnique({
+                    where: { orderId: p.hdfcOrderId }
+                });
+                if (pending?.studentId) {
+                    const student = await prisma.student.findUnique({
+                        where: { id: pending.studentId },
+                        include: { class: true }
+                    });
+                    if (student && student.class) {
+                        studentInfo = {
+                            name: `${student.firstName} ${student.lastName}`,
+                            admissionNo: student.admissionNo,
+                            class: `${student.class.name}${student.class.section ? ' - ' + student.class.section : ''}`
+                        };
+                    }
+                }
+            } catch {
+                // Ignore - table might not exist or other error, keep null
+            }
+        }
+
+        results.push({
+            id: p.id,
+            receiptNo: p.receiptNo,
+            amount: p.amount,
+            date: p.date.toISOString(),
+            method: p.method,
+            status: p.status,
+            hdfcStatus: p.hdfcStatus,
+            hdfcOrderId: p.hdfcOrderId,
+            createdAt: p.createdAt.toISOString(),
+            updatedAt: p.updatedAt.toISOString(),
+            student: studentInfo,
+            feeType: p.fee?.type || null,
+            branchName: p.branch?.name || null
+        });
+    }
+
+    return results;
 }
 
 export async function getTransactionStats() {

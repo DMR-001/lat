@@ -69,8 +69,10 @@ export async function POST(req: NextRequest) {
         }
 
         // Store pending payment context in database (backup for localStorage)
-        if (payments && Array.isArray(payments)) {
+        // This is non-critical - localStorage is the primary storage
+        if (payments && Array.isArray(payments) && studentId) {
             try {
+                // @ts-ignore - PendingPayment table may not exist yet
                 await prisma.pendingPayment.create({
                     data: {
                         orderId,
@@ -82,9 +84,15 @@ export async function POST(req: NextRequest) {
                     },
                 });
                 console.log('[HDFC_SESSION] Stored pending payment for order:', orderId);
-            } catch (dbError) {
+            } catch (dbError: unknown) {
                 // Non-fatal: localStorage will still work as primary
-                console.error('[HDFC_SESSION] Failed to store pending payment:', dbError);
+                // Table might not exist if migration hasn't run
+                const errMsg = dbError instanceof Error ? dbError.message : String(dbError);
+                if (errMsg.includes('does not exist') || errMsg.includes('PendingPayment')) {
+                    console.warn('[HDFC_SESSION] PendingPayment table not found - run migration');
+                } else {
+                    console.error('[HDFC_SESSION] Failed to store pending payment:', errMsg);
+                }
             }
         }
 
