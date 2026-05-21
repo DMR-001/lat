@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { getTransactions, TransactionRecord, TransactionFilter } from '@/app/actions/transaction';
-import { CheckCircle, XCircle, Clock, CreditCard, Search, RefreshCw, Download, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, XCircle, Search, RefreshCw, Download, Copy, ChevronDown, ChevronRight, IndianRupee, ArrowUpRight, ArrowDownRight, Filter, Calendar } from 'lucide-react';
 
 type Props = {
     initialTransactions: TransactionRecord[];
@@ -21,6 +21,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
     const [isPending, startTransition] = useTransition();
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
     const handleFilterChange = (newFilter: TransactionFilter) => {
         setFilter(newFilter);
@@ -37,7 +38,8 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
         });
     };
 
-    const copyOrderId = (orderId: string) => {
+    const copyOrderId = (orderId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         navigator.clipboard.writeText(orderId);
         setCopiedId(orderId);
         setTimeout(() => setCopiedId(null), 2000);
@@ -68,269 +70,363 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
         a.click();
     };
 
-    const filteredTransactions = transactions.filter(t => {
-        if (!searchTerm) return true;
-        const search = searchTerm.toLowerCase();
-        return (
-            t.hdfcOrderId?.toLowerCase().includes(search) ||
-            t.receiptNo?.toLowerCase().includes(search) ||
-            t.student?.name.toLowerCase().includes(search) ||
-            t.student?.admissionNo.toLowerCase().includes(search)
-        );
-    });
+    const filteredTransactions = useMemo(() => {
+        let filtered = transactions;
+        
+        // Date filter
+        if (dateFilter !== 'all') {
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            filtered = filtered.filter(t => {
+                const date = new Date(t.createdAt);
+                if (dateFilter === 'today') {
+                    return date >= startOfDay;
+                } else if (dateFilter === 'week') {
+                    const weekAgo = new Date(startOfDay);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return date >= weekAgo;
+                } else if (dateFilter === 'month') {
+                    const monthAgo = new Date(startOfDay);
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    return date >= monthAgo;
+                }
+                return true;
+            });
+        }
+        
+        // Search filter
+        if (searchTerm) {
+            const search = searchTerm.toLowerCase();
+            filtered = filtered.filter(t => 
+                t.hdfcOrderId?.toLowerCase().includes(search) ||
+                t.receiptNo?.toLowerCase().includes(search) ||
+                t.student?.name.toLowerCase().includes(search) ||
+                t.student?.admissionNo.toLowerCase().includes(search)
+            );
+        }
+        
+        return filtered;
+    }, [transactions, searchTerm, dateFilter]);
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        const date = new Date(dateStr);
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        const isYesterday = date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString();
+        
+        if (isToday) {
+            return `Today, ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+        } else if (isYesterday) {
+            return `Yesterday, ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0
-        }).format(amount);
+        return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(amount);
+    };
+
+    const getStatusStyle = (status: string, hdfcStatus?: string | null) => {
+        if (status === 'SUCCESS') {
+            return { bg: 'bg-emerald-50', text: 'text-emerald-700', icon: CheckCircle2, label: 'Success' };
+        }
+        if (status === 'CANCELLED') {
+            return { bg: 'bg-orange-50', text: 'text-orange-700', icon: XCircle, label: 'Cancelled' };
+        }
+        return { bg: 'bg-red-50', text: 'text-red-700', icon: XCircle, label: hdfcStatus || 'Failed' };
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
+        <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-                    <p className="text-sm text-gray-500 mt-1">View all payment transactions and their status</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={exportToCSV}
-                        className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-                    >
-                        <Download size={16} />
-                        Export
-                    </button>
-                    <button
-                        onClick={handleRefresh}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                    >
-                        <RefreshCw size={16} className={isPending ? 'animate-spin' : ''} />
-                        Refresh
-                    </button>
-                </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <button
-                    onClick={() => handleFilterChange('all')}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
-                        filter === 'all' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Total</span>
-                        <CreditCard size={18} className="text-blue-500" />
+            <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>Transactions</h1>
+                        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>Track all payment activity</p>
                     </div>
-                    <p className="text-2xl font-bold mt-1">{stats.total}</p>
-                </button>
-                
-                <button
-                    onClick={() => handleFilterChange('success')}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
-                        filter === 'success' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Success</span>
-                        <CheckCircle size={18} className="text-green-500" />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                            onClick={exportToCSV}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: '1px solid #e5e7eb', background: 'white', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}
+                        >
+                            <Download size={16} /> Export
+                        </button>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isPending}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', opacity: isPending ? 0.7 : 1 }}
+                        >
+                            <RefreshCw size={16} className={isPending ? 'animate-spin' : ''} /> Refresh
+                        </button>
                     </div>
-                    <p className="text-2xl font-bold text-green-600 mt-1">{stats.success}</p>
-                </button>
-                
-                <button
-                    onClick={() => handleFilterChange('failed')}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
-                        filter === 'failed' ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Failed</span>
-                        <XCircle size={18} className="text-red-500" />
-                    </div>
-                    <p className="text-2xl font-bold text-red-600 mt-1">{stats.failed}</p>
-                </button>
-                
-                <div className="p-4 rounded-xl border-2 border-gray-200 bg-gradient-to-br from-purple-50 to-white">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Collected</span>
-                        <span className="text-lg">💰</span>
-                    </div>
-                    <p className="text-xl font-bold text-purple-600 mt-1">{formatCurrency(stats.successAmount)}</p>
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                    type="text"
-                    placeholder="Search by Order ID, Receipt No, Student Name, Admission No..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                />
-                {searchTerm && (
-                    <button
-                        onClick={() => setSearchTerm('')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                        ✕
-                    </button>
-                )}
+            {/* Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collected</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#166534', marginTop: '0.25rem' }}>₹{formatCurrency(stats.successAmount)}</p>
+                        </div>
+                        <div style={{ background: '#22c55e', borderRadius: '50%', padding: '0.75rem' }}>
+                            <IndianRupee size={24} color="white" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Success</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', marginTop: '0.25rem' }}>{stats.success}</p>
+                        </div>
+                        <div style={{ background: '#dcfce7', borderRadius: '50%', padding: '0.75rem' }}>
+                            <ArrowUpRight size={24} color="#16a34a" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failed</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', marginTop: '0.25rem' }}>{stats.failed}</p>
+                        </div>
+                        <div style={{ background: '#fee2e2', borderRadius: '50%', padding: '0.75rem' }}>
+                            <ArrowDownRight size={24} color="#dc2626" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', marginTop: '0.25rem' }}>{stats.total}</p>
+                        </div>
+                        <div style={{ background: '#e0e7ff', borderRadius: '50%', padding: '0.75rem' }}>
+                            <Filter size={24} color="#4f46e5" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Results count */}
-            <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-gray-500">
-                    {filteredTransactions.length} {filteredTransactions.length === 1 ? 'transaction' : 'transactions'}
-                    {filter !== 'all' && ` (${filter})`}
-                    {searchTerm && ` matching "${searchTerm}"`}
+            {/* Filters Bar */}
+            <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e5e7eb', padding: '1rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+                    {/* Status Tabs */}
+                    <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '0.5rem', padding: '0.25rem' }}>
+                        {(['all', 'success', 'failed'] as TransactionFilter[]).map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => handleFilterChange(f)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    border: 'none',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    background: filter === f ? 'white' : 'transparent',
+                                    color: filter === f ? '#111827' : '#6b7280',
+                                    boxShadow: filter === f ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                                    transition: 'all 0.15s'
+                                }}
+                            >
+                                {f === 'all' ? 'All' : f === 'success' ? '✓ Success' : '✕ Failed'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Date Filter */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Calendar size={16} color="#9ca3af" />
+                        <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value as any)}
+                            style={{ padding: '0.5rem 0.75rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', background: 'white', cursor: 'pointer' }}
+                        >
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">Last 7 Days</option>
+                            <option value="month">Last 30 Days</option>
+                        </select>
+                    </div>
+
+                    {/* Search */}
+                    <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                        <input
+                            type="text"
+                            placeholder="Search order ID, receipt, student..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem' }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Results Count */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.25rem' }}>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Showing <strong>{filteredTransactions.length}</strong> transactions
                 </p>
             </div>
 
-            {/* Transaction Cards (Mobile-friendly) */}
-            <div className="space-y-3">
+            {/* Transaction List */}
+            <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                 {filteredTransactions.length === 0 ? (
-                    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                        <CreditCard className="mx-auto text-gray-300 mb-4" size={48} />
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">No transactions found</h3>
-                        <p className="text-gray-500">
-                            {transactions.length === 0 
-                                ? 'No payment transactions have been recorded yet.'
-                                : 'Try adjusting your search or filter.'}
-                        </p>
+                    <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', background: '#f3f4f6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                            <Search size={28} color="#9ca3af" />
+                        </div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#111827', margin: '0 0 0.5rem' }}>No transactions found</h3>
+                        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Try adjusting your filters or search term</p>
                     </div>
                 ) : (
-                    filteredTransactions.map((t) => (
-                        <div
-                            key={t.id}
-                            className={`bg-white rounded-xl border transition-all ${
-                                expandedRow === t.id ? 'border-blue-300 shadow-md' : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            {/* Main Row */}
-                            <div 
-                                className="p-4 cursor-pointer"
-                                onClick={() => setExpandedRow(expandedRow === t.id ? null : t.id)}
+                    filteredTransactions.map((t, index) => {
+                        const statusStyle = getStatusStyle(t.status, t.hdfcStatus);
+                        const StatusIcon = statusStyle.icon;
+                        const isExpanded = expandedRow === t.id;
+                        
+                        return (
+                            <div
+                                key={t.id}
+                                style={{ borderBottom: index < filteredTransactions.length - 1 ? '1px solid #f3f4f6' : 'none' }}
                             >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        {/* Order ID & Status */}
-                                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <div
+                                    onClick={() => setExpandedRow(isExpanded ? null : t.id)}
+                                    style={{ 
+                                        padding: '1rem 1.25rem', 
+                                        cursor: 'pointer',
+                                        background: isExpanded ? '#fafafa' : 'white',
+                                        transition: 'background 0.15s'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        {/* Expand Icon */}
+                                        <div style={{ color: '#9ca3af' }}>
+                                            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <div style={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.375rem',
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '9999px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            background: statusStyle.bg,
+                                            color: statusStyle.text,
+                                            minWidth: '90px',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <StatusIcon size={12} />
+                                            {statusStyle.label}
+                                        </div>
+
+                                        {/* Main Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {t.student ? (
+                                                    <span style={{ fontWeight: 600, color: '#111827', fontSize: '0.9375rem' }}>{t.student.name}</span>
+                                                ) : (
+                                                    <span style={{ color: '#9ca3af', fontSize: '0.875rem', fontStyle: 'italic' }}>No student linked</span>
+                                                )}
+                                                {t.student && (
+                                                    <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+                                                        {t.student.admissionNo} • {t.student.class}
+                                                    </span>
+                                                )}
+                                            </div>
                                             {t.hdfcOrderId && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        copyOrderId(t.hdfcOrderId!);
+                                                    onClick={(e) => copyOrderId(t.hdfcOrderId!, e)}
+                                                    style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        gap: '0.25rem',
+                                                        marginTop: '0.25rem',
+                                                        padding: '0.125rem 0.5rem',
+                                                        background: '#f3f4f6',
+                                                        border: 'none',
+                                                        borderRadius: '0.25rem',
+                                                        fontSize: '0.75rem',
+                                                        fontFamily: 'monospace',
+                                                        color: '#6b7280',
+                                                        cursor: 'pointer'
                                                     }}
-                                                    className="inline-flex items-center gap-1 font-mono text-sm bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                                                    title="Click to copy"
                                                 >
                                                     {t.hdfcOrderId}
-                                                    <Copy size={12} className="text-gray-400" />
-                                                    {copiedId === t.hdfcOrderId && (
-                                                        <span className="text-green-600 text-xs ml-1">Copied!</span>
-                                                    )}
+                                                    <Copy size={10} />
+                                                    {copiedId === t.hdfcOrderId && <span style={{ color: '#16a34a', marginLeft: '0.25rem' }}>✓</span>}
                                                 </button>
                                             )}
-                                            {t.status === 'SUCCESS' ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                                    <CheckCircle size={12} /> Success
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                                                    <XCircle size={12} /> {t.hdfcStatus || t.status}
-                                                </span>
-                                            )}
                                         </div>
-                                        
-                                        {/* Student Info */}
-                                        {t.student ? (
-                                            <div className="text-sm">
-                                                <span className="font-medium text-gray-900">{t.student.name}</span>
-                                                <span className="text-gray-400 mx-2">•</span>
-                                                <span className="text-gray-500">{t.student.admissionNo}</span>
-                                                <span className="text-gray-400 mx-2">•</span>
-                                                <span className="text-gray-500">{t.student.class}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-sm text-gray-400">No student linked</span>
-                                        )}
-                                    </div>
-                                    
-                                    {/* Amount & Expand */}
-                                    <div className="flex items-center gap-3">
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${t.status === 'SUCCESS' ? 'text-green-600' : 'text-red-600'}`}>
-                                                {formatCurrency(t.amount)}
-                                            </p>
-                                            <p className="text-xs text-gray-400">{formatDate(t.createdAt)}</p>
-                                        </div>
-                                        {expandedRow === t.id ? (
-                                            <ChevronUp size={20} className="text-gray-400" />
-                                        ) : (
-                                            <ChevronDown size={20} className="text-gray-400" />
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* Expanded Details */}
-                            {expandedRow === t.id && (
-                                <div className="px-4 pb-4 pt-0 border-t border-gray-100">
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Receipt No</p>
-                                            <p className="font-medium">{t.receiptNo || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Payment Method</p>
-                                            <p className="font-medium">{t.method}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Fee Type</p>
-                                            <p className="font-medium">{t.feeType || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Branch</p>
-                                            <p className="font-medium">{t.branchName || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">HDFC Status</p>
-                                            <p className="font-medium">{t.hdfcStatus || '-'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Transaction Date</p>
-                                            <p className="font-medium">{formatDate(t.date)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Created At</p>
-                                            <p className="font-medium">{formatDate(t.createdAt)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase mb-1">Updated At</p>
-                                            <p className="font-medium">{formatDate(t.updatedAt)}</p>
+                                        {/* Amount & Date */}
+                                        <div style={{ textAlign: 'right' }}>
+                                            <p style={{ 
+                                                fontWeight: 700, 
+                                                fontSize: '1.125rem',
+                                                color: t.status === 'SUCCESS' ? '#059669' : '#dc2626'
+                                            }}>
+                                                ₹{formatCurrency(t.amount)}
+                                            </p>
+                                            <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.125rem' }}>{formatDate(t.createdAt)}</p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    ))
+
+                                {/* Expanded Details */}
+                                {isExpanded && (
+                                    <div style={{ padding: '0 1.25rem 1.25rem 3.5rem', background: '#fafafa' }}>
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                                            gap: '1rem',
+                                            padding: '1rem',
+                                            background: 'white',
+                                            borderRadius: '0.75rem',
+                                            border: '1px solid #e5e7eb'
+                                        }}>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Receipt No</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.receiptNo || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Method</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.method}</p>
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Fee Type</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.feeType || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Branch</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.branchName || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>HDFC Status</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.hdfcStatus || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Date</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{formatDate(t.date)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
                 )}
             </div>
         </div>

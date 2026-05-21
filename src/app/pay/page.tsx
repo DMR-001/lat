@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment, recordFailedPayment, getPendingPayment, completePendingPayment, failPendingPayment } from '@/app/actions/public';
+import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment, recordFailedPayment, getPendingPayment, completePendingPayment, failPendingPayment, getExistingPayment } from '@/app/actions/public';
 import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
@@ -346,6 +346,23 @@ export default function PublicPaymentPage() {
         setStep('verifying');
         setIsProcessing(true);
         try {
+            // 0. Check if this order was already processed (prevent duplicate processing)
+            const existingPayment = await getExistingPayment(orderId);
+            if (existingPayment) {
+                console.log('[HDFC_RETURN] Order already processed:', orderId, existingPayment.status);
+                if (existingPayment.status === 'SUCCESS') {
+                    // Already successful - show success
+                    setTransactionSuccess({ success: true, payments: [existingPayment] });
+                    setStep('success');
+                } else {
+                    // Already recorded as failed/cancelled
+                    setFailedMessage(`This payment was already processed as ${existingPayment.status.toLowerCase()}. Order ID: ${orderId}`);
+                    setStep('failed');
+                }
+                setIsProcessing(false);
+                return;
+            }
+
             // 1. Retrieve pending payment context — try localStorage first, then server-side backup
             let studentId: string;
             let payments: { feeId: string; amount: number }[];

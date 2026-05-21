@@ -241,9 +241,21 @@ export async function recordFailedPayment(
     amount: number,
     studentId?: string
 ) {
-    // Don't double-record
-    const existing = await prisma.payment.findFirst({ where: { hdfcOrderId } });
-    if (existing) return;
+    const receiptNo = `FAILED-${hdfcOrderId}`;
+    
+    // Don't double-record - check both hdfcOrderId and receiptNo
+    const existing = await prisma.payment.findFirst({ 
+        where: { 
+            OR: [
+                { hdfcOrderId },
+                { receiptNo }
+            ]
+        } 
+    });
+    if (existing) {
+        console.log('[recordFailedPayment] Already recorded:', hdfcOrderId);
+        return;
+    }
 
     // Try to get details from PendingPayment if not provided
     let finalAmount = amount;
@@ -251,7 +263,6 @@ export async function recordFailedPayment(
     
     if (!finalAmount || !finalStudentId) {
         try {
-            // @ts-ignore - PendingPayment table may not exist yet
             const pending = await prisma.pendingPayment.findUnique({
                 where: { orderId: hdfcOrderId }
             });
@@ -260,42 +271,47 @@ export async function recordFailedPayment(
                 finalStudentId = finalStudentId || pending.studentId;
             }
         } catch {
-            // Ignore - table might not exist, use what we have
+            // Ignore - use what we have
         }
     }
 
     let branchId: string | null = null;
-    let studentName: string | null = null;
     if (finalStudentId) {
-        const student = await prisma.student.findUnique({
-            where: { id: finalStudentId },
-            include: { class: { include: { branch: true } } }
-        });
-        branchId = student?.class?.branchId || null;
-        studentName = student ? `${student.firstName} ${student.lastName}` : null;
+        try {
+            const student = await prisma.student.findUnique({
+                where: { id: finalStudentId },
+                include: { class: { include: { branch: true } } }
+            });
+            branchId = student?.class?.branchId || null;
+        } catch {
+            // Ignore
+        }
     }
 
-    await prisma.payment.create({
-        data: {
-            amount: finalAmount || 0,
-            date: new Date(),
-            method: 'ONLINE',
-            status: hdfcStatus === 'CANCELLED' || hdfcStatus === 'CANCEL' ? 'CANCELLED' : 'FAILED',
-            hdfcStatus,
-            feeId: null,
-            receiptNo: `FAILED-${hdfcOrderId}`, // Unique receipt for failed transactions
-            branchId,
-            hdfcOrderId,
+    try {
+        await prisma.payment.create({
+            data: {
+                amount: finalAmount || 0,
+                date: new Date(),
+                method: 'ONLINE',
+                status: hdfcStatus === 'CANCELLED' || hdfcStatus === 'CANCEL' ? 'CANCELLED' : 'FAILED',
+                hdfcStatus,
+                feeId: null,
+                receiptNo,
+                branchId,
+                hdfcOrderId,
+            }
+        });
+        
+        console.log('[recordFailedPayment] Recorded:', { orderId: hdfcOrderId, status: hdfcStatus });
+    } catch (error: any) {
+        // Handle unique constraint violation gracefully (race condition)
+        if (error?.code === 'P2002') {
+            console.log('[recordFailedPayment] Already exists (race condition):', hdfcOrderId);
+            return;
         }
-    });
-    
-    console.log('[recordFailedPayment] Recorded failed payment:', {
-        orderId: hdfcOrderId,
-        status: hdfcStatus,
-        amount: finalAmount,
-        studentId: finalStudentId,
-        studentName
-    });
+        throw error;
+    }
 }
 
 // Get pending payment context from server-side backup (fallback for localStorage)
@@ -303,7 +319,6 @@ export async function getPendingPayment(orderId: string) {
     if (!orderId) return null;
     
     try {
-        // @ts-ignore - PendingPayment table may not exist yet
         const pending = await prisma.pendingPayment.findUnique({
             where: { orderId },
         });
@@ -314,7 +329,6 @@ export async function getPendingPayment(orderId: string) {
 
         // Check if expired
         if (new Date() > pending.expiresAt) {
-            // @ts-ignore
             await prisma.pendingPayment.update({
                 where: { orderId },
                 data: { status: 'EXPIRED' },
@@ -342,13 +356,12 @@ export async function completePendingPayment(orderId: string) {
     if (!orderId) return;
     
     try {
-        // @ts-ignore - PendingPayment table may not exist yet
         await prisma.pendingPayment.update({
             where: { orderId },
             data: { status: 'COMPLETED' },
         });
     } catch {
-        // Ignore errors - table might not exist or record not found
+        // Ignore errors - record not found
     }
 }
 
@@ -357,12 +370,46 @@ export async function failPendingPayment(orderId: string) {
     if (!orderId) return;
     
     try {
-        // @ts-ignore - PendingPayment table may not exist yet
         await prisma.pendingPayment.update({
             where: { orderId },
             data: { status: 'FAILED' },
         });
     } catch {
-        // Ignore errors - table might not exist or record not found
+        // Ignore errors - record not found
+    }
+}
+
+// Check if order was already processed (to prevent duplicate processing)
+export async function getExistingPayment(hdfcOrderId: string) {
+    if (!hdfcOrderId) return null;
+    
+    try {
+        const payment = await prisma.payment.findFirst({
+            where: { hdfcOrderId },
+            include: {
+                fee: {
+                    include: {
+                        student: {
+                            include: { class: true }
+                        }
+                    }
+                }
+            }
+        });
+        
+        if (!payment) return null;
+        
+        return {
+            status: payment.status, // SUCCESS, FAILED, CANCELLED
+            hdfcStatus: payment.hdfcStatus,
+            amount: payment.amount,
+            receiptNo: payment.receiptNo,
+            student: payment.fee?.student ? {
+                name: `${payment.fee.student.firstName} ${payment.fee.student.lastName}`,
+                class: payment.fee.student.class?.name || ''
+            } : null
+        };
+    } catch {
+        return null;
     }
 }
