@@ -283,10 +283,9 @@ export async function recordFailedPayment(
             status: hdfcStatus === 'CANCELLED' || hdfcStatus === 'CANCEL' ? 'CANCELLED' : 'FAILED',
             hdfcStatus,
             feeId: null,
-            receiptNo: null,
+            receiptNo: `FAILED-${hdfcOrderId}`, // Unique receipt for failed transactions
             branchId,
             hdfcOrderId,
-            // Store student reference in remarks for failed transactions (since no feeId)
         }
     });
     
