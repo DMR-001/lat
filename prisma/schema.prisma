@@ -375,3 +375,19 @@ model SmsLog {
   @@index([type])
   @@index([createdAt])
 }
+
+// Server-side storage for pending HDFC payments (backup for localStorage)
+model PendingPayment {
+  id         String   @id @default(cuid())
+  orderId    String   @unique  // HDFC order ID (e.g., SPR1779337175862)
+  studentId  String
+  payments   String   // JSON: [{feeId, amount}]
+  amount     Float    // Total payment amount
+  status     String   @default("PENDING") // PENDING, COMPLETED, FAILED, EXPIRED
+  expiresAt  DateTime // Auto-expire after 30 minutes
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+}

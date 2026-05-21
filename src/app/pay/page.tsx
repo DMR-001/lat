@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment, recordFailedPayment } from '@/app/actions/public';
+import { searchStudentsByPhonePublic, getBranchesPublic, getStudentFeesPublic, processPublicPayment, recordFailedPayment, getPendingPayment, completePendingPayment, failPendingPayment } from '@/app/actions/public';
 import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Building2, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import './pay.css';
@@ -346,39 +346,73 @@ export default function PublicPaymentPage() {
         setStep('verifying');
         setIsProcessing(true);
         try {
-            // 1. Retrieve pending payment context stored before redirect
+            // 1. Retrieve pending payment context — try localStorage first, then server-side backup
+            let studentId: string;
+            let payments: { feeId: string; amount: number }[];
+            
             const raw = localStorage.getItem(`hdfc_pending_${orderId}`);
-            if (!raw) {
-                setFailedMessage(`Payment session not found. Please contact the school office with Order ID: ${orderId}`);
-                setStep('failed');
-                setIsProcessing(false);
-                return;
+            if (raw) {
+                const parsed = JSON.parse(raw) as { studentId: string; payments: { feeId: string; amount: number }[] };
+                studentId = parsed.studentId;
+                payments = parsed.payments;
+            } else {
+                // Fallback to server-side backup
+                console.log('[HDFC_RETURN] localStorage empty, trying server-side backup for:', orderId);
+                const serverData = await getPendingPayment(orderId);
+                if (!serverData) {
+                    setFailedMessage(`Payment session not found. Please contact the school office with Order ID: ${orderId}`);
+                    setStep('failed');
+                    setIsProcessing(false);
+                    return;
+                }
+                studentId = serverData.studentId;
+                payments = serverData.payments;
             }
-            const { studentId, payments } = JSON.parse(raw) as { studentId: string; payments: { feeId: string; amount: number }[] };
 
             // 2. Poll HDFC until we get a definitive status — never decide on PENDING.
             // Timeout after 2 minutes to avoid waiting forever.
             const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
             const PENDING_STATUSES = new Set(['PENDING', 'PENDING_VBV', 'AUTHORIZING']);
+            const ERROR_STATUSES = new Set(['ERROR', 'FETCH_ERROR', 'INVALID_RESPONSE']);
             const deadline = Date.now() + 2 * 60 * 1000;
             let status = '';
+            let statusError = '';
+            
             while (true) {
-                const statusRes = await fetch('/api/hdfc/status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId }),
-                });
-                ({ status } = await statusRes.json());
-                if (!PENDING_STATUSES.has(status)) break;
-                if (Date.now() >= deadline) break;
-                await sleep(3000);
+                try {
+                    const statusRes = await fetch('/api/hdfc/status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId }),
+                    });
+                    
+                    const statusData = await statusRes.json();
+                    status = statusData.status || '';
+                    statusError = statusData.error || '';
+                    
+                    // If we got an error status, retry a few times before giving up
+                    if (ERROR_STATUSES.has(status)) {
+                        console.warn('[HDFC_RETURN] Status API error, will retry:', statusError);
+                        if (Date.now() >= deadline) break;
+                        await sleep(5000);
+                        continue;
+                    }
+                    
+                    if (!PENDING_STATUSES.has(status)) break;
+                    if (Date.now() >= deadline) break;
+                    await sleep(3000);
+                } catch (fetchError) {
+                    console.error('[HDFC_RETURN] Status fetch failed:', fetchError);
+                    if (Date.now() >= deadline) break;
+                    await sleep(5000);
+                }
             }
 
             if (status !== 'CHARGED') {
                 // Store failed/cancelled transaction in DB for HDFC audit compliance
-                const pendingData = JSON.parse(raw);
-                const totalAmt = (pendingData.payments as {amount:number}[]).reduce((s,p) => s + p.amount, 0);
+                const totalAmt = payments.reduce((s, p) => s + p.amount, 0);
                 recordFailedPayment(orderId, status || 'UNKNOWN', totalAmt, studentId).catch(() => null);
+                failPendingPayment(orderId).catch(() => null);
 
                 const msg = status === 'CANCELLED' || status === 'CANCEL'
                     ? 'Payment was cancelled. You can try again below.'
@@ -386,7 +420,9 @@ export default function PublicPaymentPage() {
                         ? 'Payment was not authorised by your bank. Please try again.'
                         : status === 'PENDING' || status === 'PENDING_VBV'
                             ? 'Payment is still processing. Please wait a moment and check back, or contact the school office.'
-                            : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`;
+                            : ERROR_STATUSES.has(status)
+                                ? `Could not verify payment status. Please contact the school office with Order ID: ${orderId}`
+                                : `Payment ${status?.toLowerCase?.() || 'failed'}. Please try again or contact the school office.`;
                 setFailedMessage(msg);
                 setStep('failed');
                 setIsProcessing(false);
@@ -396,10 +432,12 @@ export default function PublicPaymentPage() {
             // 3. Record payment in database
             const result = await processPublicPayment(studentId, payments, orderId);
             localStorage.removeItem(`hdfc_pending_${orderId}`);
+            completePendingPayment(orderId).catch(() => null);
             setTransactionSuccess(result);
             setStep('success');
-        } catch {
-            setFailedMessage('Something went wrong verifying your payment. Please contact the school office.');
+        } catch (error) {
+            console.error('[HDFC_RETURN] Error processing payment:', error);
+            setFailedMessage(`Something went wrong verifying your payment. Please contact the school office with Order ID: ${orderId}`);
             setStep('failed');
         } finally {
             setIsProcessing(false);
@@ -417,11 +455,15 @@ export default function PublicPaymentPage() {
             .filter(p => p.amount > 0.01);
 
         try {
-            // 1. Create HDFC order session on the server
+            // 1. Create HDFC order session on the server (also stores pending payment in DB)
             const sessionRes = await fetch('/api/hdfc/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: total, studentId: selectedStudent?.id }),
+                body: JSON.stringify({ 
+                    amount: total, 
+                    studentId: selectedStudent?.id,
+                    payments, // Send payments to be stored server-side
+                }),
             });
 
             if (!sessionRes.ok) throw new Error('Failed to create payment session');
@@ -430,7 +472,7 @@ export default function PublicPaymentPage() {
 
             if (!paymentLink) throw new Error('No payment link returned');
 
-            // 2. Store pending context in localStorage before leaving the page
+            // 2. Store pending context in localStorage before leaving the page (primary)
             localStorage.setItem(`hdfc_pending_${orderId}`, JSON.stringify({
                 studentId: selectedStudent!.id,
                 payments,

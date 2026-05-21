@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
@@ -28,10 +29,14 @@ function getJuspay() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { amount, studentId } = await req.json();
+        const { amount, studentId, payments } = await req.json();
 
         if (!amount || typeof amount !== 'number' || amount <= 0) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        }
+
+        if (!studentId) {
+            return NextResponse.json({ error: 'Student ID required' }, { status: 400 });
         }
 
         const paymentPageClientId = process.env.HDFC_PAYMENT_PAGE_CLIENT_ID;
@@ -61,6 +66,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 error: sessionResponse.error_message || sessionResponse.message || 'Failed to create payment session',
             }, { status: 502 });
+        }
+
+        // Store pending payment context in database (backup for localStorage)
+        if (payments && Array.isArray(payments)) {
+            try {
+                await prisma.pendingPayment.create({
+                    data: {
+                        orderId,
+                        studentId,
+                        payments: JSON.stringify(payments),
+                        amount,
+                        status: 'PENDING',
+                        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+                    },
+                });
+                console.log('[HDFC_SESSION] Stored pending payment for order:', orderId);
+            } catch (dbError) {
+                // Non-fatal: localStorage will still work as primary
+                console.error('[HDFC_SESSION] Failed to store pending payment:', dbError);
+            }
         }
 
         return NextResponse.json({ orderId, paymentLink });

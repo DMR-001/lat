@@ -268,3 +268,64 @@ export async function recordFailedPayment(
         }
     });
 }
+
+// Get pending payment context from server-side backup (fallback for localStorage)
+export async function getPendingPayment(orderId: string) {
+    if (!orderId) return null;
+    
+    try {
+        const pending = await prisma.pendingPayment.findUnique({
+            where: { orderId },
+        });
+
+        if (!pending || pending.status !== 'PENDING') {
+            return null;
+        }
+
+        // Check if expired
+        if (new Date() > pending.expiresAt) {
+            await prisma.pendingPayment.update({
+                where: { orderId },
+                data: { status: 'EXPIRED' },
+            });
+            return null;
+        }
+
+        return {
+            studentId: pending.studentId,
+            payments: JSON.parse(pending.payments) as { feeId: string; amount: number }[],
+            amount: pending.amount,
+        };
+    } catch (error) {
+        console.error('[getPendingPayment] Error:', error);
+        return null;
+    }
+}
+
+// Mark pending payment as completed
+export async function completePendingPayment(orderId: string) {
+    if (!orderId) return;
+    
+    try {
+        await prisma.pendingPayment.update({
+            where: { orderId },
+            data: { status: 'COMPLETED' },
+        });
+    } catch {
+        // Ignore errors - this is just cleanup
+    }
+}
+
+// Mark pending payment as failed
+export async function failPendingPayment(orderId: string) {
+    if (!orderId) return;
+    
+    try {
+        await prisma.pendingPayment.update({
+            where: { orderId },
+            data: { status: 'FAILED' },
+        });
+    } catch {
+        // Ignore errors - this is just cleanup
+    }
+}
