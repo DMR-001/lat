@@ -122,6 +122,10 @@ export default function PublicPaymentPage() {
         }
 
         if (FAILED_STATUSES.has(returnStatus)) {
+            // Record the failed/cancelled payment for audit trail
+            recordFailedPayment(returnOrderId, returnStatus, 0).catch(() => null);
+            failPendingPayment(returnOrderId).catch(() => null);
+            
             const msg =
                 returnStatus === 'CANCELLED' || returnStatus === 'CANCEL' || returnStatus === 'AUTHORIZING'
                     ? 'Payment was cancelled. You can try again below.'

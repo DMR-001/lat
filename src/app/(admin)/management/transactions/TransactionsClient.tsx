@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import { getTransactions, TransactionRecord, TransactionFilter } from '@/app/actions/transaction';
-import { CheckCircle2, XCircle, Search, RefreshCw, Download, Copy, ChevronDown, ChevronRight, IndianRupee, ArrowUpRight, ArrowDownRight, Filter, Calendar } from 'lucide-react';
+import { CheckCircle2, XCircle, Search, RefreshCw, Download, Copy, ChevronDown, ChevronRight, IndianRupee, ArrowUpRight, ArrowDownRight, Filter, Calendar, Clock } from 'lucide-react';
 
 type Props = {
     initialTransactions: TransactionRecord[];
@@ -10,6 +10,7 @@ type Props = {
         total: number;
         success: number;
         failed: number;
+        pending: number;
         successAmount: number;
     };
 };
@@ -134,6 +135,12 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
         if (status === 'CANCELLED') {
             return { bg: 'bg-orange-50', text: 'text-orange-700', icon: XCircle, label: 'Cancelled' };
         }
+        if (status === 'INITIATED') {
+            return { bg: 'bg-blue-50', text: 'text-blue-700', icon: Clock, label: 'Initiated' };
+        }
+        if (status === 'EXPIRED') {
+            return { bg: 'bg-gray-50', text: 'text-gray-600', icon: Clock, label: 'Expired' };
+        }
         return { bg: 'bg-red-50', text: 'text-red-700', icon: XCircle, label: hdfcStatus || 'Failed' };
     };
 
@@ -205,6 +212,18 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                 <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', marginTop: '0.25rem' }}>{stats.pending}</p>
+                        </div>
+                        <div style={{ background: '#dbeafe', borderRadius: '50%', padding: '0.75rem' }}>
+                            <Clock size={24} color="#2563eb" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
                             <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</p>
                             <p style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', marginTop: '0.25rem' }}>{stats.total}</p>
                         </div>
@@ -220,7 +239,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
                     {/* Status Tabs */}
                     <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '0.5rem', padding: '0.25rem' }}>
-                        {(['all', 'success', 'failed'] as TransactionFilter[]).map((f) => (
+                        {(['all', 'success', 'failed', 'pending'] as TransactionFilter[]).map((f) => (
                             <button
                                 key={f}
                                 onClick={() => handleFilterChange(f)}
@@ -237,7 +256,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                     transition: 'all 0.15s'
                                 }}
                             >
-                                {f === 'all' ? 'All' : f === 'success' ? '✓ Success' : '✕ Failed'}
+                                {f === 'all' ? 'All' : f === 'success' ? '✓ Success' : f === 'failed' ? '✕ Failed' : '⏳ Pending'}
                             </button>
                         ))}
                     </div>
