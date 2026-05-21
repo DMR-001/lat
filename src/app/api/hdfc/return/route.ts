@@ -8,45 +8,64 @@ export const runtime = 'nodejs';
  * Signature is computed over: status|status_id|order_id
  */
 function verifyHdfcSignature(body: Record<string, string>): boolean {
-    const responseKey = process.env.HDFC_RESPONSE_KEY;
-    if (!responseKey) {
-        console.warn('[HDFC_RETURN] No HDFC_RESPONSE_KEY configured - skipping signature verification');
-        return true; // Skip verification if key not configured (for backward compatibility)
-    }
+    try {
+        const responseKey = process.env.HDFC_RESPONSE_KEY;
+        if (!responseKey) {
+            console.warn('[HDFC_RETURN] No HDFC_RESPONSE_KEY configured - skipping signature verification');
+            return true; // Skip verification if key not configured (for backward compatibility)
+        }
 
-    const { status, status_id, order_id, signature, signature_algorithm } = body;
-    
-    if (!signature || !status || !order_id) {
-        console.error('[HDFC_RETURN] Missing required fields for signature verification');
+        const { status, status_id, order_id, signature, signature_algorithm } = body;
+        
+        if (!signature || !status || !order_id) {
+            console.error('[HDFC_RETURN] Missing required fields for signature verification');
+            return false;
+        }
+
+        // HDFC uses pipe-separated values: status|status_id|order_id
+        const signatureData = `${status}|${status_id || ''}|${order_id}`;
+        
+        const algorithm = signature_algorithm === 'HMAC-SHA512' ? 'sha512' : 'sha256';
+        const expectedSignature = crypto
+            .createHmac(algorithm, responseKey)
+            .update(signatureData)
+            .digest('hex');
+
+        // Compare signatures (case-insensitive)
+        const receivedSig = signature.toLowerCase();
+        const expectedSig = expectedSignature.toLowerCase();
+        
+        // Check length first (timingSafeEqual throws if lengths differ)
+        if (receivedSig.length !== expectedSig.length) {
+            console.error('[HDFC_RETURN] Signature length mismatch', {
+                orderId: order_id,
+                receivedLength: receivedSig.length,
+                expectedLength: expectedSig.length,
+            });
+            return false;
+        }
+
+        const isValid = crypto.timingSafeEqual(
+            Buffer.from(receivedSig),
+            Buffer.from(expectedSig)
+        );
+
+        if (!isValid) {
+            console.error('[HDFC_RETURN] Signature verification FAILED', {
+                orderId: order_id,
+                status,
+                receivedSignature: signature.substring(0, 20) + '...',
+                expectedSignature: expectedSignature.substring(0, 20) + '...',
+            });
+        } else {
+            console.log('[HDFC_RETURN] Signature verified successfully for order:', order_id);
+        }
+
+        return isValid;
+    } catch (error) {
+        console.error('[HDFC_RETURN] Signature verification error:', error);
         return false;
     }
-
-    // HDFC uses pipe-separated values: status|status_id|order_id
-    const signatureData = `${status}|${status_id || ''}|${order_id}`;
-    
-    const algorithm = signature_algorithm === 'HMAC-SHA512' ? 'sha512' : 'sha256';
-    const expectedSignature = crypto
-        .createHmac(algorithm, responseKey)
-        .update(signatureData)
-        .digest('hex');
-
-    const isValid = crypto.timingSafeEqual(
-        Buffer.from(signature.toLowerCase()),
-        Buffer.from(expectedSignature.toLowerCase())
-    );
-
-    if (!isValid) {
-        console.error('[HDFC_RETURN] Signature verification FAILED', {
-            orderId: order_id,
-            status,
-            receivedSignature: signature.substring(0, 20) + '...',
-            expectedSignature: expectedSignature.substring(0, 20) + '...',
-        });
-    } else {
-        console.log('[HDFC_RETURN] Signature verified successfully for order:', order_id);
-    }
-
-    return isValid;
 }
 
 // HDFC POSTs to this endpoint after payment (success, failure, or cancel).
@@ -54,38 +73,8 @@ function verifyHdfcSignature(body: Record<string, string>): boolean {
 export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in';
 
-    let body: Record<string, string> = {};
-    try {
-        const text = await req.text();
-        for (const [k, v] of new URLSearchParams(text)) {
-            body[k] = v;
-        }
-    } catch {
-        // ignore parse errors — still redirect
-    }
-
-    console.log('[HDFC_RETURN] Received callback:', {
-        order_id: body.order_id,
-        status: body.status,
-        status_id: body.status_id,
-    });
-
-    // Verify signature to prevent tampering
-    const signatureValid = verifyHdfcSignature(body);
-    
-    const params = new URLSearchParams();
-    for (const key of ['order_id', 'status', 'signature', 'signature_algorithm', 'status_id']) {
-        if (body[key]) params.set(key, body[key]);
-    }
-    
-    // Add signature verification result to params (client will re-verify via status API)
-    params.set('sig_valid', signatureValid ? '1' : '0');
-
-    const redirectUrl = `${appUrl}/pay${params.toString() ? `?${params.toString()}` : ''}`;
-    
-    // Return HTML page that does top-level redirect (works in iframe/popup context)
-    // Using both JavaScript and meta refresh for maximum compatibility
-    const html = `<!DOCTYPE html>
+    // Helper to generate redirect HTML
+    const generateRedirectHtml = (redirectUrl: string) => `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -114,11 +103,53 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
-    return new NextResponse(html, {
-        status: 200,
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-    });
+    try {
+        let body: Record<string, string> = {};
+        try {
+            const text = await req.text();
+            for (const [k, v] of new URLSearchParams(text)) {
+                body[k] = v;
+            }
+        } catch {
+            // ignore parse errors — still redirect
+        }
+
+        console.log('[HDFC_RETURN] Received callback:', {
+            order_id: body.order_id,
+            status: body.status,
+            status_id: body.status_id,
+        });
+
+        // Verify signature to prevent tampering
+        const signatureValid = verifyHdfcSignature(body);
+        
+        const params = new URLSearchParams();
+        for (const key of ['order_id', 'status', 'signature', 'signature_algorithm', 'status_id']) {
+            if (body[key]) params.set(key, body[key]);
+        }
+        
+        // Add signature verification result to params (client will re-verify via status API)
+        params.set('sig_valid', signatureValid ? '1' : '0');
+
+        const redirectUrl = `${appUrl}/pay${params.toString() ? `?${params.toString()}` : ''}`;
+        
+        return new NextResponse(generateRedirectHtml(redirectUrl), {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+            },
+        });
+    } catch (error) {
+        console.error('[HDFC_RETURN] Unexpected error:', error);
+        // Even on error, redirect to pay page (user can retry)
+        const fallbackUrl = `${appUrl}/pay?error=callback_failed`;
+        return new NextResponse(generateRedirectHtml(fallbackUrl), {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+            },
+        });
+    }
 }
