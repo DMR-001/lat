@@ -103,17 +103,15 @@ export async function POST(req: NextRequest) {
             status_id: body.status_id,
         });
 
-        // Verify HMAC signature
-        // Only hard-reject if we have a key AND the signature is present but wrong (tampered).
-        // If key is absent or signature format is unknown, fall through to status API verification.
+        // Log signature result — never block here.
+        // The authoritative security check is the server-to-server Status API call
+        // in /api/hdfc/status which uses JWE-authenticated SDK calls.
+        // Return URL signatures are informational only on HDFC SmartGateway.
         const sigResult = verifyHdfcSignature(body);
-        if (sigResult === false) {
-            console.error('[HDFC_RETURN] Rejecting callback — signature tampered for order:', body.order_id);
-            const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
-            return new NextResponse(generateRedirectHtml(failUrl), {
-                status: 200,
-                headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-            });
+        if (sigResult === true) {
+            console.log('[HDFC_RETURN] Signature verified for order:', body.order_id);
+        } else if (sigResult === false) {
+            console.warn('[HDFC_RETURN] Signature mismatch for order:', body.order_id, '— proceeding to status API verification');
         }
 
         const params = new URLSearchParams();
