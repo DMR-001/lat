@@ -398,7 +398,8 @@ export default function PublicPaymentPage() {
             const deadline = Date.now() + 2 * 60 * 1000;
             let status = '';
             let statusError = '';
-            
+            let statusData: { status?: string; amount?: number; error?: string } = {};
+
             while (true) {
                 try {
                     const statusRes = await fetch('/api/hdfc/status', {
@@ -406,8 +407,8 @@ export default function PublicPaymentPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ orderId }),
                     });
-                    
-                    const statusData = await statusRes.json();
+
+                    statusData = await statusRes.json();
                     status = statusData.status || '';
                     statusError = statusData.error || '';
                     
@@ -450,8 +451,20 @@ export default function PublicPaymentPage() {
                 return;
             }
 
-            // 3. Record payment in database
-            const result = await processPublicPayment(studentId, payments, orderId);
+            // 3. Cross-validate: HDFC charged amount must match server-stored amount
+            const serverContext = await getPendingPayment(orderId);
+            if (serverContext && Math.abs(statusData.amount - serverContext.amount) > 1) {
+                console.error('[HDFC_RETURN] Amount mismatch — HDFC:', statusData.amount, 'Server:', serverContext.amount);
+                recordFailedPayment(orderId, 'AMOUNT_MISMATCH', statusData.amount, studentId).catch(() => null);
+                setFailedMessage('Payment amount mismatch detected. Please contact the school office with Order ID: ' + orderId);
+                setStep('failed');
+                setIsProcessing(false);
+                return;
+            }
+
+            // 4. Record payment in database using server-authoritative amounts
+            const authorizedPayments = serverContext?.payments ?? payments;
+            const result = await processPublicPayment(studentId, authorizedPayments, orderId);
             localStorage.removeItem(`hdfc_pending_${orderId}`);
             completePendingPayment(orderId).catch(() => null);
             setTransactionSuccess(result);
@@ -479,14 +492,13 @@ export default function PublicPaymentPage() {
             .filter(p => p.amount > 0.01);
 
         try {
-            // 1. Create HDFC order session on the server (also stores pending payment in DB)
+            // 1. Create HDFC order session — server calculates authoritative amount from DB
             const sessionRes = await fetch('/api/hdfc/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    amount: total, 
+                body: JSON.stringify({
                     studentId: selectedStudent?.id,
-                    payments, // Send payments to be stored server-side
+                    payments: payments.map(p => ({ feeId: p.feeId, amount: p.amount })),
                 }),
             });
 

@@ -29,15 +29,45 @@ function getJuspay() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { amount, studentId, payments } = await req.json();
+        const { studentId, payments } = await req.json();
 
-        if (!amount || typeof amount !== 'number' || amount <= 0) {
-            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
-        }
-
-        if (!studentId) {
+        if (!studentId || typeof studentId !== 'string') {
             return NextResponse.json({ error: 'Student ID required' }, { status: 400 });
         }
+        if (!Array.isArray(payments) || payments.length === 0) {
+            return NextResponse.json({ error: 'No payments specified' }, { status: 400 });
+        }
+
+        // ── AUTHORITATIVE AMOUNT: re-fetch from DB, never trust client ──────────
+        const feeIds = payments.map((p: { feeId: string }) => p.feeId);
+        const fees = await prisma.fee.findMany({
+            where: { id: { in: feeIds }, studentId },
+            include: { payments: true },
+        });
+        if (fees.length === 0) {
+            return NextResponse.json({ error: 'No valid fees found' }, { status: 400 });
+        }
+
+        // Build authoritative payment list: cap each item at the actual due amount
+        const verifiedPayments: { feeId: string; amount: number }[] = [];
+        for (const item of payments as { feeId: string; amount: number }[]) {
+            const fee = fees.find(f => f.id === item.feeId);
+            if (!fee) continue;
+            const paid = fee.payments.reduce((s, p) => s + p.amount, 0);
+            const due = Math.max(0, fee.amount - paid);
+            if (due <= 0) continue;
+            // Cap at due — client cannot inflate or spoof amount
+            const authorizedAmount = Math.min(item.amount, due);
+            if (authorizedAmount <= 0) continue;
+            verifiedPayments.push({ feeId: item.feeId, amount: authorizedAmount });
+        }
+
+        if (verifiedPayments.length === 0) {
+            return NextResponse.json({ error: 'All selected fees are already paid' }, { status: 400 });
+        }
+
+        const serverAmount = verifiedPayments.reduce((s, p) => s + p.amount, 0);
+        // ─────────────────────────────────────────────────────────────────────────
 
         const paymentPageClientId = process.env.HDFC_PAYMENT_PAGE_CLIENT_ID;
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in';
@@ -47,14 +77,14 @@ export async function POST(req: NextRequest) {
         }
 
         const juspay = getJuspay();
-        const orderId = `SPR${Date.now()}`; // alphanumeric only, <21 chars, non-sequential via timestamp
+        const orderId = `SPR${Date.now()}`;
         const returnUrl = `${appUrl}/api/hdfc/return`;
 
         const sessionResponse = await juspay.orderSession.create({
             order_id: orderId,
-            amount: amount,
+            amount: serverAmount,
             payment_page_client_id: paymentPageClientId,
-            customer_id: studentId ? `cust_${studentId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 45)}` : 'guest',
+            customer_id: `cust${studentId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 46)}`,
             action: 'paymentPage',
             return_url: returnUrl,
             currency: 'INR',
@@ -68,34 +98,19 @@ export async function POST(req: NextRequest) {
             }, { status: 502 });
         }
 
-        // Store pending payment context in database (backup for localStorage)
-        // This is non-critical - localStorage is the primary storage
-        if (payments && Array.isArray(payments) && studentId) {
-            try {
-                // @ts-ignore - PendingPayment table may not exist yet
-                await prisma.pendingPayment.create({
-                    data: {
-                        orderId,
-                        studentId,
-                        payments: JSON.stringify(payments),
-                        amount,
-                        status: 'PENDING',
-                        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-                    },
-                });
-                console.log('[HDFC_SESSION] Stored pending payment for order:', orderId);
-            } catch (dbError: unknown) {
-                // Non-fatal: localStorage will still work as primary
-                // Table might not exist if migration hasn't run
-                const errMsg = dbError instanceof Error ? dbError.message : String(dbError);
-                if (errMsg.includes('does not exist') || errMsg.includes('PendingPayment')) {
-                    console.warn('[HDFC_SESSION] PendingPayment table not found - run migration');
-                } else {
-                    console.error('[HDFC_SESSION] Failed to store pending payment:', errMsg);
-                }
-            }
-        }
+        // Store authoritative payment context server-side — client never holds amounts
+        await prisma.pendingPayment.create({
+            data: {
+                orderId,
+                studentId,
+                payments: JSON.stringify(verifiedPayments),
+                amount: serverAmount,
+                status: 'PENDING',
+                expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+            },
+        });
 
+        console.log('[HDFC_SESSION] Created order', orderId, 'amount', serverAmount, 'fees', feeIds);
         return NextResponse.json({ orderId, paymentLink });
     } catch (error) {
         const isApiError = error instanceof APIError;
