@@ -130,10 +130,16 @@ export async function POST(req: NextRequest) {
         const sigResult = verifyHdfcSignature(body);
         if (sigResult === true) {
             console.log('[HDFC_RETURN] Signature verified for order:', body.order_id);
-        } else {
-            // Log mismatch — status API is the authoritative gate while we confirm key format
-            console.warn('[HDFC_RETURN] Signature unverified for order:', body.order_id, '— falling through to status API');
+        } else if (sigResult === false) {
+            // Key configured + signature present + mismatch = tampered request — reject
+            console.error('[HDFC_RETURN] Rejecting tampered callback for order:', body.order_id);
+            const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
+            return new NextResponse(generateRedirectHtml(failUrl), {
+                status: 200,
+                headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+            });
         }
+        // sigResult === null: no key set or no signature in body — fall through
 
         const params = new URLSearchParams();
         for (const key of ['order_id', 'status', 'signature', 'signature_algorithm', 'status_id']) {
