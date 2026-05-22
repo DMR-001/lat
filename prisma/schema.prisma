@@ -380,7 +380,7 @@ model SmsLog {
 model PendingPayment {
   id         String   @id @default(cuid())
   orderId    String   @unique
-  nonce      String   @unique  // One-time token — rejects replayed session requests
+  nonce      String?  @unique  // One-time token — rejects replayed session requests
   studentId  String
   payments   String   // JSON: [{feeId, amount}]
   amount     Float

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Reject replayed requests — nonce must never have been used before
-        const existingNonce = await prisma.pendingPayment.findUnique({ where: { nonce } });
+        const existingNonce = await prisma.pendingPayment.findFirst({ where: { nonce } });
         if (existingNonce) {
             console.error('[HDFC_SESSION] Replayed nonce rejected:', nonce);
             return NextResponse.json({ error: 'Request already processed' }, { status: 409 });
