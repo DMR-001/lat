@@ -4,10 +4,15 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 
 /**
- * Verify HMAC-SHA256 signature from HDFC SmartGateway.
- * Returns true if verified, false if tampered, null if key not configured or signature absent.
- * The return URL signature is a secondary hint — the server-to-server Status API
- * call in /api/hdfc/status is the authoritative security gate.
+ * Verify HMAC-SHA256 signature per HDFC SmartGateway docs:
+ * 1. Take all params except 'signature' and 'signature_algorithm'
+ * 2. Percent-encode each key and value
+ * 3. Sort by encoded key (ASCII order)
+ * 4. Join as key=value&key=value...
+ * 5. Percent-encode the entire joined string
+ * 6. HMAC-SHA256 using the Response Key
+ * 7. Percent-encode the hash
+ * 8. Compare against signature (after percent-decoding it once)
  */
 function verifyHdfcSignature(body: Record<string, string>): boolean | null {
     try {
@@ -17,44 +22,53 @@ function verifyHdfcSignature(body: Record<string, string>): boolean | null {
             return null;
         }
 
-        const { status, status_id, order_id, signature, signature_algorithm } = body;
-        if (!signature || !order_id) return null;
+        const { signature, signature_algorithm, ...rest } = body;
+        if (!signature) return null;
 
         const algorithm = signature_algorithm === 'HMAC-SHA512' ? 'sha512' : 'sha256';
-        const received = decodeURIComponent(signature);
-        const sid = status_id || '';
 
-        // HDFC response key is a hex string — try both raw string and hex-decoded bytes
-        const keyVariants: [string, Buffer | string][] = [
-            ['hex-decoded', Buffer.from(responseKey, 'hex')],
-            ['raw-string',  responseKey],
-        ];
+        // Step 2+3: percent-encode keys and values, sort by encoded key
+        const encoded = Object.entries(rest)
+            .map(([k, v]) => [encodeURIComponent(k), encodeURIComponent(v ?? '')] as [string, string])
+            .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 
-        const dataFormats: Record<string, string> = {
-            'order_id':                  order_id,
-            'status|order_id':           `${status}|${order_id}`,
-            'status|status_id|order_id': `${status}|${sid}|${order_id}`,
-            'status_id|order_id':        `${sid}|${order_id}`,
-        };
+        // Step 4: join as key=value&...
+        const joined = encoded.map(([k, v]) => `${k}=${v}`).join('&');
 
-        const debugLines: string[] = [];
-        for (const [keyLabel, key] of keyVariants) {
-            for (const [fmt, data] of Object.entries(dataFormats)) {
-                for (const enc of ['base64', 'hex'] as const) {
-                    const expected = crypto.createHmac(algorithm, key).update(data).digest(enc);
-                    debugLines.push(`  [${keyLabel}] ${fmt} (${enc}): ${expected.slice(0, 10)}...`);
-                    if (received === expected) {
-                        console.log('[HDFC_RETURN] Signature verified:', { order_id, keyLabel, fmt, enc });
-                        return true;
-                    }
-                }
-            }
+        // Step 5: percent-encode the joined string
+        const toSign = encodeURIComponent(joined);
+
+        // Step 6: HMAC using raw response key string
+        const hash = crypto.createHmac(algorithm, responseKey).update(toSign).digest('base64');
+
+        // Step 7: percent-encode the hash
+        const expectedSig = encodeURIComponent(hash);
+
+        // Step 8: percent-decode the received signature once, then compare
+        const receivedDecoded = decodeURIComponent(signature);
+
+        console.log('[HDFC_RETURN] Signature check:', {
+            orderId: rest.order_id,
+            toSign: toSign.slice(0, 40) + '...',
+            expected: expectedSig.slice(0, 10) + '...',
+            received: receivedDecoded.slice(0, 10) + '...',
+        });
+
+        // Use constant-time comparison on the percent-encoded forms
+        const exp = Buffer.from(expectedSig);
+        const rec = Buffer.from(encodeURIComponent(receivedDecoded));
+        if (exp.length !== rec.length) {
+            console.warn('[HDFC_RETURN] Signature length mismatch:', exp.length, 'vs', rec.length);
+            return false;
         }
 
-        console.warn('[HDFC_RETURN] Signature mismatch for order:', order_id,
-            '\n  received:', received.slice(0, 10) + '...',
-            '\n  tried:\n' + debugLines.join('\n'));
-        return false;
+        const isValid = crypto.timingSafeEqual(exp, rec);
+        if (isValid) {
+            console.log('[HDFC_RETURN] Signature verified for order:', rest.order_id);
+        } else {
+            console.warn('[HDFC_RETURN] Signature mismatch for order:', rest.order_id);
+        }
+        return isValid;
     } catch (error) {
         console.error('[HDFC_RETURN] Signature check error:', error);
         return null;
