@@ -34,7 +34,7 @@ export default function PaymentDashboard() {
     const handleExport = () => {
         if (payments.length === 0) return;
 
-        const headers = ['Receipt No', 'Date', 'Student Name', 'Admission No', 'Class', 'Fee Type', 'Method', 'Amount'];
+        const headers = ['Receipt No', 'Date', 'Student Name', 'Admission No', 'Class', 'Fee Type', 'Method', 'Amount', 'Status', 'HDFC Order ID'];
         const csvContent = [
             headers.join(','),
             ...payments.map(p => [
@@ -45,7 +45,9 @@ export default function PaymentDashboard() {
                 p.className,
                 p.feeType,
                 p.method,
-                p.amount
+                p.amount,
+                p.status,
+                p.hdfcOrderId ?? '',
             ].join(','))
         ].join('\n');
 
@@ -132,6 +134,7 @@ export default function PaymentDashboard() {
                             <th style={{ padding: '0.75rem' }}>Type</th>
                             <th style={{ padding: '0.75rem' }}>Method</th>
                             <th style={{ padding: '0.75rem' }}>Amount</th>
+                            <th style={{ padding: '0.75rem' }}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,20 +147,30 @@ export default function PaymentDashboard() {
                                 <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No payments found for this period.</td>
                             </tr>
                         ) : (
-                            payments.map(payment => (
-                                <tr key={payment.id} style={{ borderTop: '1px solid var(--border)' }}>
-                                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.receiptNo}</td>
-                                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{new Date(payment.date).toLocaleDateString()}</td>
-                                    <td style={{ padding: '0.75rem', fontWeight: '500' }}>
-                                        <div>{payment.studentName}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{payment.admissionNo}</div>
-                                    </td>
-                                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.className}</td>
-                                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.feeType}</td>
-                                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.method}</td>
-                                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>₹{payment.amount.toFixed(2)}</td>
-                                </tr>
-                            ))
+                            payments.map(payment => {
+                                const isFailed = payment.status === 'FAILED' || payment.status === 'CANCELLED';
+                                const statusColor = payment.status === 'SUCCESS' ? '#16a34a' : payment.status === 'CANCELLED' ? '#d97706' : '#dc2626';
+                                const statusBg = payment.status === 'SUCCESS' ? '#dcfce7' : payment.status === 'CANCELLED' ? '#fef3c7' : '#fef2f2';
+                                return (
+                                    <tr key={payment.id} style={{ borderTop: '1px solid var(--border)', opacity: isFailed ? 0.75 : 1, backgroundColor: isFailed ? '#fffbfb' : undefined }}>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem', fontFamily: 'monospace' }}>{payment.receiptNo}</td>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{new Date(payment.date).toLocaleDateString()}</td>
+                                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>
+                                            <div>{payment.studentName}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{payment.admissionNo}</div>
+                                        </td>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.className}</td>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.feeType}</td>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.method}</td>
+                                        <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>₹{payment.amount.toFixed(2)}</td>
+                                        <td style={{ padding: '0.75rem' }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '0.35rem', background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                                                {payment.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

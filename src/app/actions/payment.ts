@@ -66,17 +66,19 @@ export async function getPayments(filter: PaymentFilter, customStart?: Date, cus
         }
     });
 
-    // Flatten data for easier consumption in UI and CSV
-    return payments.filter(p => p.fee).map(p => ({
+    return payments.map(p => ({
         id: p.id,
-        receiptNo: p.receiptNo,
+        receiptNo: p.receiptNo ?? '—',
         date: p.date,
         amount: p.amount,
         method: p.method,
-        studentName: `${p.fee!.student.firstName} ${p.fee!.student.lastName}`,
-        admissionNo: p.fee!.student.admissionNo,
-        className: p.fee!.student.class.name,
-        section: p.fee!.student.class.section || '',
-        feeType: p.fee!.type
+        status: (p as any).status ?? 'SUCCESS',
+        hdfcStatus: (p as any).hdfcStatus ?? null,
+        hdfcOrderId: (p as any).hdfcOrderId ?? null,
+        studentName: p.fee ? `${p.fee.student.firstName} ${p.fee.student.lastName}` : '—',
+        admissionNo: p.fee ? p.fee.student.admissionNo : '—',
+        className: p.fee ? p.fee.student.class.name : '—',
+        section: p.fee ? p.fee.student.class.section || '' : '',
+        feeType: p.fee ? p.fee.type : '—',
     }));
 }
