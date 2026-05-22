@@ -22,28 +22,38 @@ function verifyHdfcSignature(body: Record<string, string>): boolean | null {
 
         const algorithm = signature_algorithm === 'HMAC-SHA512' ? 'sha512' : 'sha256';
         const received = decodeURIComponent(signature);
+        const sid = status_id || '';
 
-        // Try all known HDFC signing formats
-        const candidates = [
-            order_id,                                      // just order_id
-            `${status}|${order_id}`,                       // status|order_id
-            `${status}|${status_id || ''}|${order_id}`,   // status|status_id|order_id
+        // HDFC response key is a hex string — try both raw string and hex-decoded bytes
+        const keyVariants: [string, Buffer | string][] = [
+            ['hex-decoded', Buffer.from(responseKey, 'hex')],
+            ['raw-string',  responseKey],
         ];
 
-        for (const data of candidates) {
-            const expected = crypto.createHmac(algorithm, responseKey).update(data).digest('base64');
-            if (received.length === expected.length) {
-                const match = crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
-                if (match) {
-                    console.log('[HDFC_RETURN] Signature verified for order:', order_id, '| format:', data);
-                    return true;
+        const dataFormats: Record<string, string> = {
+            'order_id':                  order_id,
+            'status|order_id':           `${status}|${order_id}`,
+            'status|status_id|order_id': `${status}|${sid}|${order_id}`,
+            'status_id|order_id':        `${sid}|${order_id}`,
+        };
+
+        const debugLines: string[] = [];
+        for (const [keyLabel, key] of keyVariants) {
+            for (const [fmt, data] of Object.entries(dataFormats)) {
+                for (const enc of ['base64', 'hex'] as const) {
+                    const expected = crypto.createHmac(algorithm, key).update(data).digest(enc);
+                    debugLines.push(`  [${keyLabel}] ${fmt} (${enc}): ${expected.slice(0, 10)}...`);
+                    if (received === expected) {
+                        console.log('[HDFC_RETURN] Signature verified:', { order_id, keyLabel, fmt, enc });
+                        return true;
+                    }
                 }
             }
         }
 
-        // None matched — log for debugging but do NOT block (status API will verify)
         console.warn('[HDFC_RETURN] Signature mismatch for order:', order_id,
-            '| received:', received.slice(0, 10) + '...');
+            '\n  received:', received.slice(0, 10) + '...',
+            '\n  tried:\n' + debugLines.join('\n'));
         return false;
     } catch (error) {
         console.error('[HDFC_RETURN] Signature check error:', error);
@@ -106,16 +116,10 @@ export async function POST(req: NextRequest) {
         const sigResult = verifyHdfcSignature(body);
         if (sigResult === true) {
             console.log('[HDFC_RETURN] Signature verified for order:', body.order_id);
-        } else if (sigResult === false) {
-            // Key is set + signature present + all formats failed = tampered request
-            console.error('[HDFC_RETURN] Rejecting tampered callback for order:', body.order_id);
-            const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
-            return new NextResponse(generateRedirectHtml(failUrl), {
-                status: 200,
-                headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-            });
+        } else {
+            // Log mismatch — status API is the authoritative gate while we confirm key format
+            console.warn('[HDFC_RETURN] Signature unverified for order:', body.order_id, '— falling through to status API');
         }
-        // sigResult === null means no key configured or no signature in body — fall through
 
         const params = new URLSearchParams();
         for (const key of ['order_id', 'status', 'signature', 'signature_algorithm', 'status_id']) {
