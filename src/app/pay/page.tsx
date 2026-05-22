@@ -98,7 +98,17 @@ export default function PublicPaymentPage() {
         const returnOrderId = params.get('order_id');
         const returnStatus = (params.get('status') || '').toUpperCase();
 
-        if (!returnOrderId && !returnStatus) return; // normal page load, not a return
+        const returnError = params.get('error');
+
+        if (!returnOrderId && !returnStatus && !returnError) return; // normal page load
+
+        // Tampered callback rejected by return route
+        if (returnError === 'invalid_signature') {
+            window.history.replaceState({}, '', '/pay');
+            setFailedMessage('Payment response validation failed. Please contact the school office with Order ID: ' + (returnOrderId || 'unknown'));
+            setStep('failed');
+            return;
+        }
 
         // Clean URL immediately so reload doesn't re-trigger
         window.history.replaceState({}, '', '/pay');
@@ -493,12 +503,17 @@ export default function PublicPaymentPage() {
 
         try {
             // 1. Create HDFC order session — server calculates authoritative amount from DB
+            // Nonce is a one-time token to prevent request replay attacks
+            const nonce = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+
             const sessionRes = await fetch('/api/hdfc/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     studentId: selectedStudent?.id,
                     payments: payments.map(p => ({ feeId: p.feeId, amount: p.amount })),
+                    nonce,
                 }),
             });
 

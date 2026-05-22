@@ -50,16 +50,12 @@ function verifyHdfcSignature(body: Record<string, string>): boolean {
         
         // Check length first (timingSafeEqual throws if lengths differ)
         if (receivedSig.length !== expectedSig.length) {
-            console.error('[HDFC_RETURN] Signature length mismatch', {
+            console.error('[HDFC_RETURN] Signature length mismatch — rejecting', {
                 orderId: order_id,
                 receivedLength: receivedSig.length,
                 expectedLength: expectedSig.length,
-                received: receivedSig.substring(0, 20) + '...',
-                expected: expectedSig.substring(0, 20) + '...',
             });
-            // Don't fail for now - just log and continue (signature verification is secondary)
-            // The status API call will verify payment status directly with HDFC
-            return true;
+            return false;
         }
 
         const isValid = crypto.timingSafeEqual(
@@ -79,7 +75,7 @@ function verifyHdfcSignature(body: Record<string, string>): boolean {
         return isValid;
     } catch (error) {
         console.error('[HDFC_RETURN] Signature verification error:', error);
-        return true; // Don't block payment on signature errors - status API will verify
+        return false;
     }
 }
 
@@ -135,16 +131,21 @@ export async function POST(req: NextRequest) {
             status_id: body.status_id,
         });
 
-        // Verify signature to prevent tampering
+        // Verify HMAC signature — reject tampered callbacks
         const signatureValid = verifyHdfcSignature(body);
-        
+        if (!signatureValid) {
+            console.error('[HDFC_RETURN] Rejecting callback — invalid signature for order:', body.order_id);
+            const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
+            return new NextResponse(generateRedirectHtml(failUrl), {
+                status: 200,
+                headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+            });
+        }
+
         const params = new URLSearchParams();
         for (const key of ['order_id', 'status', 'signature', 'signature_algorithm', 'status_id']) {
             if (body[key]) params.set(key, body[key]);
         }
-        
-        // Add signature verification result to params (client will re-verify via status API)
-        params.set('sig_valid', signatureValid ? '1' : '0');
 
         const redirectUrl = `${appUrl}/pay${params.toString() ? `?${params.toString()}` : ''}`;
         

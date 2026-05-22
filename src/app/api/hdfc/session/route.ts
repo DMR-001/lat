@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import crypto from 'crypto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Juspay, APIError } = require('expresscheckout-nodejs');
 
@@ -29,13 +30,23 @@ function getJuspay() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { studentId, payments } = await req.json();
+        const { studentId, payments, nonce } = await req.json();
 
         if (!studentId || typeof studentId !== 'string') {
             return NextResponse.json({ error: 'Student ID required' }, { status: 400 });
         }
         if (!Array.isArray(payments) || payments.length === 0) {
             return NextResponse.json({ error: 'No payments specified' }, { status: 400 });
+        }
+        if (!nonce || typeof nonce !== 'string' || nonce.length < 16) {
+            return NextResponse.json({ error: 'Missing or invalid nonce' }, { status: 400 });
+        }
+
+        // Reject replayed requests — nonce must never have been used before
+        const existingNonce = await prisma.pendingPayment.findUnique({ where: { nonce } });
+        if (existingNonce) {
+            console.error('[HDFC_SESSION] Replayed nonce rejected:', nonce);
+            return NextResponse.json({ error: 'Request already processed' }, { status: 409 });
         }
 
         // ── AUTHORITATIVE AMOUNT: re-fetch from DB, never trust client ──────────
@@ -102,6 +113,7 @@ export async function POST(req: NextRequest) {
         await prisma.pendingPayment.create({
             data: {
                 orderId,
+                nonce,
                 studentId,
                 payments: JSON.stringify(verifiedPayments),
                 amount: serverAmount,
