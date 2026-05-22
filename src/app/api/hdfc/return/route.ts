@@ -128,9 +128,7 @@ export async function POST(req: NextRequest) {
         });
 
         const sigResult = verifyHdfcSignature(body);
-        if (sigResult === true) {
-            console.log('[HDFC_RETURN] Signature verified for order:', body.order_id);
-        } else if (sigResult === false) {
+        if (sigResult === false) {
             // Key configured + signature present + mismatch = tampered request — reject
             console.error('[HDFC_RETURN] Rejecting tampered callback for order:', body.order_id);
             const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
