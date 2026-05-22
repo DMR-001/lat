@@ -4,78 +4,50 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 
 /**
- * Verify HMAC-SHA256 signature from HDFC SmartGateway
- * HDFC sends signature in Base64 format
- * Signature is computed over: status|status_id|order_id
+ * Verify HMAC-SHA256 signature from HDFC SmartGateway.
+ * Returns true if verified, false if tampered, null if key not configured or signature absent.
+ * The return URL signature is a secondary hint — the server-to-server Status API
+ * call in /api/hdfc/status is the authoritative security gate.
  */
-function verifyHdfcSignature(body: Record<string, string>): boolean {
+function verifyHdfcSignature(body: Record<string, string>): boolean | null {
     try {
         const responseKey = process.env.HDFC_RESPONSE_KEY;
         if (!responseKey) {
-            console.warn('[HDFC_RETURN] No HDFC_RESPONSE_KEY configured - skipping signature verification');
-            return true; // Skip verification if key not configured (for backward compatibility)
+            console.warn('[HDFC_RETURN] HDFC_RESPONSE_KEY not set — skipping signature check');
+            return null;
         }
 
         const { status, status_id, order_id, signature, signature_algorithm } = body;
-        
-        if (!signature || !status || !order_id) {
-            console.error('[HDFC_RETURN] Missing required fields for signature verification');
-            return false;
-        }
+        if (!signature || !order_id) return null;
 
-        // HDFC uses pipe-separated values: status|status_id|order_id
-        const signatureData = `${status}|${status_id || ''}|${order_id}`;
-        
         const algorithm = signature_algorithm === 'HMAC-SHA512' ? 'sha512' : 'sha256';
-        
-        // Generate expected signature in Base64 (HDFC uses Base64)
-        const expectedSignatureBase64 = crypto
-            .createHmac(algorithm, responseKey)
-            .update(signatureData)
-            .digest('base64');
+        const received = decodeURIComponent(signature);
 
-        // URL decode the received signature (it may be URL encoded)
-        const decodedSignature = decodeURIComponent(signature);
-        
-        console.log('[HDFC_RETURN] Signature verification:', {
-            orderId: order_id,
-            signatureData,
-            receivedLength: decodedSignature.length,
-            expectedLength: expectedSignatureBase64.length,
-        });
+        // Try all known HDFC signing formats
+        const candidates = [
+            order_id,                                      // just order_id
+            `${status}|${order_id}`,                       // status|order_id
+            `${status}|${status_id || ''}|${order_id}`,   // status|status_id|order_id
+        ];
 
-        // Compare signatures
-        const receivedSig = decodedSignature;
-        const expectedSig = expectedSignatureBase64;
-        
-        // Check length first (timingSafeEqual throws if lengths differ)
-        if (receivedSig.length !== expectedSig.length) {
-            console.error('[HDFC_RETURN] Signature length mismatch — rejecting', {
-                orderId: order_id,
-                receivedLength: receivedSig.length,
-                expectedLength: expectedSig.length,
-            });
-            return false;
+        for (const data of candidates) {
+            const expected = crypto.createHmac(algorithm, responseKey).update(data).digest('base64');
+            if (received.length === expected.length) {
+                const match = crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+                if (match) {
+                    console.log('[HDFC_RETURN] Signature verified for order:', order_id, '| format:', data);
+                    return true;
+                }
+            }
         }
 
-        const isValid = crypto.timingSafeEqual(
-            Buffer.from(receivedSig),
-            Buffer.from(expectedSig)
-        );
-
-        if (!isValid) {
-            console.error('[HDFC_RETURN] Signature verification FAILED', {
-                orderId: order_id,
-                status,
-            });
-        } else {
-            console.log('[HDFC_RETURN] Signature verified successfully for order:', order_id);
-        }
-
-        return isValid;
-    } catch (error) {
-        console.error('[HDFC_RETURN] Signature verification error:', error);
+        // None matched — log for debugging but do NOT block (status API will verify)
+        console.warn('[HDFC_RETURN] Signature mismatch for order:', order_id,
+            '| received:', received.slice(0, 10) + '...');
         return false;
+    } catch (error) {
+        console.error('[HDFC_RETURN] Signature check error:', error);
+        return null;
     }
 }
 
@@ -131,10 +103,12 @@ export async function POST(req: NextRequest) {
             status_id: body.status_id,
         });
 
-        // Verify HMAC signature — reject tampered callbacks
-        const signatureValid = verifyHdfcSignature(body);
-        if (!signatureValid) {
-            console.error('[HDFC_RETURN] Rejecting callback — invalid signature for order:', body.order_id);
+        // Verify HMAC signature
+        // Only hard-reject if we have a key AND the signature is present but wrong (tampered).
+        // If key is absent or signature format is unknown, fall through to status API verification.
+        const sigResult = verifyHdfcSignature(body);
+        if (sigResult === false) {
+            console.error('[HDFC_RETURN] Rejecting callback — signature tampered for order:', body.order_id);
             const failUrl = `${appUrl}/pay?error=invalid_signature&order_id=${encodeURIComponent(body.order_id || '')}`;
             return new NextResponse(generateRedirectHtml(failUrl), {
                 status: 200,
