@@ -27,6 +27,17 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next();
         }
 
+        // Enforce MANAGEMENT-only access: if a session exists for a non-MANAGEMENT role,
+        // clear it and force back to login so ADMIN users cannot use this portal at all.
+        if (session && path !== '/login') {
+            const payrollPayload = await decrypt(session);
+            if (!payrollPayload || payrollPayload.user.role !== 'MANAGEMENT') {
+                const res = NextResponse.redirect(new URL('/login', request.url));
+                res.cookies.delete('session');
+                return res;
+            }
+        }
+
         // Rewrite root to /management
         if (path === '/') {
             return NextResponse.rewrite(new URL('/management', request.url));

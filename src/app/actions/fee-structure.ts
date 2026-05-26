@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { logAction } from '@/lib/audit';
 
 // Helper to get current branch from cookies
 async function getCurrentBranchId(): Promise<string | null> {
@@ -92,6 +93,11 @@ export async function createFeeStructure(data: {
                 }
             }
         }
+
+        await logAction('FEE_STRUCTURE_CREATED', 'FEE_STRUCTURE',
+            `Created fee structure "${data.name}" — Total ₹${totalFee}${feeStructure.class ? ` for ${feeStructure.class.name}` : ''}`,
+            { feeStructureId: feeStructure.id, name: data.name, totalFee, classId: data.classId, academicYearId: data.academicYearId }
+        );
 
         revalidatePath('/fee-structure');
         revalidatePath('/fees');
@@ -218,6 +224,11 @@ export async function updateFeeStructure(id: string, data: {
             );
         }
 
+        await logAction('FEE_STRUCTURE_UPDATED', 'FEE_STRUCTURE',
+            `Updated fee structure "${feeStructure.name}" — New total ₹${totalFee}`,
+            { feeStructureId: id, name: feeStructure.name, totalFee, changes: data, linkedFeesUpdated: linkedFees.length }
+        );
+
         revalidatePath('/fee-structure');
         revalidatePath('/fees');
         return { success: true, feeStructure };
@@ -228,7 +239,12 @@ export async function updateFeeStructure(id: string, data: {
 
 export async function deleteFeeStructure(id: string) {
     try {
+        const existing = await prisma.feeStructure.findUnique({ where: { id }, select: { name: true, totalFee: true } });
         await prisma.feeStructure.delete({ where: { id } });
+        await logAction('FEE_STRUCTURE_DELETED', 'FEE_STRUCTURE',
+            `Deleted fee structure "${existing?.name ?? id}" (Total ₹${existing?.totalFee ?? '?'})`,
+            { feeStructureId: id, name: existing?.name, totalFee: existing?.totalFee }
+        );
         revalidatePath('/fee-structure');
         return { success: true };
     } catch (error: any) {

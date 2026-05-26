@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { login, logout } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 export async function loginAction(formData: FormData) {
     const username = formData.get('username') as string;
@@ -22,6 +22,13 @@ export async function loginAction(formData: FormData) {
 
     if (!isValid) {
         return { error: 'Invalid username or password' };
+    }
+
+    // Block non-MANAGEMENT users from logging in on the payroll subdomain
+    const headerStore = await headers();
+    const hostname = headerStore.get('host') || '';
+    if (hostname.startsWith('payroll.') && user.role !== 'MANAGEMENT') {
+        return { error: 'Access denied. This portal is for payroll staff only.' };
     }
 
     await login({ id: user.id, username: user.username, role: user.role, defaultBranchId: user.defaultBranchId });

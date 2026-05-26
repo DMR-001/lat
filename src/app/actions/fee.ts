@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { sendFeeCollectedSms } from '@/lib/sms';
+import { logAction } from '@/lib/audit';
 
 // Helper to get current academic year from cookies
 async function getCurrentAcademicYearId(): Promise<string | null> {
@@ -35,6 +36,11 @@ export async function assignFee(formData: FormData) {
     const dueDate = new Date(formData.get('dueDate') as string);
     const academicYearId = await getCurrentAcademicYearId();
 
+    const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { firstName: true, lastName: true, admissionNo: true }
+    });
+
     await prisma.fee.create({
         data: {
             studentId,
@@ -46,6 +52,11 @@ export async function assignFee(formData: FormData) {
             academicYearId
         }
     });
+
+    await logAction('FEE_ASSIGNED', 'FEE',
+        `Assigned ${type} fee of ₹${amount} to ${student?.firstName} ${student?.lastName} (${student?.admissionNo})`,
+        { studentId, studentName: `${student?.firstName} ${student?.lastName}`, admissionNo: student?.admissionNo, type, amount, dueDate }
+    );
 
     revalidatePath('/fees');
     redirect('/fees');
@@ -138,6 +149,11 @@ export async function recordPayment(formData: FormData) {
         await sendFeeCollectedSms(student.phone, amount, studentName, receiptNo, branchId).catch(() => null);
     }
 
+    await logAction('FEE_PAYMENT_RECORDED', 'FEE',
+        `Collected ₹${amount} via ${method} for ${student?.firstName} ${student?.lastName} (${student?.admissionNo}) — Receipt ${receiptNo}`,
+        { feeId, receiptNo, amount, method, feeType: fee.type, studentId: fee.studentId, admissionNo: student?.admissionNo, studentName: `${student?.firstName} ${student?.lastName}` }
+    );
+
     revalidatePath('/fees');
     redirect('/fees');
 }
@@ -154,6 +170,11 @@ export async function applyDiscount(feeId: string, discountAmount: number, disco
     const newAmount = base - discountAmount;
     const newStatus = fee.paidAmount >= newAmount ? 'PAID' : fee.status === 'PAID' ? 'PENDING' : fee.status;
 
+    const feeStudent = await prisma.student.findUnique({
+        where: { id: fee.studentId },
+        select: { firstName: true, lastName: true, admissionNo: true }
+    });
+
     await prisma.fee.update({
         where: { id: feeId },
         data: {
@@ -164,6 +185,11 @@ export async function applyDiscount(feeId: string, discountAmount: number, disco
             status: newStatus
         }
     });
+
+    await logAction('FEE_DISCOUNT_APPLIED', 'FEE',
+        `Applied ₹${discountAmount} discount on ${fee.type} fee for ${feeStudent?.firstName} ${feeStudent?.lastName} (${feeStudent?.admissionNo})${discountReason ? ` — Reason: ${discountReason}` : ''}`,
+        { feeId, feeType: fee.type, originalAmount: base, discountAmount, newAmount, discountReason, studentId: fee.studentId, admissionNo: feeStudent?.admissionNo }
+    );
 
     revalidatePath('/fees');
     return { success: true };

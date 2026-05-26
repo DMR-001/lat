@@ -349,6 +349,22 @@ model Backup {
   createdAt DateTime @default(now())
 }
 
+model AuditLog {
+  id           String   @id @default(cuid())
+  performedBy  String   // username
+  userId       String?  // user id at time of action
+  action       String   // e.g. FEE_PAYMENT_RECORDED
+  category     String   // FEE | SALARY | STUDENT | ADMIN | FEE_STRUCTURE
+  description  String   // human-readable summary
+  meta         Json?    // extra details: amounts, ids, names, before/after
+  branchId     String?
+  createdAt    DateTime @default(now())
+
+  @@index([performedBy])
+  @@index([category])
+  @@index([createdAt])
+}
+
 model OtpRecord {
   id        String   @id @default(cuid())
   phone     String

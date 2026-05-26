@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/audit';
 
 export async function addAdmin(formData: FormData) {
     const username = formData.get('username') as string;
@@ -33,6 +34,10 @@ export async function addAdmin(formData: FormData) {
                 defaultBranchId: defaultBranchId || null
             }
         });
+        await logAction('ADMIN_CREATED', 'ADMIN',
+            `Created admin account: ${username}${defaultBranchId ? ` (branch restricted)` : ' (all branches)'}`,
+            { username, defaultBranchId: defaultBranchId || null }
+        );
         revalidatePath('/management');
         return { success: true };
     } catch (error: any) {
@@ -43,9 +48,12 @@ export async function addAdmin(formData: FormData) {
 
 export async function deleteAdmin(id: string) {
     try {
-        await prisma.user.delete({
-            where: { id }
-        });
+        const user = await prisma.user.findUnique({ where: { id }, select: { username: true } });
+        await prisma.user.delete({ where: { id } });
+        await logAction('ADMIN_DELETED', 'ADMIN',
+            `Deleted admin account: ${user?.username ?? id}`,
+            { deletedUserId: id, deletedUsername: user?.username }
+        );
         revalidatePath('/management');
         return { success: true };
     } catch (error: any) {

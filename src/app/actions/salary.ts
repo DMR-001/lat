@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/audit';
 
 // Create or update salary structure
 export async function createSalaryStructure(data: {
@@ -30,6 +31,11 @@ export async function createSalaryStructure(data: {
                 teacher: true
             }
         });
+
+        await logAction('SALARY_STRUCTURE_CREATED', 'SALARY',
+            `Set salary structure for ${salary.teacher.firstName} ${salary.teacher.lastName}: Basic ₹${data.basicSalary}, Net ₹${salary.netSalary}`,
+            { teacherId: data.teacherId, teacherName: `${salary.teacher.firstName} ${salary.teacher.lastName}`, basicSalary: data.basicSalary, allowances: data.allowances, deductions: data.deductions, netSalary: salary.netSalary, effectiveFrom: data.effectiveFrom }
+        );
 
         revalidatePath('/management/salaries');
         return { success: true, salary };
@@ -229,6 +235,11 @@ export async function markPaymentAsPaid(
             }
         });
 
+        await logAction('SALARY_PAYMENT_MARKED_PAID', 'SALARY',
+            `Marked salary paid for ${payment.salary.teacher.firstName} ${payment.salary.teacher.lastName} — ${payment.month}/${payment.year}, ₹${payment.finalAmount} via ${data.paymentMethod}`,
+            { paymentId, teacherName: `${payment.salary.teacher.firstName} ${payment.salary.teacher.lastName}`, month: payment.month, year: payment.year, amount: payment.finalAmount, method: data.paymentMethod, referenceNo: data.referenceNo }
+        );
+
         revalidatePath('/management/salaries/payments');
         return { success: true, payment };
     } catch (error: any) {
@@ -254,6 +265,11 @@ export async function bulkMarkAsPaid(
                 status: 'PAID'
             }
         });
+
+        await logAction('SALARY_BULK_MARKED_PAID', 'SALARY',
+            `Bulk marked ${result.count} salary payment(s) as paid via ${data.paymentMethod}`,
+            { paymentIds, count: result.count, method: data.paymentMethod, referenceNo: data.referenceNo }
+        );
 
         revalidatePath('/management/salaries/payments');
         return { success: true, count: result.count };
