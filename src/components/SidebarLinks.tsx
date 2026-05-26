@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     Home, Users, GraduationCap, CreditCard, Settings, FileText,
-    CalendarDays, MessageSquare, Banknote, LayoutList, Receipt, UserCheck, ArrowLeftRight, ClipboardList
+    CalendarDays, MessageSquare, Banknote, LayoutList, Receipt, UserCheck, ArrowLeftRight, ClipboardList, Wallet
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -13,11 +13,17 @@ type SidebarLink = { name: string; href: string; icon: React.ElementType };
 
 function getLinks(role: string | undefined, isPayrollDomain: boolean): SidebarLink[] {
     if (isPayrollDomain) {
+        if (role === 'TEACHER') {
+            return [
+                { name: 'My Payslips', href: '/payslip', icon: Wallet },
+            ];
+        }
         return [
             { name: 'Attendance', href: '/management/attendance', icon: CalendarDays },
             { name: 'Salaries', href: '/management/salaries', icon: Banknote },
             { name: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
             { name: 'Logs', href: '/management/logs', icon: ClipboardList },
+            { name: 'Management', href: '/management', icon: Users },
         ];
     }
 
@@ -35,7 +41,7 @@ function getLinks(role: string | undefined, isPayrollDomain: boolean): SidebarLi
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
 
-    if (role === 'MANAGEMENT' || role === 'ADMIN') {
+    if (role === 'MANAGEMENT') {
         links.push(
             { name: 'Attendance', href: '/management/attendance', icon: UserCheck },
             { name: 'Salaries', href: '/management/salaries', icon: Banknote },

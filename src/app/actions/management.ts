@@ -61,3 +61,49 @@ export async function deleteAdmin(id: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function setTeacherPortalPassword(teacherId: string, password: string) {
+    if (!password || password.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters' };
+    }
+    try {
+        const teacher = await prisma.teacher.findUnique({
+            where: { id: teacherId },
+            select: { firstName: true, lastName: true }
+        });
+        const hashed = await bcrypt.hash(password, 10);
+        await prisma.teacher.update({
+            where: { id: teacherId },
+            data: { portalPassword: hashed }
+        });
+        await logAction('TEACHER_PORTAL_PASSWORD_SET', 'ADMIN',
+            `Set payroll portal password for ${teacher?.firstName} ${teacher?.lastName}`,
+            { teacherId }
+        );
+        revalidatePath('/management');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function removeTeacherPortalPassword(teacherId: string) {
+    try {
+        const teacher = await prisma.teacher.findUnique({
+            where: { id: teacherId },
+            select: { firstName: true, lastName: true }
+        });
+        await prisma.teacher.update({
+            where: { id: teacherId },
+            data: { portalPassword: null }
+        });
+        await logAction('TEACHER_PORTAL_ACCESS_REVOKED', 'ADMIN',
+            `Revoked payroll portal access for ${teacher?.firstName} ${teacher?.lastName}`,
+            { teacherId }
+        );
+        revalidatePath('/management');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}

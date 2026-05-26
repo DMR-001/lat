@@ -120,6 +120,7 @@ model Teacher {
   email      String              @unique
   phone      String?
   subject    String?
+  portalPassword String?         // bcrypt-hashed password for payroll portal login
   branchId   String?
   branch     Branch?             @relation(fields: [branchId], references: [id])
   classes    Class[]
@@ -328,6 +329,7 @@ model SalaryPayment {
 enum Role {
   MANAGEMENT
   ADMIN
+  TEACHER
 }
 
 model User {

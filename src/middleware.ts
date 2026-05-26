@@ -27,24 +27,45 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next();
         }
 
-        // Enforce MANAGEMENT-only access: if a session exists for a non-MANAGEMENT role,
-        // clear it and force back to login so ADMIN users cannot use this portal at all.
+        // Enforce role-based access on payroll domain:
+        // MANAGEMENT → /management/* only
+        // TEACHER    → /payslip only
+        // anything else → clear session, back to login
         if (session && path !== '/login') {
             const payrollPayload = await decrypt(session);
-            if (!payrollPayload || payrollPayload.user.role !== 'MANAGEMENT') {
+            const role = payrollPayload?.user?.role;
+
+            if (!payrollPayload || (role !== 'MANAGEMENT' && role !== 'TEACHER')) {
                 const res = NextResponse.redirect(new URL('/login', request.url));
                 res.cookies.delete('session');
                 return res;
             }
+
+            // Teacher can only access /payslip
+            if (role === 'TEACHER' && !path.startsWith('/payslip')) {
+                return NextResponse.redirect(new URL('/payslip', request.url));
+            }
+
+            // Management cannot access /payslip
+            if (role === 'MANAGEMENT' && path.startsWith('/payslip')) {
+                return NextResponse.redirect(new URL('/management', request.url));
+            }
         }
 
-        // Rewrite root to /management
+        // Rewrite root based on role
         if (path === '/') {
+            if (session) {
+                const payrollPayload = await decrypt(session);
+                const role = payrollPayload?.user?.role;
+                if (role === 'TEACHER') {
+                    return NextResponse.redirect(new URL('/payslip', request.url));
+                }
+            }
             return NextResponse.rewrite(new URL('/management', request.url));
         }
 
-        // Ensure users stay within management
-        if (!path.startsWith('/management') && !path.startsWith('/login') && !path.startsWith('/api')) {
+        // Ensure non-teacher, non-login paths stay within management
+        if (!path.startsWith('/management') && !path.startsWith('/payslip') && !path.startsWith('/login') && !path.startsWith('/api')) {
             return NextResponse.redirect(new URL('/management', request.url));
         }
     }
@@ -58,6 +79,10 @@ export async function middleware(request: NextRequest) {
     const publicPaths = ['/', '/about', '/gallery', '/academics', '/contact', '/login', '/pay', '/website.css'];
     if (publicPaths.includes(path) || path.startsWith('/receipts/') || path.startsWith('/api/receipts/')) {
         if (session && path === '/login') {
+            const loginPayload = await decrypt(session).catch(() => null);
+            if (loginPayload?.user?.role === 'TEACHER') {
+                return NextResponse.redirect(new URL('/payslip', request.url));
+            }
             return NextResponse.redirect(new URL('/dashboard', request.url));
         }
         return NextResponse.next();

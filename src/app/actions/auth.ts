@@ -10,6 +10,37 @@ export async function loginAction(formData: FormData) {
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
 
+    const headerStore = await headers();
+    const hostname = headerStore.get('host') || '';
+
+    // On the payroll subdomain, check teacher login first (by email or employeeId)
+    if (hostname.startsWith('payroll.')) {
+        const teacher = await prisma.teacher.findFirst({
+            where: {
+                OR: [
+                    { email: username },
+                    { employeeId: username }
+                ]
+            }
+        });
+
+        if (teacher && teacher.portalPassword) {
+            const isValid = await bcrypt.compare(password, teacher.portalPassword);
+            if (isValid) {
+                await login({
+                    id: teacher.id,
+                    username: teacher.email,
+                    role: 'TEACHER',
+                    teacherId: teacher.id,
+                    teacherName: `${teacher.firstName} ${teacher.lastName}`
+                });
+                redirect('/payslip');
+            }
+            // If password wrong, fall through to generic error below
+            return { error: 'Invalid username or password' };
+        }
+    }
+
     const user = await prisma.user.findUnique({
         where: { username }
     });
@@ -25,8 +56,6 @@ export async function loginAction(formData: FormData) {
     }
 
     // Block non-MANAGEMENT users from logging in on the payroll subdomain
-    const headerStore = await headers();
-    const hostname = headerStore.get('host') || '';
     if (hostname.startsWith('payroll.') && user.role !== 'MANAGEMENT') {
         return { error: 'Access denied. This portal is for payroll staff only.' };
     }
