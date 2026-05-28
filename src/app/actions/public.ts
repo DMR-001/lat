@@ -171,22 +171,20 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
         };
         const shortType = getFeeTypeShortForm(fee.type);
 
-        // 2. Get Sequence
+        // 2. Get Sequence — only look at real PL receipts, not FAILED-* entries
+        const currentYear = new Date().getFullYear();
         const lastPayment = await prisma.payment.findFirst({
-            orderBy: { createdAt: 'desc' }
+            where: { receiptNo: { startsWith: `${branchCode}/PL/` } },
+            orderBy: { createdAt: 'desc' },
         });
 
         let nextNumber = 1;
-        if (lastPayment && lastPayment.receiptNo) {
-            // Try to extract number from the end of the string
-            const match = lastPayment.receiptNo.match(/(\d+)$/);
-            if (match) {
-                nextNumber = parseInt(match[1]) + 1;
-            }
+        if (lastPayment?.receiptNo) {
+            const match = lastPayment.receiptNo.match(/\/(\d+)$/);
+            if (match) nextNumber = parseInt(match[1]) + 1;
         }
 
-        const currentYear = new Date().getFullYear();
-        const paddedNumber = nextNumber.toString().padStart(3, '0');
+        const paddedNumber = nextNumber.toString().padStart(4, '0');
         const receiptNo = `${branchCode}/PL/${shortType}/${currentYear}/${paddedNumber}`;
 
         const newPaidAmount = fee.paidAmount + paymentItem.amount;
