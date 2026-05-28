@@ -95,8 +95,12 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                                 <p style={{ fontWeight: '500' }}>{student.religion || '-'}</p>
                             </div>
                             <div>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Phone</p>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Phone (Primary)</p>
                                 <p style={{ fontWeight: '500' }}>{student.phone || '-'}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Phone 2</p>
+                                <p style={{ fontWeight: '500' }}>{student.phone2 || '-'}</p>
                             </div>
                             <div>
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Email</p>

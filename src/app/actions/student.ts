@@ -204,6 +204,7 @@ export async function importStudents(prevState: any, formData: FormData): Promis
                         gender: row.gender || 'Not Specified',
                         address: row.address || null,
                         phone: row.phone || null,
+                        phone2: row.phone2 || null,
                         parentName: row.parentName || null,
                         motherName: row.motherName || null,
                         aadharNo: row.aadharNo || null,
@@ -293,6 +294,7 @@ export async function addStudent(formData: FormData) {
     const gender = formData.get('gender') as string;
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
+    const phone2 = formData.get('phone2') as string;
     const parentName = formData.get('parentName') as string;
 
     const classId = formData.get('classId') as string;
@@ -334,6 +336,7 @@ export async function addStudent(formData: FormData) {
             gender,
             address,
             phone,
+            phone2: phone2 || null,
             parentName,
             classId,
             branchId,
@@ -361,6 +364,7 @@ export async function updateStudent(formData: FormData) {
     const gender = formData.get('gender') as string;
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
+    const phone2 = formData.get('phone2') as string;
     const parentName = formData.get('parentName') as string;
     const motherName = formData.get('motherName') as string;
     const religion = formData.get('religion') as string;
@@ -379,6 +383,7 @@ export async function updateStudent(formData: FormData) {
             gender,
             address,
             phone,
+            phone2: phone2 || null,
             parentName,
             motherName: motherName || null,
             religion: religion || null,

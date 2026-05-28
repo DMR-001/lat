@@ -59,6 +59,7 @@ model Student {
   gender      String
   address     String?
   phone       String?
+  phone2      String?
   email       String?  @unique
   parentName  String?
   motherName  String?

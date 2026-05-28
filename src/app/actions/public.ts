@@ -40,7 +40,10 @@ export async function searchStudentsByPhonePublic(branchId: string, phone: strin
     const students = await prisma.student.findMany({
         where: {
             branchId,
-            phone: { contains: phone.trim() }
+            OR: [
+                { phone:  { contains: phone.trim() } },
+                { phone2: { contains: phone.trim() } },
+            ],
         },
         select: {
             id: true,
@@ -49,6 +52,7 @@ export async function searchStudentsByPhonePublic(branchId: string, phone: strin
             admissionNo: true,
             parentName: true,
             phone: true,
+            phone2: true,
             class: {
                 select: {
                     name: true,
@@ -119,13 +123,13 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     // 1. Validate student exists
     const student = await prisma.student.findUnique({
         where: { id: studentId },
-        include: { 
+        include: {
             class: {
                 include: {
                     branch: true
                 }
             }
-        }
+        },
     });
 
     if (!student) throw new Error('Student not found');
@@ -223,7 +227,7 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
     revalidatePath('/fees');
     revalidatePath(`/students/${studentId}`);
 
-    // Send fee collected SMS for total paid
+    // Send fee collected SMS to primary phone only
     const totalPaid = paymentsCreated.reduce((sum, p) => sum + p.amount, 0);
     if (student.phone && totalPaid > 0) {
         const receiptNos = paymentsCreated.map(p => p.receiptNo).join(', ');

@@ -32,12 +32,13 @@ export default function ImportStudentsPage() {
                         Upload a CSV file with the following columns (headers are required):
                     </p>
                     <code style={{ display: 'block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.25rem', fontSize: '0.75rem', fontFamily: 'monospace', border: '1px solid var(--border)', wordBreak: 'break-all' }}>
-                        admissionNo,fullName,dob,gender,address,className,parentName,motherName,phone,aadharNo,penNo,apaarId,feeAmount,feePaid
+                        admissionNo,fullName,dob,gender,address,className,parentName,motherName,phone,phone2,aadharNo,penNo,apaarId,feeAmount,feePaid
                     </code>
                     <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
                         * <strong>fullName</strong>: Complete name of the student.<br />
                         * <strong>address</strong>: Full residential address.<br />
                         * <strong>motherName</strong>: Mother's name (optional).<br />
+                        * <strong>phone2</strong>: Secondary / alternate phone number (optional).<br />
                         * <strong>aadharNo</strong>: Aadhar number (optional).<br />
                         * <strong>penNo</strong>: PEN number (optional).<br />
                         * <strong>apaarId</strong>: APAAR ID (optional).<br />

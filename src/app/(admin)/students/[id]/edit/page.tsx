@@ -56,8 +56,12 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
                         </select>
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Phone</label>
-                        <input type="tel" name="phone" defaultValue={student.phone || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Phone (Primary)</label>
+                        <input type="tel" name="phone" defaultValue={student.phone || ''} placeholder="Father / Guardian" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Phone 2 <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.8rem' }}>(Optional)</span></label>
+                        <input type="tel" name="phone2" defaultValue={student.phone2 || ''} placeholder="Mother / Alternate" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Email</label>
