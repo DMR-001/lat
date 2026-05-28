@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Wallet, ChevronDown, ChevronRight, Printer, Calendar, IndianRupee, CheckCircle2, Clock } from 'lucide-react';
+import { Wallet, ChevronDown, ChevronRight, Printer, CheckCircle2, Clock } from 'lucide-react';
 
 const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
@@ -45,26 +45,39 @@ type Props = {
     salary: Salary | null;
     payments: Payment[];
     schoolName: string;
+    schoolAddress: string | null;
+    schoolPhone: string | null;
+    logoUrl: string | null;
 };
 
 function fmt(n: number) {
     return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
 }
 
-function PayslipPrint({ payment, teacher, salary, schoolName }: { payment: Payment; teacher: Teacher; salary: Salary | null; schoolName: string }) {
+function PayslipPrint({ payment, teacher, salary, schoolName, schoolAddress, schoolPhone, logoUrl }: {
+    payment: Payment; teacher: Teacher; salary: Salary | null;
+    schoolName: string; schoolAddress: string | null; schoolPhone: string | null; logoUrl: string | null;
+}) {
     return (
         <div id={`payslip-${payment.id}`} style={{ display: 'none' }}>
             <div style={{ fontFamily: 'Arial, sans-serif', padding: '2rem', maxWidth: '700px', margin: '0 auto', color: '#111' }}>
                 {/* Header */}
-                <div style={{ textAlign: 'center', borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{schoolName}</h2>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#444' }}>Salary Slip — {MONTHS[payment.month]} {payment.year}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                    {logoUrl && (
+                        <img src={logoUrl} alt="School Logo" style={{ height: '60px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                    )}
+                    <div style={{ flex: 1, textAlign: logoUrl ? 'left' : 'center' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{schoolName}</h2>
+                        {schoolAddress && <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: '#555' }}>{schoolAddress}</p>}
+                        {schoolPhone && <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#555' }}>Ph: {schoolPhone}</p>}
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#444', fontWeight: 600 }}>Salary Slip — {MONTHS[payment.month]} {payment.year}</p>
+                    </div>
                 </div>
 
                 {/* Employee info */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 2rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
                     <div><span style={{ color: '#666' }}>Employee Name:</span> <strong>{teacher.firstName} {teacher.lastName}</strong></div>
-                    <div><span style={{ color: '#666' }}>Employee ID:</span> {teacher.employeeId || '—'}</div>
+                    <div><span style={{ color: '#666' }}>Employee ID:</span> <strong>{teacher.employeeId || '—'}</strong></div>
                     <div><span style={{ color: '#666' }}>Email:</span> {teacher.email}</div>
                     <div><span style={{ color: '#666' }}>Subject:</span> {teacher.subject || '—'}</div>
                     <div><span style={{ color: '#666' }}>Branch:</span> {teacher.branchName || '—'}</div>
@@ -104,20 +117,10 @@ function PayslipPrint({ payment, teacher, salary, schoolName }: { payment: Payme
                 </table>
 
                 {/* Net Pay */}
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <span style={{ fontWeight: 600, fontSize: '1rem' }}>Net Pay</span>
                     <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#16a34a' }}>₹ {fmt(payment.finalAmount)}</span>
                 </div>
-
-                {/* Payment info */}
-                {payment.status === 'PAID' && (
-                    <div style={{ fontSize: '0.8125rem', color: '#444', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem 2rem' }}>
-                        <div><span style={{ color: '#666' }}>Payment Date:</span> {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('en-IN') : '—'}</div>
-                        <div><span style={{ color: '#666' }}>Payment Method:</span> {payment.paymentMethod || '—'}</div>
-                        {payment.referenceNo && <div><span style={{ color: '#666' }}>Reference No:</span> {payment.referenceNo}</div>}
-                        {payment.remarks && <div><span style={{ color: '#666' }}>Remarks:</span> {payment.remarks}</div>}
-                    </div>
-                )}
 
                 <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
                     This is a computer-generated payslip and does not require a signature.
@@ -127,7 +130,7 @@ function PayslipPrint({ payment, teacher, salary, schoolName }: { payment: Payme
     );
 }
 
-export default function PayslipClient({ teacher, salary, payments, schoolName }: Props) {
+export default function PayslipClient({ teacher, salary, payments, schoolName, schoolAddress, schoolPhone, logoUrl }: Props) {
     const [expandedId, setExpandedId] = useState<string | null>(
         payments.find(p => p.status === 'PAID')?.id ?? payments[0]?.id ?? null
     );
@@ -144,53 +147,18 @@ export default function PayslipClient({ teacher, salary, payments, schoolName }:
         win.close();
     };
 
-    const totalPaid = payments.filter(p => p.status === 'PAID').reduce((s, p) => s + p.finalAmount, 0);
-    const pendingCount = payments.filter(p => p.status === 'PENDING').length;
-
     return (
         <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ marginBottom: '1.5rem' }}>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>My Payslips</h1>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                    {teacher.firstName} {teacher.lastName} {teacher.employeeId ? `· ${teacher.employeeId}` : ''} {teacher.branchName ? `· ${teacher.branchName}` : ''}
+                    {teacher.firstName} {teacher.lastName}
+                    {teacher.employeeId ? ` · ID: ${teacher.employeeId}` : ''}
+                    {teacher.branchName ? ` · ${teacher.branchName}` : ''}
                 </p>
             </div>
 
-            {/* Salary structure summary */}
-            {salary && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                    {[
-                        { label: 'Basic Salary', value: salary.basicSalary, color: '#2563eb', bg: '#dbeafe' },
-                        { label: 'Allowances', value: salary.allowances, color: '#059669', bg: '#d1fae5' },
-                        { label: 'Deductions', value: salary.deductions, color: '#dc2626', bg: '#fee2e2' },
-                        { label: 'Net Salary', value: salary.netSalary, color: '#7c3aed', bg: '#ede9fe' },
-                    ].map(s => (
-                        <div key={s.label} style={{ background: s.bg, borderRadius: '0.75rem', padding: '1rem' }}>
-                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: s.color, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{s.label}</p>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: s.color, margin: '0.25rem 0 0' }}>₹{fmt(s.value)}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #e5e7eb' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', margin: 0 }}>Total Payslips</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0.25rem 0 0' }}>{payments.length}</p>
-                </div>
-                <div style={{ background: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #e5e7eb' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', margin: 0 }}>Total Received</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', margin: '0.25rem 0 0' }}>₹{fmt(totalPaid)}</p>
-                </div>
-                {pendingCount > 0 && (
-                    <div style={{ background: '#fffbeb', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #fde68a' }}>
-                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#d97706', textTransform: 'uppercase', margin: 0 }}>Pending</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#b45309', margin: '0.25rem 0 0' }}>{pendingCount} month{pendingCount > 1 ? 's' : ''}</p>
-                    </div>
-                )}
-            </div>
 
             {/* Payslip list */}
             {payments.length === 0 ? (
@@ -280,7 +248,7 @@ export default function PayslipClient({ teacher, salary, payments, schoolName }:
                                 )}
 
                                 {/* Hidden print template */}
-                                <PayslipPrint payment={p} teacher={teacher} salary={salary} schoolName={schoolName} />
+                                <PayslipPrint payment={p} teacher={teacher} salary={salary} schoolName={schoolName} schoolAddress={schoolAddress} schoolPhone={schoolPhone} logoUrl={logoUrl} />
                             </div>
                         );
                     })}

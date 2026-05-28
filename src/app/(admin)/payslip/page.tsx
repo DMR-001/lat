@@ -57,7 +57,7 @@ export default async function PayslipPage() {
     if (!teacher) redirect('/login');
 
     const schoolSettings = await prisma.schoolSettings.findFirst({
-        select: { schoolName: true, address: true, phone: true, email: true }
+        select: { schoolName: true, address: true, phone: true, email: true, logoUrl: true }
     });
 
     const salary = teacher.salaries[0] ?? null;
@@ -97,6 +97,9 @@ export default async function PayslipPage() {
                 createdAt: p.createdAt.toISOString(),
             }))}
             schoolName={schoolSettings?.schoolName ?? 'Sprout School'}
+            schoolAddress={schoolSettings?.address ?? null}
+            schoolPhone={schoolSettings?.phone ?? null}
+            logoUrl={schoolSettings?.logoUrl ?? null}
         />
     );
 }
