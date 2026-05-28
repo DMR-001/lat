@@ -171,17 +171,19 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
         };
         const shortType = getFeeTypeShortForm(fee.type);
 
-        // 2. Get Sequence — only look at real PL receipts, not FAILED-* entries
+        // 2. Get Sequence
         const currentYear = new Date().getFullYear();
         const lastPayment = await prisma.payment.findFirst({
-            where: { receiptNo: { startsWith: `${branchCode}/PL/` } },
-            orderBy: { createdAt: 'desc' },
+            where: { status: 'SUCCESS' },
+            orderBy: { createdAt: 'desc' }
         });
 
         let nextNumber = 1;
-        if (lastPayment?.receiptNo) {
-            const match = lastPayment.receiptNo.match(/\/(\d+)$/);
-            if (match) nextNumber = parseInt(match[1]) + 1;
+        if (lastPayment && lastPayment.receiptNo) {
+            const match = lastPayment.receiptNo.match(/(\d+)$/);
+            if (match) {
+                nextNumber = parseInt(match[1]) + 1;
+            }
         }
 
         const paddedNumber = nextNumber.toString().padStart(4, '0');
@@ -243,17 +245,8 @@ export async function recordFailedPayment(
     amount: number,
     studentId?: string
 ) {
-    const receiptNo = `FAILED-${hdfcOrderId}`;
-    
-    // Don't double-record - check both hdfcOrderId and receiptNo
-    const existing = await prisma.payment.findFirst({ 
-        where: { 
-            OR: [
-                { hdfcOrderId },
-                { receiptNo }
-            ]
-        } 
-    });
+    // Don't double-record
+    const existing = await prisma.payment.findFirst({ where: { hdfcOrderId } });
     if (existing) {
         console.log('[recordFailedPayment] Already recorded:', hdfcOrderId);
         return;
@@ -299,7 +292,7 @@ export async function recordFailedPayment(
                 status: hdfcStatus === 'CANCELLED' || hdfcStatus === 'CANCEL' ? 'CANCELLED' : 'FAILED',
                 hdfcStatus,
                 feeId: null,
-                receiptNo,
+                receiptNo: null,
                 branchId,
                 hdfcOrderId,
             }
