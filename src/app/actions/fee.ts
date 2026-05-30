@@ -29,6 +29,43 @@ async function getBranchCode(branchId: string | null): Promise<string> {
     return branch?.code || 'SPR';
 }
 
+export async function assignMultipleFees(
+    studentId: string,
+    fees: { type: string; amount: number }[],
+    dueDate: string
+) {
+    const academicYearId = await getCurrentAcademicYearId();
+
+    const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { firstName: true, lastName: true, admissionNo: true }
+    });
+
+    if (!student) throw new Error('Student not found');
+
+    const data = fees.map(f => ({
+        studentId,
+        type: f.type,
+        amount: f.amount,
+        originalAmount: f.amount,
+        paidAmount: 0,
+        dueDate: new Date(dueDate),
+        status: 'PENDING',
+        academicYearId: academicYearId ?? null,
+    }));
+
+    await prisma.fee.createMany({ data });
+
+    const total = fees.reduce((s, f) => s + f.amount, 0);
+    const types = fees.map(f => f.type).join(', ');
+    await logAction('FEE_ASSIGNED', 'FEE',
+        `Assigned ${fees.length} fee(s) [${types}] totalling ₹${total} to ${student.firstName} ${student.lastName} (${student.admissionNo})`,
+        { studentId, studentName: `${student.firstName} ${student.lastName}`, admissionNo: student.admissionNo, fees, total, dueDate }
+    );
+
+    revalidatePath('/fees');
+}
+
 export async function assignFee(formData: FormData) {
     const studentId = formData.get('studentId') as string;
     const type = formData.get('type') as string;

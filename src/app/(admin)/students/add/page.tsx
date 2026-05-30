@@ -65,11 +65,11 @@ export default async function AddStudentPage() {
                 <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Phone (Primary)</label>
-                        <input type="tel" name="phone" required placeholder="Father / Guardian" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                        <input type="tel" name="phone" required placeholder="Father / Guardian" maxLength={10} pattern="[0-9]{10}" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Phone 2 <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.8rem' }}>(Optional)</span></label>
-                        <input type="tel" name="phone2" placeholder="Mother / Alternate" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
+                        <input type="tel" name="phone2" placeholder="Mother / Alternate" maxLength={10} pattern="[0-9]{10}" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
                     </div>
                 </div>
 
