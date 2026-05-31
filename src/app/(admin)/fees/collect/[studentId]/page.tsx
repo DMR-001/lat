@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap, Download } from 'lucide-react';
 import Toast from '@/components/Toast';
 
 // ---- helpers ----
@@ -212,9 +212,20 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
 
                 {/* RIGHT — Payment History */}
                 <div style={{ paddingLeft: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Receipt size={16} color="var(--success)" /> Payment History ({student.payments?.length ?? 0})
-                    </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Receipt size={16} color="var(--success)" /> Payment History ({student.payments?.length ?? 0})
+                        </h2>
+                        {student.payments?.length > 0 && (
+                            <Link
+                                href={`/api/receipts/combined/${studentId}/download`}
+                                target="_blank"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.875rem', background: '#2563eb', color: 'white', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none' }}
+                            >
+                                <Download size={13} /> Combined Receipt
+                            </Link>
+                        )}
+                    </div>
                     {(!student.payments || student.payments.length === 0) ? (
                         <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem', fontSize: '0.875rem' }}>
                             No payments recorded yet.
