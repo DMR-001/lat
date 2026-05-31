@@ -238,8 +238,8 @@ export const CombinedReceiptPDF = ({ student, payments, logoData, schoolSettings
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text style={styles.signLine}>Authorised Signatory</Text>
-                        <Text style={styles.footerNote}>Computer generated receipt. No signature required.</Text>
+                        <Text style={styles.signLine}>Signature</Text>
+                        <Text style={styles.footerNote}>Computer generated receipt.</Text>
                     </View>
 
                 </View>
