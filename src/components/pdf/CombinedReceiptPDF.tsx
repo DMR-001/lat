@@ -5,7 +5,7 @@ const styles = StyleSheet.create({
     page: {
         flexDirection: 'column',
         backgroundColor: '#FFFFFF',
-        padding: 24,
+        padding: 20,
         fontFamily: 'Helvetica',
         fontSize: 9,
         color: '#1f2937',
@@ -14,9 +14,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#1f2937',
         borderRadius: 4,
-        padding: 14,
-        height: '100%',
-        display: 'flex',
+        padding: 12,
         flexDirection: 'column',
     },
     header: {
@@ -98,11 +96,10 @@ const styles = StyleSheet.create({
     totalValue: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#16a34a' },
 
     footer: {
-        marginTop: 'auto',
+        marginTop: 14,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        paddingTop: 18,
     },
     signLine: {
         width: 100,
@@ -144,7 +141,7 @@ export const CombinedReceiptPDF = ({ student, payments, logoData, schoolSettings
 
     return (
         <Document>
-            <Page size="A5" style={styles.page}>
+            <Page size="A5" orientation="landscape" style={styles.page}>
                 <View style={styles.container}>
 
                     {/* Header */}
