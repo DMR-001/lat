@@ -195,6 +195,87 @@ export async function recordPayment(formData: FormData) {
     redirect('/fees');
 }
 
+export async function transferCredit(
+    fromFeeId: string,
+    toFeeId: string,
+    amount: number,
+    reason: string
+) {
+    if (amount <= 0) return { success: false, error: 'Amount must be greater than 0' };
+
+    const [fromFee, toFee] = await Promise.all([
+        prisma.fee.findUnique({ where: { id: fromFeeId }, include: { student: { select: { id: true, firstName: true, lastName: true, admissionNo: true, phone: true } } } }),
+        prisma.fee.findUnique({ where: { id: toFeeId } })
+    ]);
+
+    if (!fromFee) return { success: false, error: 'Source fee not found' };
+    if (!toFee) return { success: false, error: 'Destination fee not found' };
+    if (fromFee.studentId !== toFee.studentId) return { success: false, error: 'Both fees must belong to the same student' };
+    if (amount > fromFee.paidAmount) return { success: false, error: `Cannot transfer more than what is paid on source fee (₹${fromFee.paidAmount})` };
+
+    const branchId = await getCurrentBranchId();
+    const branchCode = await getBranchCode(branchId);
+    const currentYear = new Date().getFullYear();
+
+    const getFeeTypeShortForm = (type: string) => {
+        const mapping: Record<string, string> = {
+            'TRANSPORT': 'TRN', 'TUITION': 'TUI', 'ADMISSION': 'ADM', 'EXAM': 'EXM',
+            'LATE': 'LAT', 'ANNUAL': 'ANN', 'BOOKS': 'BKS', 'UNIFORM': 'UNI',
+            'APPLICATION': 'APP', 'REGISTRATION': 'REG'
+        };
+        return mapping[type.toUpperCase()] || type.substring(0, 3).toUpperCase();
+    };
+
+    const lastPayment = await prisma.payment.findFirst({
+        where: branchId ? { branchId } : {},
+        orderBy: { createdAt: 'desc' }
+    });
+    let nextNumber = 1;
+    if (lastPayment?.receiptNo) {
+        const match = lastPayment.receiptNo.match(/(\d+)$/);
+        if (match) nextNumber = parseInt(match[1]) + 1;
+    }
+    const receiptNo = `${branchCode}/${getFeeTypeShortForm(toFee.type)}/${currentYear}/${nextNumber.toString().padStart(4, '0')}`;
+
+    const newFromPaid = fromFee.paidAmount - amount;
+    const newFromStatus = newFromPaid >= fromFee.amount ? 'PAID' : 'PENDING';
+    const newToPaid = toFee.paidAmount + amount;
+    const newToStatus = newToPaid >= toFee.amount ? 'PAID' : 'PENDING';
+
+    await prisma.$transaction([
+        // Reduce paidAmount on source fee
+        prisma.fee.update({
+            where: { id: fromFeeId },
+            data: { paidAmount: newFromPaid, status: newFromStatus }
+        }),
+        // Add credit payment on destination fee
+        prisma.payment.create({
+            data: {
+                feeId: toFeeId,
+                amount,
+                method: 'TRANSFER',
+                receiptNo,
+                branchId,
+                date: new Date()
+            }
+        }),
+        // Update destination fee paid amount
+        prisma.fee.update({
+            where: { id: toFeeId },
+            data: { paidAmount: newToPaid, status: newToStatus }
+        })
+    ]);
+
+    const student = fromFee.student;
+    await logAction('FEE_TRANSFER', 'FEE',
+        `Transferred ₹${amount} from ${fromFee.type} to ${toFee.type} for ${student.firstName} ${student.lastName} (${student.admissionNo})${reason ? ` — Reason: ${reason}` : ''}`,
+        { fromFeeId, toFeeId, fromType: fromFee.type, toType: toFee.type, amount, reason, receiptNo, studentId: student.id }
+    );
+
+    revalidatePath('/fees');
+    return { success: true, receiptNo };
+}
+
 export async function editFee(feeId: string, data: { amount: number; dueDate: string; type: string; reason: string }) {
     const fee = await prisma.fee.findUnique({ where: { id: feeId } });
     if (!fee) return { success: false, error: 'Fee not found' };

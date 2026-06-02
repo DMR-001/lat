@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Tag, CreditCard, Search, Users, X, GraduationCap, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronRight, CreditCard, Search, Users, X, GraduationCap, Pencil, ArrowRightLeft } from 'lucide-react';
 
 const FEE_TYPE_LABELS: Record<string, string> = {
     REGISTRATION: 'Registration Fee',
@@ -300,7 +300,7 @@ export default function FeesTreeView({ studentGroups }: { studentGroups: Student
                                                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                                                                 <thead>
                                                                     <tr style={{ background: '#f8fafc' }}>
-                                                                        {['Fee Type', 'Original', 'Discount', 'Final', 'Paid', 'Due', 'Due Date', 'Status', 'Actions'].map(h => (
+                                                                        {['Fee Type', 'Amount', 'Paid', 'Due', 'Due Date', 'Status', 'Actions'].map(h => (
                                                                             <th key={h} style={{ padding: '0.5rem 1rem', fontWeight: 600, color: '#64748b', textAlign: h === 'Fee Type' ? 'left' : h === 'Actions' || h === 'Status' || h === 'Due Date' ? 'center' : 'right', fontSize: '0.67rem', textTransform: 'uppercase', letterSpacing: '0.05em', ...(h === 'Fee Type' ? { paddingLeft: '1.5rem' } : {}) }}>
                                                                                 {h}
                                                                             </th>
@@ -316,14 +316,6 @@ export default function FeesTreeView({ studentGroups }: { studentGroups: Student
                                                                             <tr key={fee.id} style={{ borderTop: '1px solid #f1f5f9' }}>
                                                                                 <td style={{ padding: '0.55rem 1rem 0.55rem 1.5rem', fontWeight: 600, color: '#334155' }}>
                                                                                     {FEE_TYPE_LABELS[fee.type] || fee.type}
-                                                                                </td>
-                                                                                <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: '#94a3b8' }}>
-                                                                                    ₹{(fee.originalAmount > 0 ? fee.originalAmount : fee.amount).toLocaleString('en-IN')}
-                                                                                </td>
-                                                                                <td style={{ padding: '0.55rem 1rem', textAlign: 'right' }}>
-                                                                                    {fee.discountAmount > 0
-                                                                                        ? <span style={{ color: '#dc2626', fontWeight: 600 }} title={fee.discountReason || ''}>−₹{fee.discountAmount.toLocaleString('en-IN')}</span>
-                                                                                        : <span style={{ color: '#cbd5e1' }}>—</span>}
                                                                                 </td>
                                                                                 <td style={{ padding: '0.55rem 1rem', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>₹{fee.amount.toLocaleString('en-IN')}</td>
                                                                                 <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>₹{fee.paidAmount.toLocaleString('en-IN')}</td>
@@ -342,9 +334,11 @@ export default function FeesTreeView({ studentGroups }: { studentGroups: Student
                                                                                         <Link href={`/fees/${fee.id}/edit`} style={{ color: '#7c3aed', fontWeight: 600, fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                                                                             <Pencil size={11} /> Edit
                                                                                         </Link>
-                                                                                        <Link href={`/fees/${fee.id}/discount`} style={{ color: '#2563eb', fontWeight: 600, fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                                                            <Tag size={11} /> Discount
-                                                                                        </Link>
+                                                                                        {fee.paidAmount > 0 && (
+                                                                                            <Link href={`/fees/${fee.id}/transfer`} style={{ color: '#c2410c', fontWeight: 600, fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                                                                <ArrowRightLeft size={11} /> Transfer
+                                                                                            </Link>
+                                                                                        )}
                                                                                         {fee.status !== 'PAID' && (
                                                                                             <Link href={`/fees/${fee.id}/pay`} style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.72rem' }}>Pay</Link>
                                                                                         )}
