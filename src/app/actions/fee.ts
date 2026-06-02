@@ -195,6 +195,106 @@ export async function recordPayment(formData: FormData) {
     redirect('/fees');
 }
 
+export async function editFee(feeId: string, data: { amount: number; dueDate: string; type: string; reason: string }) {
+    const fee = await prisma.fee.findUnique({ where: { id: feeId } });
+    if (!fee) return { success: false, error: 'Fee not found' };
+    if (data.amount < 0) return { success: false, error: 'Amount cannot be negative' };
+
+    const newStatus = fee.paidAmount >= data.amount ? 'PAID' : fee.status === 'PAID' ? 'PENDING' : fee.status;
+    const hadNoDiscount = fee.discountAmount === 0;
+
+    const student = await prisma.student.findUnique({
+        where: { id: fee.studentId },
+        select: { firstName: true, lastName: true, admissionNo: true }
+    });
+
+    await prisma.fee.update({
+        where: { id: feeId },
+        data: {
+            amount: data.amount,
+            originalAmount: hadNoDiscount ? data.amount : fee.originalAmount,
+            dueDate: new Date(data.dueDate),
+            type: data.type,
+            status: newStatus
+        }
+    });
+
+    await logAction('FEE_EDITED', 'FEE',
+        `Edited ${fee.type} fee for ${student?.firstName} ${student?.lastName} (${student?.admissionNo}): ₹${fee.amount}→₹${data.amount}, due ${fee.dueDate.toISOString().slice(0,10)}→${data.dueDate}${data.reason ? ` — Reason: ${data.reason}` : ''}`,
+        { feeId, oldType: fee.type, newType: data.type, oldAmount: fee.amount, newAmount: data.amount, oldDueDate: fee.dueDate, newDueDate: data.dueDate, reason: data.reason, studentId: fee.studentId }
+    );
+
+    revalidatePath('/fees');
+    return { success: true };
+}
+
+export async function deletePayment(paymentId: string) {
+    const payment = await prisma.payment.findUnique({
+        where: { id: paymentId },
+        include: { fee: { include: { student: { select: { firstName: true, lastName: true, admissionNo: true } } } } }
+    });
+    if (!payment) return { success: false, error: 'Payment not found' };
+
+    await prisma.payment.delete({ where: { id: paymentId } });
+
+    if (payment.feeId) {
+        const agg = await prisma.payment.aggregate({
+            where: { feeId: payment.feeId, status: 'SUCCESS' },
+            _sum: { amount: true }
+        });
+        const newPaidAmount = agg._sum.amount ?? 0;
+        const fee = await prisma.fee.findUnique({ where: { id: payment.feeId } });
+        if (fee) {
+            await prisma.fee.update({
+                where: { id: payment.feeId },
+                data: { paidAmount: newPaidAmount, status: newPaidAmount >= fee.amount ? 'PAID' : 'PENDING' }
+            });
+        }
+    }
+
+    await logAction('PAYMENT_DELETED', 'FEE',
+        `Deleted payment ${payment.receiptNo} of ₹${payment.amount} for ${payment.fee?.student?.firstName} ${payment.fee?.student?.lastName} (${payment.fee?.student?.admissionNo})`,
+        { paymentId, receiptNo: payment.receiptNo, amount: payment.amount, feeId: payment.feeId }
+    );
+
+    revalidatePath('/fees');
+    return { success: true };
+}
+
+export async function editPayment(paymentId: string, data: { amount: number; method: string; reason: string }) {
+    const payment = await prisma.payment.findUnique({
+        where: { id: paymentId },
+        include: { fee: { include: { student: { select: { firstName: true, lastName: true, admissionNo: true } } } } }
+    });
+    if (!payment) return { success: false, error: 'Payment not found' };
+    if (data.amount <= 0) return { success: false, error: 'Amount must be greater than 0' };
+
+    await prisma.payment.update({ where: { id: paymentId }, data: { amount: data.amount, method: data.method } });
+
+    if (payment.feeId) {
+        const agg = await prisma.payment.aggregate({
+            where: { feeId: payment.feeId, status: 'SUCCESS' },
+            _sum: { amount: true }
+        });
+        const newPaidAmount = agg._sum.amount ?? 0;
+        const fee = await prisma.fee.findUnique({ where: { id: payment.feeId } });
+        if (fee) {
+            await prisma.fee.update({
+                where: { id: payment.feeId },
+                data: { paidAmount: newPaidAmount, status: newPaidAmount >= fee.amount ? 'PAID' : 'PENDING' }
+            });
+        }
+    }
+
+    await logAction('PAYMENT_EDITED', 'FEE',
+        `Edited payment ${payment.receiptNo}: ₹${payment.amount}→₹${data.amount}, method ${payment.method}→${data.method}${data.reason ? ` — Reason: ${data.reason}` : ''}`,
+        { paymentId, receiptNo: payment.receiptNo, oldAmount: payment.amount, newAmount: data.amount, oldMethod: payment.method, newMethod: data.method, reason: data.reason }
+    );
+
+    revalidatePath('/fees');
+    return { success: true };
+}
+
 export async function applyDiscount(feeId: string, discountAmount: number, discountReason: string) {
     const fee = await prisma.fee.findUnique({ where: { id: feeId } });
     if (!fee) return { success: false, error: 'Fee not found' };

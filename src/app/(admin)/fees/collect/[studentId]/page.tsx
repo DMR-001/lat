@@ -2,8 +2,9 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap, Download } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap, Download, Pencil, Trash2 } from 'lucide-react';
 import Toast from '@/components/Toast';
+import { editPayment, deletePayment } from '@/app/actions/fee';
 
 // ---- helpers ----
 const Rs = '₹';
@@ -50,6 +51,18 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     const [payError, setPayError] = useState<string | null>(null);
     const [toast, setToast] = useState<string | null>(null);
     const payingRef = useRef(false);
+
+    // edit payment modal
+    const [editPmt, setEditPmt] = useState<any>(null);
+    const [editAmount, setEditAmount] = useState('');
+    const [editMethod, setEditMethod] = useState('CASH');
+    const [editReason, setEditReason] = useState('');
+    const [editError, setEditError] = useState('');
+    const [editSaving, setEditSaving] = useState(false);
+
+    // delete payment confirmation
+    const [deletePmt, setDeletePmt] = useState<any>(null);
+    const [deleting, setDeleting] = useState(false);
 
     // expanded history rows
 
@@ -120,6 +133,41 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
         }
         setPaying(false);
         payingRef.current = false;
+    }
+
+    function openEditPayment(p: any) {
+        setEditPmt(p);
+        setEditAmount(String(p.amount));
+        setEditMethod(p.method);
+        setEditReason('');
+        setEditError('');
+    }
+
+    async function submitEditPayment(e: React.FormEvent) {
+        e.preventDefault();
+        setEditSaving(true);
+        setEditError('');
+        const result = await editPayment(editPmt.id, { amount: parseFloat(editAmount), method: editMethod, reason: editReason });
+        if (result.success) {
+            await load();
+            setEditPmt(null);
+            setToast('Payment updated successfully');
+        } else {
+            setEditError(result.error || 'Failed to update payment');
+        }
+        setEditSaving(false);
+    }
+
+    async function confirmDeletePayment() {
+        if (!deletePmt) return;
+        setDeleting(true);
+        const result = await deletePayment(deletePmt.id);
+        if (result.success) {
+            await load();
+            setDeletePmt(null);
+            setToast('Payment deleted successfully');
+        }
+        setDeleting(false);
     }
 
     if (loading) return (
@@ -240,7 +288,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Fee Type</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Method</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Amount</th>
-                                        <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}></th>
+                                        <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -256,9 +304,25 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--success)', textAlign: 'right' }}>{Rs}{fmt(p.amount)}</td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
-                                                <Link href={`/api/receipts/${p.id}/download`} target="_blank" style={{ color: 'var(--primary)', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 600 }}>
-                                                    Receipt
-                                                </Link>
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                    <Link href={`/api/receipts/${p.id}/download`} target="_blank" style={{ color: 'var(--primary)', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 600 }}>
+                                                        Receipt
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => openEditPayment(p)}
+                                                        title="Edit payment"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', padding: '0.1rem', display: 'flex', alignItems: 'center' }}
+                                                    >
+                                                        <Pencil size={13} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletePmt(p)}
+                                                        title="Delete payment"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.1rem', display: 'flex', alignItems: 'center' }}
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -358,6 +422,105 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                 style={{ flex: 2, padding: '0.75rem', borderRadius: '0.5rem', border: 'none', background: paying || getPayAmount() <= 0 ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: paying || getPayAmount() <= 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem' }}
                             >
                                 {paying ? 'Processing...' : `Collect ${Rs}${fmt(getPayAmount())}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Payment Modal */}
+            {editPmt && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                    <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Pencil size={16} color="#7c3aed" /> Edit Payment
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>Receipt: {editPmt.receiptNo}</div>
+                            </div>
+                            <button onClick={() => setEditPmt(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
+                        </div>
+                        <form onSubmit={submitEditPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Amount (₹)</div>
+                                <input
+                                    type="number"
+                                    value={editAmount}
+                                    onChange={e => setEditAmount(e.target.value)}
+                                    min="0.01"
+                                    step="0.01"
+                                    required
+                                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                                />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Payment Method</div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    {['CASH', 'UPI', 'CARD', 'ONLINE'].map(m => (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => setEditMethod(m)}
+                                            style={{ padding: '0.35rem 0.8rem', borderRadius: '0.375rem', border: '1.5px solid', borderColor: editMethod === m ? '#7c3aed' : '#e2e8f0', background: editMethod === m ? '#f5f3ff' : '#f8fafc', color: editMethod === m ? '#7c3aed' : '#475569', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Reason for Edit</div>
+                                <input
+                                    type="text"
+                                    value={editReason}
+                                    onChange={e => setEditReason(e.target.value)}
+                                    placeholder="e.g., Correction, wrong amount entered..."
+                                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                                />
+                            </div>
+                            {editError && (
+                                <div style={{ padding: '0.6rem 0.875rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600 }}>
+                                    {editError}
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+                                <button type="button" onClick={() => setEditPmt(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={editSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: '0.5rem', border: 'none', background: editSaving ? '#c4b5fd' : '#7c3aed', color: '#fff', fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontSize: '0.875rem' }}>
+                                    {editSaving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Payment Confirmation */}
+            {deletePmt && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                    <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#dc2626' }}>
+                            <Trash2 size={18} /> Delete Payment
+                        </div>
+                        <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '0.25rem' }}>
+                            Are you sure you want to delete this payment?
+                        </p>
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+                            <div><strong>Receipt:</strong> {deletePmt.receiptNo}</div>
+                            <div><strong>Amount:</strong> {Rs}{fmt(deletePmt.amount)}</div>
+                            <div><strong>Method:</strong> {deletePmt.method}</div>
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: '#dc2626', marginBottom: '1.25rem', fontWeight: 600 }}>
+                            This will update the fee balance accordingly. This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button onClick={() => setDeletePmt(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
+                                Cancel
+                            </button>
+                            <button onClick={confirmDeletePayment} disabled={deleting} style={{ flex: 1, padding: '0.7rem', borderRadius: '0.5rem', border: 'none', background: deleting ? '#fca5a5' : '#dc2626', color: '#fff', fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', fontSize: '0.875rem' }}>
+                                {deleting ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
                     </div>

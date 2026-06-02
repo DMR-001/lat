@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Tag, CreditCard, Search, Users, X, GraduationCap } from 'lucide-react';
+import { ChevronDown, ChevronRight, Tag, CreditCard, Search, Users, X, GraduationCap, Pencil } from 'lucide-react';
 
 const FEE_TYPE_LABELS: Record<string, string> = {
     REGISTRATION: 'Registration Fee',
@@ -338,7 +338,10 @@ export default function FeesTreeView({ studentGroups }: { studentGroups: Student
                                                                                     </span>
                                                                                 </td>
                                                                                 <td style={{ padding: '0.55rem 1rem', textAlign: 'center' }}>
-                                                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
+                                                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                                                        <Link href={`/fees/${fee.id}/edit`} style={{ color: '#7c3aed', fontWeight: 600, fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                                                            <Pencil size={11} /> Edit
+                                                                                        </Link>
                                                                                         <Link href={`/fees/${fee.id}/discount`} style={{ color: '#2563eb', fontWeight: 600, fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                                                                             <Tag size={11} /> Discount
                                                                                         </Link>
