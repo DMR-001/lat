@@ -1,14 +1,30 @@
+'use client';
+
+import { useActionState } from 'react';
 import { addStudent } from '@/app/actions/student';
 import { getClasses } from '@/app/actions/class';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-export default async function AddStudentPage() {
-    const classes = await getClasses();
+export default function AddStudentPage() {
+    const [state, formAction, pending] = useActionState(addStudent, null);
+    const [classes, setClasses] = useState<any[]>([]);
+
+    useEffect(() => {
+        getClasses().then(setClasses);
+    }, []);
 
     return (
         <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--text-main)' }}>Add New Student</h1>
-            <form action={addStudent} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {state?.error && (
+                <div style={{ marginBottom: '1.25rem', padding: '0.875rem 1.25rem', background: '#fee2e2', border: '1px solid #ef4444', borderRadius: '0.5rem', color: '#b91c1c', fontWeight: 600, fontSize: '0.9rem' }}>
+                    {state.error}
+                </div>
+            )}
+
+            <form action={formAction} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-secondary)' }}>First Name</label>
@@ -75,7 +91,9 @@ export default async function AddStudentPage() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                     <Link href="/students" className="btn" style={{ border: '1px solid var(--border)', textDecoration: 'none' }}>Cancel</Link>
-                    <button type="submit" className="btn btn-primary">Save Student</button>
+                    <button type="submit" disabled={pending} className="btn btn-primary">
+                        {pending ? 'Saving...' : 'Save Student'}
+                    </button>
                 </div>
             </form>
         </div>

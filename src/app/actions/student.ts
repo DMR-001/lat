@@ -286,7 +286,7 @@ export async function importStudents(prevState: any, formData: FormData): Promis
     }
 }
 
-export async function addStudent(formData: FormData) {
+export async function addStudent(_prevState: { error?: string } | null, formData: FormData): Promise<{ error: string } | null> {
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const email = formData.get('email') as string;
@@ -296,59 +296,64 @@ export async function addStudent(formData: FormData) {
     const phone = formData.get('phone') as string;
     const phone2 = formData.get('phone2') as string;
     const parentName = formData.get('parentName') as string;
-
     const classId = formData.get('classId') as string;
 
-    // Ensure classId is provided
-    if (!classId) {
-        throw new Error("Class ID is required");
-    }
+    if (!classId) return { error: 'Please select a class.' };
 
-    // Get current branch from cookies
-    const branchId = await getCurrentBranchId();
-    const branchCode = await getBranchCode(branchId);
+    try {
+        const branchId = await getCurrentBranchId();
+        const branchCode = await getBranchCode(branchId);
 
-    // Generate Admission Number with format: SPR/BRANCHCODE/N (e.g., SPR/MAIN/1)
-    const lastStudent = await prisma.student.findFirst({
-        where: branchId ? { branchId } : {},
-        orderBy: { createdAt: 'desc' }
-    });
+        const lastStudent = await prisma.student.findFirst({
+            where: branchId ? { branchId } : {},
+            orderBy: { createdAt: 'desc' }
+        });
 
-    let nextNumber = 1;
-    if (lastStudent && lastStudent.admissionNo) {
-        // Extract the serial number from the admission number (last part after /)
-        const parts = lastStudent.admissionNo.split('/');
-        const lastNumber = parseInt(parts[parts.length - 1]);
-        if (!isNaN(lastNumber)) {
-            nextNumber = lastNumber + 1;
+        let nextNumber = 1;
+        if (lastStudent?.admissionNo) {
+            const parts = lastStudent.admissionNo.split('/');
+            const lastNumber = parseInt(parts[parts.length - 1]);
+            if (!isNaN(lastNumber)) nextNumber = lastNumber + 1;
         }
-    }
 
-    const admissionNo = `SPR/${branchCode}/${nextNumber}`;
+        const admissionNo = `SPR/${branchCode}/${nextNumber}`;
 
-    await prisma.student.create({
-        data: {
-            firstName,
-            lastName,
-            email: email || null,
-            admissionNo,
-            dob,
-            gender,
-            address,
-            phone,
-            phone2: phone2 || null,
-            parentName,
-            classId,
-            branchId,
-        },
-    });
+        // Check for duplicate email before attempting create
+        if (email) {
+            const emailExists = await prisma.student.findUnique({ where: { email } });
+            if (emailExists) return { error: `Email "${email}" is already used by another student.` };
+        }
 
-    // Auto-assign any active fee structures for this class
-    await autoAssignFeeStructures(classId, branchId, admissionNo);
+        await prisma.student.create({
+            data: {
+                firstName,
+                lastName,
+                email: email || null,
+                admissionNo,
+                dob,
+                gender,
+                address,
+                phone,
+                phone2: phone2 || null,
+                parentName,
+                classId,
+                branchId,
+            },
+        });
 
-    // Send registration SMS to parent (non-blocking)
-    if (phone) {
-        sendRegistrationSms(phone, `${firstName} ${lastName}`, admissionNo, branchId).catch(() => null);
+        await autoAssignFeeStructures(classId, branchId, admissionNo);
+
+        if (phone) {
+            sendRegistrationSms(phone, `${firstName} ${lastName}`, admissionNo, branchId).catch(() => null);
+        }
+    } catch (err: any) {
+        if (err?.code === 'P2002') {
+            const field = err?.meta?.target?.[0];
+            if (field === 'email') return { error: `Email "${email}" is already used by another student.` };
+            if (field === 'admissionNo') return { error: 'Admission number conflict. Please try again.' };
+            return { error: `Duplicate value on field: ${field}` };
+        }
+        return { error: err?.message || 'Failed to add student. Please try again.' };
     }
 
     revalidatePath('/students');
