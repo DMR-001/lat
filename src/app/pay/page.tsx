@@ -49,6 +49,8 @@ export default function PublicPaymentPage() {
     const [otpError, setOtpError] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const [otpResendCooldown, setOtpResendCooldown] = useState(0);
+    const [otpSendCount, setOtpSendCount] = useState(0); // tracks total sends (initial + resends)
+    const MAX_OTP_SENDS = 3;
 
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -186,6 +188,7 @@ export default function PublicPaymentPage() {
     };
 
     const handleSendOtp = async () => {
+        if (otpSendCount >= MAX_OTP_SENDS) return;
         setIsSendingOtp(true);
         setOtpError('');
         try {
@@ -196,11 +199,18 @@ export default function PublicPaymentPage() {
             });
             const data = await res.json();
             if (!res.ok) {
-                setOtpError(data.error || 'Failed to send OTP');
+                if (res.status === 429) {
+                    setOtpSendCount(MAX_OTP_SENDS); // lock immediately on rate-limit
+                    setOtpError('Maximum OTP attempts reached. Please wait 10 minutes before trying again.');
+                } else {
+                    setOtpError(data.error || 'Failed to send OTP');
+                }
             } else {
+                const newCount = otpSendCount + 1;
+                setOtpSendCount(newCount);
                 setOtpSent(true);
-                // Start 60s resend cooldown
-                setOtpResendCooldown(60);
+                // 2-minute cooldown between resends
+                setOtpResendCooldown(120);
                 const timer = setInterval(() => {
                     setOtpResendCooldown(prev => {
                         if (prev <= 1) { clearInterval(timer); return 0; }
@@ -650,7 +660,7 @@ export default function PublicPaymentPage() {
                                         <div className="sec-title">Verify Mobile</div>
                                         <div className="sec-sub">Enter OTP sent to +91 {phone}</div>
                                     </div>
-                                    <button className="back-btn" onClick={() => { setStep('search'); setOtpSent(false); setOtpValue(''); setOtpError(''); }}>Back</button>
+                                    <button className="back-btn" onClick={() => { setStep('search'); setOtpSent(false); setOtpValue(''); setOtpError(''); setOtpSendCount(0); setOtpResendCooldown(0); }}>Back</button>
                                 </div>
 
                                 {!otpSent ? (
@@ -659,7 +669,7 @@ export default function PublicPaymentPage() {
                                             For your security, we&apos;ll send a 6-digit OTP to the registered mobile number.
                                         </p>
                                         {otpError && <div className="err">{otpError}</div>}
-                                        <button className="btn-blue" onClick={handleSendOtp} disabled={isSendingOtp}>
+                                        <button className="btn-blue" onClick={handleSendOtp} disabled={isSendingOtp || otpSendCount >= MAX_OTP_SENDS}>
                                             {isSendingOtp
                                                 ? <><Loader2 size={17} className="spin" /> Sending OTP...</>
                                                 : <><Phone size={17} /> Send OTP</>
@@ -697,16 +707,24 @@ export default function PublicPaymentPage() {
                                             }
                                         </button>
                                         <div className="resend-row" style={{ marginTop: '0.75rem' }}>
-                                            <button
-                                                className="resend-btn"
-                                                disabled={otpResendCooldown > 0 || isSendingOtp}
-                                                onClick={handleSendOtp}
-                                            >
-                                                {otpResendCooldown > 0
-                                                    ? `Resend OTP in ${otpResendCooldown}s`
-                                                    : 'Resend OTP'
-                                                }
-                                            </button>
+                                            {otpSendCount >= MAX_OTP_SENDS ? (
+                                                <span className="resend-btn" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                                                    Maximum resends reached. Please wait 10 minutes.
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    className="resend-btn"
+                                                    disabled={otpResendCooldown > 0 || isSendingOtp}
+                                                    onClick={handleSendOtp}
+                                                >
+                                                    {isSendingOtp
+                                                        ? 'Sending...'
+                                                        : otpResendCooldown > 0
+                                                            ? `Resend OTP in ${otpResendCooldown}s`
+                                                            : `Resend OTP (${MAX_OTP_SENDS - otpSendCount} left)`
+                                                    }
+                                                </button>
+                                            )}
                                         </div>
                                     </>
                                 )}
