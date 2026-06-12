@@ -9,23 +9,6 @@ import { editPayment, deletePayment, transferCredit } from '@/app/actions/fee';
 const Rs = '₹';
 function fmt(n: number) { return n.toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
 
-function getInstallments(fee: any) {
-    const isTuition = fee.type === 'TUITION';
-    const n = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
-    const total = fee.amount;
-    const base = Math.round(total / n);
-    const faceValues = Array.from({ length: n }, (_, i) =>
-        i === n - 1 ? total - base * (n - 1) : base
-    );
-    let remaining = fee.paidAmount ?? 0;
-    return faceValues.map((face, i) => {
-        const paid = Math.min(remaining, face);
-        remaining -= paid;
-        const due = face - paid;
-        return { index: i, label: n === 1 ? 'Full Payment' : `Term ${i + 1}`, face, paid, due, isPaid: due <= 0.01 };
-    });
-}
-
 // ── Transfer Modal ──────────────────────────────────────────────────────────
 function TransferModal({ sourceFee, allFees, onClose, onSuccess }: {
     sourceFee: any;
@@ -74,7 +57,7 @@ function TransferModal({ sourceFee, allFees, onClose, onSuccess }: {
 
                 <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '0.625rem', padding: '0.875rem 1rem', marginBottom: '1.25rem' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.35rem' }}>From (Source)</div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>{sourceFee.type}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>Fee</div>
                     <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
                         Total: {Rs}{fmt(sourceFee.amount)} &nbsp;·&nbsp; Paid: <span style={{ color: '#16a34a', fontWeight: 700 }}>{Rs}{fmt(sourceFee.paidAmount)}</span> &nbsp;·&nbsp; Available: <span style={{ color: '#c2410c', fontWeight: 700 }}>{Rs}{fmt(maxTransfer)}</span>
                     </div>
@@ -87,21 +70,16 @@ function TransferModal({ sourceFee, allFees, onClose, onSuccess }: {
                             <option value="">— Select fee —</option>
                             {destOptions.map(f => (
                                 <option key={f.id} value={f.id}>
-                                    {f.type} — {Rs}{fmt(f.amount)} total, {Rs}{fmt(Math.max(0, f.amount - f.paidAmount))} due
+                                    Fee — {Rs}{fmt(f.amount)} total, {Rs}{fmt(Math.max(0, f.amount - f.paidAmount))} due
                                 </option>
                             ))}
                         </select>
-                        {selectedDest && selectedDest.paidAmount >= selectedDest.amount && (
-                            <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.3rem', fontWeight: 600 }}>This fee is already fully paid.</p>
-                        )}
                     </div>
 
                     <div>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Amount to Transfer (₹) *</div>
                         <input
-                            type="number"
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
+                            type="number" value={amount} onChange={e => setAmount(e.target.value)}
                             min="1" max={maxTransfer} step="0.01" required
                             placeholder={`Max: ${Rs}${fmt(maxTransfer)}`}
                             style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
@@ -113,30 +91,24 @@ function TransferModal({ sourceFee, allFees, onClose, onSuccess }: {
 
                     <div>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Reason</div>
-                        <input
-                            type="text" value={reason} onChange={e => setReason(e.target.value)}
-                            placeholder="e.g., Parent returned uniform set, credit to tuition..."
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                        />
+                        <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g., Partial refund, credit transfer..." style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.875rem', boxSizing: 'border-box' }} />
                     </div>
 
                     {toId && amtNum > 0 && amtNum <= maxTransfer && selectedDest && (
                         <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '0.625rem', padding: '0.875rem 1rem', fontSize: '0.82rem' }}>
                             <div style={{ fontWeight: 700, color: '#15803d', marginBottom: '0.5rem' }}>Preview</div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                <span style={{ color: '#64748b' }}>{sourceFee.type} paid becomes</span>
+                                <span style={{ color: '#64748b' }}>Source paid becomes</span>
                                 <span style={{ fontWeight: 700 }}>{Rs}{fmt(sourceFee.paidAmount - amtNum)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#64748b' }}>{selectedDest.type} paid becomes</span>
+                                <span style={{ color: '#64748b' }}>Destination paid becomes</span>
                                 <span style={{ fontWeight: 700, color: '#15803d' }}>{Rs}{fmt(selectedDest.paidAmount + amtNum)}</span>
                             </div>
                         </div>
                     )}
 
-                    {error && (
-                        <div style={{ padding: '0.6rem 0.875rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600 }}>{error}</div>
-                    )}
+                    {error && <div style={{ padding: '0.6rem 0.875rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600 }}>{error}</div>}
 
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
                         <button type="button" onClick={onClose} style={{ flex: 1, padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Cancel</button>
@@ -159,8 +131,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
 
     // collect modal
     const [payFee, setPayFee] = useState<any>(null);
-    const [payInstallments, setPayInstallments] = useState<number[]>([]);
-    const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({});
+    const [payAmount, setPayAmount] = useState('');
     const [payMethod, setPayMethod] = useState('CASH');
     const [paying, setPaying] = useState(false);
     const [payError, setPayError] = useState<string | null>(null);
@@ -194,39 +165,16 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
     useEffect(() => { load(); }, [studentId]);
 
     function openPayModal(fee: any) {
-        const insts = getInstallments(fee);
-        const first = insts.find(i => !i.isPaid);
+        const due = fee.amount - fee.paidAmount;
         setPayFee(fee);
-        setPayInstallments(first ? [first.index] : []);
-        setCustomAmounts(first ? { [first.index]: String(Math.round(first.due)) } : {});
+        setPayAmount(String(Math.round(due)));
         setPayMethod('CASH');
         setPayError(null);
     }
 
-    function toggleInstallment(fee: any, idx: number) {
-        const inst = getInstallments(fee).find(i => i.index === idx);
-        const isRemoving = payInstallments.includes(idx);
-        setPayInstallments(prev => isRemoving ? prev.filter(i => i !== idx) : [...prev, idx]);
-        if (!isRemoving && inst) {
-            setCustomAmounts(prev => ({ ...prev, [idx]: String(Math.round(inst.due)) }));
-        } else {
-            setCustomAmounts(prev => { const n = { ...prev }; delete n[idx]; return n; });
-        }
-    }
-
-    function getPayAmount() {
-        if (!payFee) return 0;
-        return getInstallments(payFee)
-            .filter(i => payInstallments.includes(i.index) && !i.isPaid)
-            .reduce((s, i) => {
-                const custom = parseFloat(customAmounts[i.index] ?? '');
-                return s + ((!isNaN(custom) && custom >= 1 && custom <= i.due) ? custom : i.due);
-            }, 0);
-    }
-
     async function submitPayment() {
-        const amount = getPayAmount();
-        if (amount <= 0 || !payFee || payingRef.current) return;
+        const amount = parseFloat(payAmount);
+        if (!amount || amount <= 0 || !payFee || payingRef.current) return;
         payingRef.current = true;
         setPaying(true);
         setPayError(null);
@@ -332,26 +280,55 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
 
                 {/* LEFT — Fees */}
                 <div style={{ paddingRight: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                    {/* Pending */}
                     <div>
                         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <AlertCircle size={16} color="var(--warning)" /> Pending Fees ({pendingFees.length})
                         </h2>
                         {pendingFees.length === 0 ? (
-                            <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>All fees are paid! 🎉</div>
+                            <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>All fees are paid!</div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {pendingFees.map((fee: any) => (
-                                    <FeeCard
-                                        key={fee.id}
-                                        fee={fee}
-                                        onPay={() => openPayModal(fee)}
-                                        onTransfer={fee.paidAmount > 0 ? () => setTransferFee(fee) : undefined}
-                                    />
-                                ))}
+                                {pendingFees.map((fee: any) => {
+                                    const due = fee.amount - fee.paidAmount;
+                                    return (
+                                        <div key={fee.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
+                                                    {Rs}{fmt(fee.amount)}
+                                                    {fee.paidAmount > 0 && (
+                                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>
+                                                            ({Rs}{fmt(fee.paidAmount)} paid)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                                                    Due: {new Date(fee.dueDate).toLocaleDateString('en-IN')}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div style={{ textAlign: 'right', marginRight: '0.25rem' }}>
+                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Outstanding</div>
+                                                    <div style={{ fontWeight: 800, color: 'var(--error)', fontSize: '1rem' }}>{Rs}{fmt(due)}</div>
+                                                </div>
+                                                {fee.paidAmount > 0 && (
+                                                    <button onClick={() => setTransferFee(fee)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.7rem', background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '0.5rem', color: '#c2410c', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                                                        <ArrowRightLeft size={13} /> Transfer
+                                                    </button>
+                                                )}
+                                                <button onClick={() => openPayModal(fee)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'var(--primary, #2563eb)', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>
+                                                    <CreditCard size={15} /> Collect
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
 
+                    {/* Paid */}
                     {paidFees.length > 0 && (
                         <div>
                             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -361,13 +338,10 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                 {paidFees.map((fee: any) => (
                                     <div key={fee.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
                                         <div>
-                                            <span style={{ fontWeight: 600 }}>{fee.type}</span>
-                                            <span style={{ marginLeft: '0.5rem', color: 'var(--success)', fontWeight: 700 }}>{Rs}{fmt(fee.amount)} — Paid</span>
+                                            <span style={{ fontWeight: 700, color: '#166534' }}>{Rs}{fmt(fee.amount)}</span>
+                                            <span style={{ marginLeft: '0.5rem', color: 'var(--success)', fontWeight: 600 }}>— Paid</span>
                                         </div>
-                                        <button
-                                            onClick={() => setTransferFee(fee)}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '0.375rem', color: '#c2410c', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
-                                        >
+                                        <button onClick={() => setTransferFee(fee)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '0.375rem', color: '#c2410c', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}>
                                             <ArrowRightLeft size={12} /> Transfer
                                         </button>
                                     </div>
@@ -386,11 +360,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                             <Receipt size={16} color="var(--success)" /> Payment History ({student.payments?.length ?? 0})
                         </h2>
                         {student.payments?.length > 0 && (
-                            <Link
-                                href={`/api/receipts/combined/${studentId}/download`}
-                                target="_blank"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.875rem', background: '#2563eb', color: 'white', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none' }}
-                            >
+                            <Link href={`/api/receipts/combined/${studentId}/download`} target="_blank" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.875rem', background: '#2563eb', color: 'white', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none' }}>
                                 <Download size={13} /> Combined Receipt
                             </Link>
                         )}
@@ -406,7 +376,6 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                     <tr>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Receipt No</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Date</th>
-                                        <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Fee Type</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'left' }}>Method</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Amount</th>
                                         <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Actions</th>
@@ -417,18 +386,13 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                         <tr key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
                                             <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.78rem' }}>{p.receiptNo}</td>
                                             <td style={{ padding: '0.75rem 1rem' }}>{new Date(p.date).toLocaleDateString('en-IN')}</td>
-                                            <td style={{ padding: '0.75rem 1rem' }}>{p.fee?.type ?? '-'}</td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
-                                                <span style={{ padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.72rem', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
-                                                    {p.method}
-                                                </span>
+                                                <span style={{ padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.72rem', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600 }}>{p.method}</span>
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: 'var(--success)', textAlign: 'right' }}>{Rs}{fmt(p.amount)}</td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <Link href={`/api/receipts/${p.id}/download`} target="_blank" style={{ color: 'var(--primary)', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 600 }}>
-                                                        Receipt
-                                                    </Link>
+                                                    <Link href={`/api/receipts/${p.id}/download`} target="_blank" style={{ color: 'var(--primary)', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 600 }}>Receipt</Link>
                                                     <button onClick={() => openEditPayment(p)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', padding: '0.1rem', display: 'flex', alignItems: 'center' }}>
                                                         <Pencil size={13} />
                                                     </button>
@@ -446,41 +410,51 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                 </div>
             </div>
 
-            {/* Collect Payment Modal */}
+            {/* Collect Modal */}
             {payFee && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-                    <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                    <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                             <div>
                                 <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>Collect Payment</div>
-                                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>{payFee.type} — {student.firstName} {student.lastName}</div>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>{student.firstName} {student.lastName}</div>
                             </div>
                             <button onClick={() => { setPayFee(null); setPayError(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
                         </div>
 
-                        <div style={{ marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.5rem' }}>Select Installments</div>
-                            {getInstallments(payFee).map(inst => (
-                                <div
-                                    key={inst.index}
-                                    onClick={() => !inst.isPaid && toggleInstallment(payFee, inst.index)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', marginBottom: '0.375rem', cursor: inst.isPaid ? 'default' : 'pointer', border: '1.5px solid', borderColor: inst.isPaid ? '#bbf7d0' : payInstallments.includes(inst.index) ? '#2563eb' : '#e2e8f0', background: inst.isPaid ? '#f0fdf4' : payInstallments.includes(inst.index) ? '#eff6ff' : '#f8fafc', opacity: inst.isPaid ? 0.8 : 1 }}
-                                >
-                                    <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: '2px solid', borderColor: inst.isPaid ? '#16a34a' : payInstallments.includes(inst.index) ? '#2563eb' : '#cbd5e1', background: (inst.isPaid || payInstallments.includes(inst.index)) ? (inst.isPaid ? '#16a34a' : '#2563eb') : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {(inst.isPaid || payInstallments.includes(inst.index)) && <span style={{ color: '#fff', fontSize: 10, fontWeight: 900 }}>✓</span>}
-                                    </div>
-                                    <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>{inst.label}</span>
-                                    {inst.isPaid
-                                        ? <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: '0.25rem' }}>PAID</span>
-                                        : payInstallments.includes(inst.index)
-                                            ? <input type="number" min={1} max={inst.due} value={customAmounts[inst.index] ?? String(Math.round(inst.due))} onClick={e => e.stopPropagation()} onChange={e => setCustomAmounts(prev => ({ ...prev, [inst.index]: e.target.value }))} style={{ width: 90, padding: '0.2rem 0.4rem', border: '1.5px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.85rem', fontWeight: 700, color: '#1d4ed8', textAlign: 'right', outline: 'none' }} />
-                                            : <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>{Rs}{fmt(inst.due)}</span>
-                                    }
-                                </div>
-                            ))}
+                        {/* Fee summary */}
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                <span style={{ color: '#64748b' }}>Total Fee</span>
+                                <span style={{ fontWeight: 600 }}>{Rs}{fmt(payFee.amount)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                <span style={{ color: '#64748b' }}>Paid So Far</span>
+                                <span style={{ fontWeight: 600, color: '#16a34a' }}>{Rs}{fmt(payFee.paidAmount)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+                                <span style={{ color: '#64748b', fontWeight: 600 }}>Outstanding</span>
+                                <span style={{ fontWeight: 800, color: '#dc2626' }}>{Rs}{fmt(payFee.amount - payFee.paidAmount)}</span>
+                            </div>
                         </div>
 
+                        {/* Amount */}
                         <div style={{ marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Amount Paying (₹)</div>
+                            <input
+                                type="number"
+                                value={payAmount}
+                                onChange={e => setPayAmount(e.target.value)}
+                                min="1"
+                                max={payFee.amount - payFee.paidAmount}
+                                step="1"
+                                autoFocus
+                                style={{ width: '100%', padding: '0.65rem 0.875rem', border: '1.5px solid #2563eb', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 700, color: '#0f172a', boxSizing: 'border-box', outline: 'none' }}
+                            />
+                        </div>
+
+                        {/* Method */}
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Payment Method</div>
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 {['CASH', 'UPI', 'CARD', 'ONLINE'].map(m => (
@@ -491,21 +465,14 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderTop: '1.5px solid #f1f5f9', marginBottom: '1rem' }}>
-                            <span style={{ fontWeight: 600, color: '#64748b' }}>Paying Now</span>
-                            <span style={{ fontWeight: 800, fontSize: '1.4rem', color: '#0f172a' }}>{Rs}{fmt(getPayAmount())}</span>
-                        </div>
-
                         {payError && (
-                            <div style={{ marginBottom: '0.875rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
-                                {payError}
-                            </div>
+                            <div style={{ marginBottom: '0.875rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>{payError}</div>
                         )}
 
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <button onClick={() => { setPayFee(null); setPayError(null); }} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>Cancel</button>
-                            <button onClick={submitPayment} disabled={paying || getPayAmount() <= 0} style={{ flex: 2, padding: '0.75rem', borderRadius: '0.5rem', border: 'none', background: paying || getPayAmount() <= 0 ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: paying || getPayAmount() <= 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem' }}>
-                                {paying ? 'Processing...' : `Collect ${Rs}${fmt(getPayAmount())}`}
+                            <button onClick={submitPayment} disabled={paying || !parseFloat(payAmount) || parseFloat(payAmount) <= 0} style={{ flex: 2, padding: '0.75rem', borderRadius: '0.5rem', border: 'none', background: paying ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: paying ? 'not-allowed' : 'pointer', fontSize: '0.9rem' }}>
+                                {paying ? 'Processing...' : `Collect ${Rs}${fmt(parseFloat(payAmount) || 0)}`}
                             </button>
                         </div>
                     </div>
@@ -532,9 +499,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>Payment Method</div>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                     {['CASH', 'UPI', 'CARD', 'ONLINE'].map(m => (
-                                        <button key={m} type="button" onClick={() => setEditMethod(m)} style={{ padding: '0.35rem 0.8rem', borderRadius: '0.375rem', border: '1.5px solid', borderColor: editMethod === m ? '#7c3aed' : '#e2e8f0', background: editMethod === m ? '#f5f3ff' : '#f8fafc', color: editMethod === m ? '#7c3aed' : '#475569', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
-                                            {m}
-                                        </button>
+                                        <button key={m} type="button" onClick={() => setEditMethod(m)} style={{ padding: '0.35rem 0.8rem', borderRadius: '0.375rem', border: '1.5px solid', borderColor: editMethod === m ? '#7c3aed' : '#e2e8f0', background: editMethod === m ? '#f5f3ff' : '#f8fafc', color: editMethod === m ? '#7c3aed' : '#475569', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>{m}</button>
                                     ))}
                                 </div>
                             </div>
@@ -590,50 +555,6 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                         setToast(msg);
                     }}
                 />
-            )}
-        </div>
-    );
-}
-
-function FeeCard({ fee, onPay, onTransfer }: { fee: any; onPay: () => void; onTransfer?: () => void }) {
-    const insts = getInstallments(fee);
-    const hasMultiple = insts.length > 1;
-    const due = fee.amount - fee.paidAmount;
-
-    return (
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hasMultiple ? '0.75rem' : 0, flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{fee.type}</span>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                        Due: {new Date(fee.dueDate).toLocaleDateString('en-IN')}
-                        {hasMultiple && ` · ${insts.filter(i => !i.isPaid).length} installment(s) pending`}
-                    </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <div style={{ textAlign: 'right', marginRight: '0.25rem' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Outstanding</div>
-                        <div style={{ fontWeight: 800, color: 'var(--error)', fontSize: '1rem' }}>{Rs}{fmt(due)}</div>
-                    </div>
-                    {onTransfer && (
-                        <button onClick={onTransfer} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.45rem 0.75rem', background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '0.5rem', color: '#c2410c', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-                            <ArrowRightLeft size={13} /> Transfer
-                        </button>
-                    )}
-                    <button onClick={onPay} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'var(--primary, #2563eb)', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>
-                        <CreditCard size={15} /> Collect
-                    </button>
-                </div>
-            </div>
-            {hasMultiple && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                    {insts.map(inst => (
-                        <div key={inst.index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', background: inst.isPaid ? '#f0fdf4' : '#fafafa', border: `1px solid ${inst.isPaid ? '#bbf7d0' : '#f1f5f9'}`, fontSize: '0.8rem' }}>
-                            <span style={{ fontWeight: 600, color: inst.isPaid ? '#15803d' : '#475569' }}>{inst.label}</span>
-                            {inst.isPaid ? <span style={{ color: '#15803d', fontWeight: 700 }}>✓ Paid</span> : <span style={{ color: 'var(--error)', fontWeight: 700 }}>{Rs}{fmt(inst.due)} due</span>}
-                        </div>
-                    ))}
-                </div>
             )}
         </div>
     );

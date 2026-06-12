@@ -5,12 +5,8 @@ import Link from 'next/link';
 import { ChevronDown, ChevronRight, CreditCard, Search, Users, X, GraduationCap, Pencil, ArrowRightLeft } from 'lucide-react';
 
 const FEE_TYPE_LABELS: Record<string, string> = {
-    REGISTRATION: 'Registration Fee',
-    TUITION:      'Tuition Fee',
-    SPORTS:       'Sports & Activity Fee',
-    BOOKS:        'Book Fee',
-    UNIFORM:      'Uniform & Bag Fee',
-    TRANSPORT:    'Transport Fee',
+    COMPLETE:  'Complete Fee',
+    TRANSPORT: 'Transport Fee',
 };
 
 type Fee = {

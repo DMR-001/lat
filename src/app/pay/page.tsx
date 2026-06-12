@@ -6,18 +6,6 @@ import { Search, CreditCard, Check, Loader2, Download, Phone, ChevronRight, Buil
 import Link from 'next/link';
 import './pay.css';
 
-const FEE_LABELS: Record<string, string> = {
-    TUITION: 'Tuition Fee',
-    REGISTRATION: 'Registration Fee',
-    TRANSPORT: 'Transport Fee',
-    SPORTS: 'Sports Fee',
-    BOOKS: 'Books & Stationery',
-    UNIFORM: 'Uniform Fee',
-    EXAM: 'Exam Fee',
-    MISCELLANEOUS: 'Miscellaneous',
-};
-const feeLabel = (type: string) => FEE_LABELS[type] ?? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
 export default function PublicPaymentPage() {
     // step: 'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success'
     const [step, setStep] = useState<'branch' | 'search' | 'otp' | 'select' | 'confirm' | 'pay' | 'success' | 'verifying' | 'failed'>('branch');
@@ -34,9 +22,7 @@ export default function PublicPaymentPage() {
     const [isLoadingFees, setIsLoadingFees] = useState(false);
     const [feeDetails, setFeeDetails] = useState<{ fees: any[]; totalDue: number } | null>(null);
 
-    const [paymentInputs, setPaymentInputs] = useState<Record<string, string>>({});
-    const [selectedInstallments, setSelectedInstallments] = useState<Record<string, number[]>>({});
-    const [customAmounts, setCustomAmounts] = useState<Record<string, Record<number, string>>>({});
+    const [payAmount, setPayAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionSuccess, setTransactionSuccess] = useState<any>(null);
     const [payError, setPayError] = useState('');
@@ -262,9 +248,7 @@ export default function PublicPaymentPage() {
         try {
             const data = await getStudentFeesPublic(student.id);
             setFeeDetails(data);
-            setSelectedInstallments({});
-            setCustomAmounts({});
-            setPaymentInputs({});
+            setPayAmount(String(Math.round(data.totalDue)));
             setStep('pay');
         } catch {
             setPayError('Error fetching fee details. Please try again.');
@@ -273,98 +257,7 @@ export default function PublicPaymentPage() {
         }
     };
 
-    // --- Installment helpers ---
-    const getInstallmentsForFee = (fee: any) => {
-        // Only TUITION fees are split into installments; all other fee types are a single full payment
-        const isTuition = fee.type === 'TUITION';
-        const n = isTuition ? Math.max(1, fee.feeStructure?.installments || 1) : 1;
-        const total = fee.amount;
-        const base = Math.round(total / n);
-        // Last installment absorbs rounding remainder so the sum is always exact
-        const faceValues = Array.from({ length: n }, (_, i) =>
-            i === n - 1 ? total - base * (n - 1) : base
-        );
-        let remaining = fee.paidAmount ?? 0;
-        return faceValues.map((faceValue, i) => {
-            const paidTowardThis = Math.min(remaining, faceValue);
-            remaining -= paidTowardThis;
-            const due = faceValue - paidTowardThis;
-            return {
-                index: i,
-                label: n === 1 ? 'Full Fee' : `Term ${i + 1}`,  
-                faceValue,
-                paid: paidTowardThis,
-                due,
-                isPaid: due <= 0.01,
-            };
-        });
-    };
-
-    const getInstallmentPayAmount = (fee: any): number => {
-        const insts = getInstallmentsForFee(fee);
-        const selected = selectedInstallments[fee.id] || [];
-        return insts
-            .filter(inst => selected.includes(inst.index) && !inst.isPaid)
-            .reduce((sum, inst) => {
-                const customStr = customAmounts[fee.id]?.[inst.index];
-                const custom = parseFloat(customStr ?? '');
-                const amt = (!isNaN(custom) && custom >= 1 && custom <= inst.due) ? custom : inst.due;
-                return sum + amt;
-            }, 0);
-    };
-
-    const handleInstallmentToggle = (feeId: string, instIndex: number) => {
-        const current = selectedInstallments[feeId] || [];
-        const isRemoving = current.includes(instIndex);
-        setSelectedInstallments(prev => {
-            const curr = prev[feeId] || [];
-            const updated = curr.includes(instIndex) ? curr.filter(i => i !== instIndex) : [...curr, instIndex];
-            return { ...prev, [feeId]: updated };
-        });
-        if (!isRemoving && feeDetails) {
-            const fee = feeDetails.fees.find(f => f.id === feeId);
-            if (fee) {
-                const inst = getInstallmentsForFee(fee).find(i => i.index === instIndex);
-                if (inst) {
-                    setCustomAmounts(prev => ({
-                        ...prev,
-                        [feeId]: { ...(prev[feeId] || {}), [instIndex]: String(Math.round(inst.due)) }
-                    }));
-                }
-            }
-        } else {
-            setCustomAmounts(prev => {
-                const fc = { ...(prev[feeId] || {}) };
-                delete fc[instIndex];
-                return { ...prev, [feeId]: fc };
-            });
-        }
-    };
-
-    const handleSelectAll = (fee: any) => {
-        const insts = getInstallmentsForFee(fee);
-        const unpaid = insts.filter(i => !i.isPaid);
-        const current = selectedInstallments[fee.id] || [];
-        const allSelected = unpaid.every(i => current.includes(i.index));
-        setSelectedInstallments(prev => ({ ...prev, [fee.id]: allSelected ? [] : unpaid.map(i => i.index) }));
-        if (!allSelected) {
-            const newCustoms: Record<number, string> = {};
-            unpaid.forEach(i => { newCustoms[i.index] = String(Math.round(i.due)); });
-            setCustomAmounts(prev => ({ ...prev, [fee.id]: newCustoms }));
-        } else {
-            setCustomAmounts(prev => ({ ...prev, [fee.id]: {} }));
-        }
-    };
-    // --- end installment helpers ---
-
-    const handleInputChange = (feeId: string, val: string) => {
-        setPaymentInputs(prev => ({ ...prev, [feeId]: val }));
-    };
-
-    const getTotalPayAmount = () => {
-        if (!feeDetails) return 0;
-        return feeDetails.fees.reduce((sum, fee) => sum + getInstallmentPayAmount(fee), 0);
-    };
+    const getTotalPayAmount = () => parseFloat(payAmount) || 0;
 
     const handleHdfcReturn = async (orderId: string) => {
         setStep('verifying');
@@ -504,13 +397,21 @@ export default function PublicPaymentPage() {
 
     const handlePayment = async () => {
         const total = getTotalPayAmount();
-        if (total <= 0) return;
+        if (total <= 0 || !feeDetails) return;
         setIsProcessing(true);
         setPayError('');
 
-        const payments = feeDetails!.fees
-            .map(fee => ({ feeId: fee.id, amount: getInstallmentPayAmount(fee) }))
-            .filter(p => p.amount > 0.01);
+        // Distribute the entered amount across pending fees in order
+        let remaining = total;
+        const payments: { feeId: string; amount: number }[] = [];
+        for (const fee of feeDetails.fees) {
+            if (remaining <= 0) break;
+            const due = fee.amount - fee.paidAmount;
+            if (due <= 0) continue;
+            const paying = Math.min(remaining, due);
+            payments.push({ feeId: fee.id, amount: paying });
+            remaining -= paying;
+        }
 
         try {
             // 1. Create HDFC order session — server calculates authoritative amount from DB
@@ -807,7 +708,7 @@ export default function PublicPaymentPage() {
                             <div>
                                 <div className="sec-head">
                                     <div>
-                                        <div className="sec-title">Fee Details</div>
+                                        <div className="sec-title">Pay Fee</div>
                                         <div className="sec-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
                                             {selectedStudent?.firstName} {selectedStudent?.lastName}
@@ -816,121 +717,60 @@ export default function PublicPaymentPage() {
                                     <button className="back-btn" onClick={() => setStep('confirm')}>Back</button>
                                 </div>
 
-                                <div className="outstanding-box">
-                                    <div className="outstanding-lbl">Total Outstanding</div>
-                                    <div className="outstanding-val">{Rs}{feeDetails.totalDue.toLocaleString('en-IN')}</div>
-                                    <div className="outstanding-sub">Select fees below to pay now</div>
-                                </div>
-
-                                {feeDetails.fees.length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem 0', fontSize: '0.875rem' }}>
+                                {feeDetails.totalDue <= 0 ? (
+                                    <p style={{ textAlign: 'center', color: '#16a34a', padding: '2rem 0', fontSize: '1rem', fontWeight: 700 }}>
                                         No outstanding fees. All clear!
                                     </p>
-                                )}
-
-                                <div className="fees-grid">
-                                {feeDetails.fees.map(fee => {
-                                    const insts = getInstallmentsForFee(fee);
-                                    const selectedSet = selectedInstallments[fee.id] || [];
-                                    const allUnpaidSelected = insts.filter(i => !i.isPaid).length > 0 &&
-                                        insts.filter(i => !i.isPaid).every(i => selectedSet.includes(i.index));
-                                    const feePayAmt = getInstallmentPayAmount(fee);
-                                    return (
-                                        <div key={fee.id} className="fc">
-                                            <div className="fc-head">
-                                                <span className="fc-type">{feeLabel(fee.type)}</span>
-                                                <span className="fc-due">{Rs}{fee.due.toLocaleString('en-IN')} due</span>
-                                            </div>
-
-                                            {insts.map(inst => (
-                                                <div
-                                                    key={inst.index}
-                                                    className={`inst-row ${
-                                                        inst.isPaid ? 'paid-row' :
-                                                        selectedSet.includes(inst.index) ? 'selected' : 'selectable'
-                                                    }`}
-                                                    onClick={() => !inst.isPaid && handleInstallmentToggle(fee.id, inst.index)}
-                                                >
-                                                    <div className="inst-cb">
-                                                        {(inst.isPaid || selectedSet.includes(inst.index)) && (
-                                                            <Check size={11} strokeWidth={3} color="white" />
-                                                        )}
-                                                    </div>
-                                                    <span className="inst-label">{inst.label}</span>
-                                                    {inst.isPaid ? (
-                                                        <span className="inst-badge badge-paid">Paid</span>
-                                                    ) : selectedSet.includes(inst.index) ? (
-                                                        <input
-                                                            className="inst-custom-input"
-                                                            type="number"
-                                                            min={1}
-                                                            max={inst.due}
-                                                            value={customAmounts[fee.id]?.[inst.index] ?? String(Math.round(inst.due))}
-                                                            onClick={e => e.stopPropagation()}
-                                                            onChange={e => {
-                                                                const val = e.target.value;
-                                                                setCustomAmounts(prev => ({
-                                                                    ...prev,
-                                                                    [fee.id]: { ...(prev[fee.id] || {}), [inst.index]: val }
-                                                                }));
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <span className="inst-amt">{Rs}{inst.due.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            <div className="fc-actions">
-                                                {insts.some(i => !i.isPaid) && (
-                                                    <button className="fc-selectall" onClick={() => handleSelectAll(fee)}>
-                                                        {allUnpaidSelected ? 'Deselect All' : 'Select All'}
-                                                    </button>
-                                                )}
-                                            </div>
-
+                                ) : (
+                                    <>
+                                        <div className="outstanding-box">
+                                            <div className="outstanding-lbl">Total Outstanding</div>
+                                            <div className="outstanding-val">{Rs}{feeDetails.totalDue.toLocaleString('en-IN')}</div>
                                         </div>
-                                    );
-                                })}
-                                </div>{/* end fees-grid */}
 
-                                <div className="total-row">
-                                    <span className="total-lbl">Paying Now</span>
-                                    <span className="total-val">{Rs}{getTotalPayAmount().toLocaleString('en-IN')}</span>
-                                </div>
+                                        <div style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                Amount to Pay (₹)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={payAmount}
+                                                onChange={e => setPayAmount(e.target.value)}
+                                                min="1"
+                                                max={feeDetails.totalDue}
+                                                step="1"
+                                                style={{ width: '100%', padding: '0.85rem 1rem', border: '2px solid #6366f1', borderRadius: '0.75rem', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', boxSizing: 'border-box', outline: 'none' }}
+                                            />
+                                            <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
+                                                You can pay partial or full amount
+                                            </p>
+                                        </div>
 
-                                {getTotalPayAmount() <= 0 && feeDetails.fees.length > 0 && (
-                                    <p className="pay-hint">Select at least one fee above to continue</p>
+                                        <div className="total-row">
+                                            <span className="total-lbl">Paying Now</span>
+                                            <span className="total-val">{Rs}{getTotalPayAmount().toLocaleString('en-IN')}</span>
+                                        </div>
+
+                                        <button className="btn-green" onClick={handlePayment} disabled={isProcessing || getTotalPayAmount() <= 0}>
+                                            {isProcessing
+                                                ? <><Loader2 size={20} className="spin" /> Processing...</>
+                                                : <><CreditCard size={20} /> Pay {getTotalPayAmount() > 0 ? `₹${getTotalPayAmount().toLocaleString('en-IN')}` : 'Securely'}</>
+                                            }
+                                        </button>
+
+                                        {payError && (
+                                            <div style={{ marginTop: '0.75rem', padding: '0.9rem 1rem', backgroundColor: '#fef2f2', border: '1.5px solid #ef4444', borderRadius: '0.75rem', color: '#b91c1c', fontSize: '0.85rem', lineHeight: '1.5', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                                <span style={{ fontWeight: '700', flexShrink: 0 }}>⚠</span>
+                                                {payError}
+                                                <button onClick={() => setPayError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: '700', fontSize: '1rem' }} aria-label="Dismiss">×</button>
+                                            </div>
+                                        )}
+                                        <div className="secure">
+                                            <ShieldCheck size={13} />
+                                            256-bit SSL encrypted &amp; secure
+                                        </div>
+                                    </>
                                 )}
-                                <button className="btn-green" onClick={handlePayment} disabled={isProcessing || getTotalPayAmount() <= 0}>
-                                    {isProcessing
-                                        ? <><Loader2 size={20} className="spin" /> Processing...</>
-                                        : <><CreditCard size={20} /> Pay {getTotalPayAmount() > 0 ? `₹${getTotalPayAmount().toLocaleString('en-IN')}` : 'Securely'}</>
-                                    }
-                                </button>
-                                {payError && (
-                                    <div style={{
-                                        marginTop: '0.75rem',
-                                        padding: '0.9rem 1rem',
-                                        backgroundColor: '#fef2f2',
-                                        border: '1.5px solid #ef4444',
-                                        borderRadius: '0.75rem',
-                                        color: '#b91c1c',
-                                        fontSize: '0.85rem',
-                                        lineHeight: '1.5',
-                                        display: 'flex',
-                                        gap: '0.5rem',
-                                        alignItems: 'flex-start',
-                                    }}>
-                                        <span style={{ fontWeight: '700', flexShrink: 0 }}>⚠</span>
-                                        {payError}
-                                        <button onClick={() => setPayError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: '700', fontSize: '1rem' }} aria-label="Dismiss">×</button>
-                                    </div>
-                                )}
-                                <div className="secure">
-                                    <ShieldCheck size={13} />
-                                    256-bit SSL encrypted &amp; secure
-                                </div>
                             </div>
                         )}
 
@@ -980,10 +820,10 @@ export default function PublicPaymentPage() {
                                     Thank you! Your payment has been recorded.<br />
                                     Download your receipt(s) below.
                                 </div>
-                                {transactionSuccess?.payments.map((p: any) => (
+                                {transactionSuccess?.payments.map((p: any, i: number) => (
                                     <Link key={p.id} href={`/api/receipts/${p.id}/download`} target="_blank" className="btn-receipt">
                                         <Download size={17} />
-                                        Download Receipt — {feeLabel(p.fee?.type || 'General')}
+                                        Download Receipt{transactionSuccess.payments.length > 1 ? ` ${i + 1}` : ''}
                                     </Link>
                                 ))}
                                 <button
