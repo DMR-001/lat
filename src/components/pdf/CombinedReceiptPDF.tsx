@@ -120,12 +120,8 @@ interface Props {
 }
 
 const FEE_LABELS: Record<string, string> = {
-    REGISTRATION: 'Registration Fee',
-    TUITION:      'Tuition Fee',
-    SPORTS:       'Sports & Activity',
-    BOOKS:        'Book Fee',
-    UNIFORM:      'Uniform & Bag',
-    TRANSPORT:    'Transport Fee',
+    COMPLETE:  'Fee',
+    TRANSPORT: 'Transport Fee',
 };
 
 export const CombinedReceiptPDF = ({ student, payments, logoData, schoolSettings }: Props) => {
