@@ -160,7 +160,7 @@ export default function PaymentDashboard() {
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{payment.admissionNo}</div>
                                         </td>
                                         <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.className}</td>
-                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.feeType}</td>
+                                        <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.feeType === 'COMPLETE' ? 'Fee' : payment.feeType === 'TRANSPORT' ? 'Transport Fee' : payment.feeType}</td>
                                         <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{payment.method}</td>
                                         <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>₹{payment.amount.toFixed(2)}</td>
                                         <td style={{ padding: '0.75rem' }}>

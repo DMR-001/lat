@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { LogOut, Building2, Calendar, ChevronDown } from 'lucide-react';
+import { LogOut, Building2, Calendar, ChevronDown, RotateCcw } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 import { getSelectedBranchAndYear, setSelectedBranch, setSelectedAcademicYear } from '@/app/actions/branch';
 import { usePathname } from 'next/navigation';
@@ -178,6 +178,14 @@ export default function Header() {
                         Add branches in Settings
                     </span>
                 )}
+
+                <button
+                    onClick={() => window.location.reload()}
+                    title="Refresh page"
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                >
+                    <RotateCcw size={16} />
+                </button>
 
                 <form action={logoutAction}>
                     <button type="submit" style={{

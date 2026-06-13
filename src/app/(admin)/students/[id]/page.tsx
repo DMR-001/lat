@@ -162,7 +162,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                             ) : (
                                 student.fees.map(fee => (
                                     <tr key={fee.id} style={{ borderTop: '1px solid var(--border)' }}>
-                                        <td style={{ padding: '1rem' }}>{fee.type}</td>
+                                        <td style={{ padding: '1rem' }}>{fee.type === 'COMPLETE' ? 'Fee' : fee.type === 'TRANSPORT' ? 'Transport Fee' : fee.type}</td>
                                         <td style={{ padding: '1rem' }}>₹{fee.amount.toFixed(2)}</td>
                                         <td style={{ padding: '1rem', color: 'var(--success)' }}>₹{fee.paidAmount.toFixed(2)}</td>
                                         <td style={{ padding: '1rem' }}>
@@ -218,7 +218,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
                                                     {payment.method}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '1rem' }}>{fee.type}</td>
+                                            <td style={{ padding: '1rem' }}>{fee.type === 'COMPLETE' ? 'Fee' : fee.type === 'TRANSPORT' ? 'Transport Fee' : fee.type}</td>
                                             <td style={{ padding: '1rem' }}>
                                                 <Link
                                                     href={`/receipts/${payment.id}`}

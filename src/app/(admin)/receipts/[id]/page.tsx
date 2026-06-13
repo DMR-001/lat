@@ -101,7 +101,7 @@ export default async function ReceiptViewPage({ params }: { params: Promise<{ id
                     <tbody>
                         <tr>
                             <td style={{ padding: '0.25rem 0', borderBottom: '1px solid var(--border)' }}>
-                                {payment.fee.type} Fee
+                                {payment.fee.type === 'COMPLETE' ? 'Fee' : payment.fee.type === 'TRANSPORT' ? 'Transport Fee' : `${payment.fee.type} Fee`}
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
                                     ({payment.method})
                                 </span>

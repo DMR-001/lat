@@ -426,7 +426,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                             </div>
                                             <div>
                                                 <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Fee Type</p>
-                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.feeType || '—'}</p>
+                                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{t.feeType === 'COMPLETE' ? 'Fee' : t.feeType === 'TRANSPORT' ? 'Transport Fee' : t.feeType || '—'}</p>
                                             </div>
                                             <div>
                                                 <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Branch</p>
