@@ -80,6 +80,43 @@ export default function PublicPaymentPage() {
 
     useEffect(() => { getBranchesPublic().then(setBranches); }, []);
 
+    // Handle payment link token (?token=xxx) — skip branch/search/OTP steps
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (!token) return;
+        // Don't clear the token from URL yet — wait until we've loaded
+        (async () => {
+            setIsLoadingFees(true);
+            try {
+                const res = await fetch(`/api/payment-link?token=${encodeURIComponent(token)}`);
+                const data = await res.json();
+                if (!res.ok) {
+                    window.history.replaceState({}, '', '/pay');
+                    setFailedMessage(data.error || 'Invalid or expired payment link.');
+                    setStep('failed');
+                    return;
+                }
+                window.history.replaceState({}, '', '/pay');
+                // Pre-fill student and amount — skip OTP
+                setSelectedStudent(data.student);
+                const feeData = await getStudentFeesPublic(data.studentId);
+                setFeeDetails(feeData);
+                // Use link amount if provided and valid, else fall back to total due
+                const linkAmt = data.amount > 0 ? data.amount : feeData.totalDue;
+                setPayAmount(String(Math.round(Math.min(linkAmt, feeData.totalDue > 0 ? feeData.totalDue : linkAmt))));
+                setStep('pay');
+            } catch {
+                window.history.replaceState({}, '', '/pay');
+                setFailedMessage('Failed to load payment link. Please try again.');
+                setStep('failed');
+            } finally {
+                setIsLoadingFees(false);
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Detect return from HDFC payment page
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -486,8 +523,16 @@ export default function PublicPaymentPage() {
                 <div className={`pc${(step === 'confirm' || step === 'pay') ? ' pc-wide' : ''}`}>
                     <div className="pc-body">
 
+                        {/* Token loading */}
+                        {step === 'branch' && isLoadingFees && (
+                            <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                                <Loader2 size={36} className="spin" style={{ color: '#2563eb', margin: '0 auto' }} />
+                                <div style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.875rem' }}>Loading payment details...</div>
+                            </div>
+                        )}
+
                         {/* Branch */}
-                        {step === 'branch' && (
+                        {step === 'branch' && !isLoadingFees && (
                             <div>
                                 <div className="sec-head">
                                     <div>

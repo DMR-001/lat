@@ -395,6 +395,21 @@ model SmsLog {
   @@index([createdAt])
 }
 
+// Admin-generated payment links sent to parents
+model PaymentLink {
+  id        String   @id @default(cuid())
+  token     String   @unique  // random URL-safe token
+  studentId String
+  amount    Float
+  note      String?  // optional note shown to parent e.g. "Term 2 Fee"
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([studentId])
+}
+
 // Server-side storage for pending HDFC payments (backup for localStorage)
 model PendingPayment {
   id         String   @id @default(cuid())
