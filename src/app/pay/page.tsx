@@ -23,6 +23,9 @@ export default function PublicPaymentPage() {
     const [feeDetails, setFeeDetails] = useState<{ fees: any[]; totalDue: number } | null>(null);
 
     const [payAmount, setPayAmount] = useState('');
+    const [linkedAmount, setLinkedAmount] = useState<number | null>(null); // locked when from payment link
+    const [linkedNote, setLinkedNote] = useState('');
+    const [isPaymentLink, setIsPaymentLink] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [transactionSuccess, setTransactionSuccess] = useState<any>(null);
     const [payError, setPayError] = useState('');
@@ -102,9 +105,12 @@ export default function PublicPaymentPage() {
                 setSelectedStudent(data.student);
                 const feeData = await getStudentFeesPublic(data.studentId);
                 setFeeDetails(feeData);
-                // Use link amount if provided and valid, else fall back to total due
                 const linkAmt = data.amount > 0 ? data.amount : feeData.totalDue;
-                setPayAmount(String(Math.round(Math.min(linkAmt, feeData.totalDue > 0 ? feeData.totalDue : linkAmt))));
+                const lockedAmt = Math.round(Math.min(linkAmt, feeData.totalDue > 0 ? feeData.totalDue : linkAmt));
+                setPayAmount(String(lockedAmt));
+                setLinkedAmount(lockedAmt);
+                setLinkedNote(data.note || '');
+                setIsPaymentLink(true);
                 setStep('pay');
             } catch {
                 window.history.replaceState({}, '', '/pay');
@@ -501,7 +507,7 @@ export default function PublicPaymentPage() {
                     <div className="ph-sub">Secure online payment for school fees</div>
                 </div>
 
-                <div className="steps">
+                {!isPaymentLink && <div className="steps">
                     {['Branch', 'Search', 'Student', 'Pay'].map((label, i) => {
                         const s = i + 1;
                         const active = stepIndex === s;
@@ -518,7 +524,7 @@ export default function PublicPaymentPage() {
                             </div>
                         );
                     })}
-                </div>
+                </div>}
 
                 <div className={`pc${(step === 'confirm' || step === 'pay') ? ' pc-wide' : ''}`}>
                     <div className="pc-body">
@@ -759,7 +765,7 @@ export default function PublicPaymentPage() {
                                             {selectedStudent?.firstName} {selectedStudent?.lastName}
                                         </div>
                                     </div>
-                                    <button className="back-btn" onClick={() => setStep('confirm')}>Back</button>
+                                    {!isPaymentLink && <button className="back-btn" onClick={() => setStep('confirm')}>Back</button>}
                                 </div>
 
                                 {feeDetails.totalDue <= 0 ? (
@@ -769,7 +775,7 @@ export default function PublicPaymentPage() {
                                 ) : (
                                     <>
                                         <div className="outstanding-box">
-                                            <div className="outstanding-lbl">Total Outstanding</div>
+                                            <div className="outstanding-lbl">Total Fee Due</div>
                                             <div className="outstanding-val">{Rs}{feeDetails.totalDue.toLocaleString('en-IN')}</div>
                                         </div>
 
@@ -777,18 +783,27 @@ export default function PublicPaymentPage() {
                                             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                 Amount to Pay (₹)
                                             </label>
-                                            <input
-                                                type="number"
-                                                value={payAmount}
-                                                onChange={e => setPayAmount(e.target.value)}
-                                                min="1"
-                                                max={feeDetails.totalDue}
-                                                step="1"
-                                                style={{ width: '100%', padding: '0.85rem 1rem', border: '2px solid #6366f1', borderRadius: '0.75rem', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', boxSizing: 'border-box', outline: 'none' }}
-                                            />
-                                            <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
-                                                You can pay partial or full amount
-                                            </p>
+                                            {linkedAmount !== null ? (
+                                                <div style={{ width: '100%', padding: '0.85rem 1rem', border: '2px solid #86efac', borderRadius: '0.75rem', fontSize: '1.1rem', fontWeight: 700, color: '#166534', background: '#f0fdf4', boxSizing: 'border-box' }}>
+                                                    ₹{linkedAmount.toLocaleString('en-IN')}
+                                                    {linkedNote && <span style={{ marginLeft: '0.75rem', fontSize: '0.82rem', fontWeight: 500, color: '#15803d' }}>— {linkedNote}</span>}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <input
+                                                        type="number"
+                                                        value={payAmount}
+                                                        onChange={e => setPayAmount(e.target.value)}
+                                                        min="1"
+                                                        max={feeDetails.totalDue}
+                                                        step="1"
+                                                        style={{ width: '100%', padding: '0.85rem 1rem', border: '2px solid #6366f1', borderRadius: '0.75rem', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', boxSizing: 'border-box', outline: 'none' }}
+                                                    />
+                                                    <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.35rem' }}>
+                                                        You can pay partial or full amount
+                                                    </p>
+                                                </>
+                                            )}
                                         </div>
 
                                         <div className="total-row">
@@ -839,7 +854,7 @@ export default function PublicPaymentPage() {
                                 <button
                                     className="btn-blue"
                                     style={{ marginBottom: '0.625rem' }}
-                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setFailedMessage(''); }}
+                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setFailedMessage(''); setLinkedAmount(null); setLinkedNote(''); }}
                                 >
                                     <RotateCcw size={16} /> Try Again
                                 </button>
@@ -871,13 +886,15 @@ export default function PublicPaymentPage() {
                                         Download Receipt{transactionSuccess.payments.length > 1 ? ` ${i + 1}` : ''}
                                     </Link>
                                 ))}
-                                <button
-                                    className="btn-outline"
-                                    style={{ marginTop: '0.625rem' }}
-                                    onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setTransactionSuccess(null); }}
-                                >
-                                    Make Another Payment
-                                </button>
+                                {!isPaymentLink && (
+                                    <button
+                                        className="btn-outline"
+                                        style={{ marginTop: '0.625rem' }}
+                                        onClick={() => { setStep('branch'); setPhone(''); setSearchResults([]); setSelectedBranch(null); setNoResult(false); setTransactionSuccess(null); setLinkedAmount(null); setLinkedNote(''); setIsPaymentLink(false); }}
+                                    >
+                                        Make Another Payment
+                                    </button>
+                                )}
                             </div>
                         )}
 
