@@ -130,6 +130,7 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
     onSuccess: (msg: string) => void;
 }) {
     const due = fee.amount - fee.paidAmount;
+    const [payAmt, setPayAmt] = useState(String(Math.round(due)));
     const [loading, setLoading] = useState(false);
     const [orderId, setOrderId] = useState('');
     const [error, setError] = useState('');
@@ -145,13 +146,16 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
     }, []);
 
     async function openUpiPayment() {
+        const amt = parseFloat(payAmt);
+        if (!amt || amt <= 0) { setError('Enter a valid amount'); return; }
+        if (amt > due) { setError(`Amount cannot exceed outstanding ₹${fmt(due)}`); return; }
         setLoading(true);
         setError('');
         try {
             const res = await fetch('/api/hdfc/upi-qr', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId, feeId: fee.id, amount: due }),
+                body: JSON.stringify({ studentId, feeId: fee.id, amount: amt }),
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error || 'Failed to create payment'); setLoading(false); return; }
@@ -162,14 +166,14 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
             setOrderId(data.orderId);
             setStatus('waiting');
             setLoading(false);
-            startPolling(data.orderId);
+            startPolling(data.orderId, data.amount);
         } catch {
             setError('Failed to initiate UPI payment. Please try again.');
             setLoading(false);
         }
     }
 
-    function startPolling(oid: string) {
+    function startPolling(oid: string, confirmedAmt: number) {
         const deadline = Date.now() + 15 * 60 * 1000;
         pollRef.current = setInterval(async () => {
             if (Date.now() > deadline) {
@@ -191,12 +195,12 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
                     const recordRes = await fetch('/api/fees/collect', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ feeId: fee.id, amount: due, method: 'UPI', hdfcOrderId: oid }),
+                        body: JSON.stringify({ feeId: fee.id, amount: confirmedAmt, method: 'UPI', hdfcOrderId: oid }),
                     });
                     const recordData = await recordRes.json();
                     onSuccess(recordData.success
-                        ? `UPI payment of ₹${due.toLocaleString('en-IN')} confirmed. Receipt: ${recordData.receiptNo}`
-                        : `UPI payment confirmed. Order: ${oid}`
+                        ? `Payment of ₹${confirmedAmt.toLocaleString('en-IN')} confirmed. Receipt: ${recordData.receiptNo}`
+                        : `Payment confirmed. Order: ${oid}`
                     );
                 } else if (['FAILED', 'CANCELLED', 'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED'].includes(data.status)) {
                     clearInterval(pollRef.current!);
@@ -216,23 +220,30 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
                 </div>
 
-                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '0.625rem', padding: '0.875rem', marginBottom: '1.5rem' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Amount</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#166534' }}>₹{due.toLocaleString('en-IN')}</div>
-                </div>
-
                 {status === 'idle' && (
                     <>
-                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-                            Opens HDFC payment page in a popup.<br />Parent selects UPI and pays. Page auto-confirms.
-                        </p>
+                        <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#374151', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Amount (₹)
+                            </label>
+                            <input
+                                type="number"
+                                value={payAmt}
+                                onChange={e => setPayAmt(e.target.value)}
+                                min="1"
+                                max={due}
+                                step="1"
+                                style={{ width: '100%', padding: '0.7rem 0.875rem', border: '1.5px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 700, boxSizing: 'border-box', outline: 'none' }}
+                            />
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.3rem' }}>Outstanding: ₹{fmt(due)}</p>
+                        </div>
                         {error && (
-                            <div style={{ padding: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                            <div style={{ padding: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
                                 {error}
                             </div>
                         )}
                         <button onClick={openUpiPayment} disabled={loading} style={{ width: '100%', padding: '0.85rem', borderRadius: '0.625rem', border: 'none', background: loading ? '#c4b5fd' : '#6366f1', color: '#fff', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                            {loading ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Opening...</> : <><QrCode size={18} /> Open UPI Payment</>}
+                            {loading ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Opening...</> : <><QrCode size={18} /> Pay Here</>}
                         </button>
                         <button onClick={onClose} style={{ marginTop: '0.75rem', width: '100%', padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
                             Cancel
@@ -244,10 +255,7 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
                     <div style={{ padding: '1rem 0' }}>
                         <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: '#6366f1', margin: '0 auto' }} />
                         <div style={{ marginTop: '1rem', fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>Waiting for payment...</div>
-                        <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.35rem' }}>Complete payment in the popup window</div>
-                        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-                            <span>GPay</span><span>·</span><span>PhonePe</span><span>·</span><span>Paytm</span><span>·</span><span>BHIM</span>
-                        </div>
+                        <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.35rem' }}>Auto-confirms once payment is done</div>
                         <button onClick={onClose} style={{ marginTop: '1.5rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}>
                             Cancel
                         </button>

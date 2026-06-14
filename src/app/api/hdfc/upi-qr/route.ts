@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         const juspay = getJuspay();
         const orderId = `SPRQR${Date.now()}`;
 
-        // Create order session with UPI QR
+        // Create order session — no payment filter, let parent choose (UPI QR, UPI, card etc.)
         const sessionResponse = await juspay.orderSession.create({
             order_id: orderId,
             amount: authorizedAmount,
@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
             action: 'paymentPage',
             return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in'}/api/hdfc/return`,
             currency: 'INR',
-            payment_filter: { payment_method_type: ['UPI'] },
         });
 
         // HDFC returns a payment page URL — open it in a popup, poll status in background
