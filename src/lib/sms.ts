@@ -137,8 +137,12 @@ async function sendSingleSms(
             template_id: opts.templateId,
             sender,
             short_url: '0',
-            mobiles: `91${mobile}`,
-            ...opts.variables,
+            recipients: [
+                {
+                    mobiles: `91${mobile}`,
+                    ...opts.variables,
+                }
+            ],
         });
 
         const fetchHeaders: Record<string, string> = {
