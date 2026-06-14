@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             payment_page_client_id: process.env.HDFC_PAYMENT_PAGE_CLIENT_ID,
             customer_id: `cust${studentId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 46)}`,
             action: 'paymentPage',
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in'}/api/hdfc/return`,
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pay.sproutschool.edu.in'}/popup-close`,
             currency: 'INR',
         });
 
