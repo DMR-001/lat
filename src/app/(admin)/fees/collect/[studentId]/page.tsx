@@ -161,7 +161,7 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
             if (!res.ok) { setError(data.error || 'Failed to create payment'); setLoading(false); return; }
 
             // Open HDFC payment page in popup — parent stays on collect page
-            const popup = window.open(data.paymentLink, 'upi_payment', 'width=500,height=700,top=100,left=200');
+            const popup = window.open(data.paymentLink, 'upi_payment', 'width=1100,height=750,top=50,left=100');
             popupRef.current = popup;
             setOrderId(data.orderId);
             setStatus('waiting');
