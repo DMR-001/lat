@@ -67,15 +67,11 @@ export async function POST(req: NextRequest) {
             payment_filter: { payment_method_type: ['UPI'] },
         });
 
-        // Extract UPI QR — JusPay returns it in payment_links.upi_qr or qr_code
-        const upiQr = sessionResponse.payment_links?.upi_qr
-            || sessionResponse.payment_links?.['upi-qr']
-            || sessionResponse.qr_code
-            || sessionResponse.upi_qr;
-
-        if (!upiQr) {
-            console.error('[UPI_QR] No QR in response:', JSON.stringify(sessionResponse));
-            return NextResponse.json({ error: 'UPI QR not available. Please try the payment portal instead.' }, { status: 502 });
+        // HDFC returns a payment page URL — open it in a popup, poll status in background
+        const paymentLink = sessionResponse.payment_links?.web;
+        if (!paymentLink) {
+            console.error('[UPI_QR] No payment link in response:', JSON.stringify(sessionResponse));
+            return NextResponse.json({ error: 'Failed to create UPI payment session.' }, { status: 502 });
         }
 
         // Store context for status polling + auto-record
@@ -87,12 +83,12 @@ export async function POST(req: NextRequest) {
                 payments: JSON.stringify([{ feeId, amount: authorizedAmount }]),
                 amount: authorizedAmount,
                 status: 'PENDING',
-                expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min QR validity
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000),
             }
         });
 
-        console.log('[UPI_QR] Created QR order', orderId, 'amount', authorizedAmount);
-        return NextResponse.json({ orderId, upiQr, amount: authorizedAmount });
+        console.log('[UPI_QR] Created UPI order', orderId, 'amount', authorizedAmount);
+        return NextResponse.json({ orderId, paymentLink, amount: authorizedAmount });
 
     } catch (error) {
         const isApiError = error instanceof APIError;

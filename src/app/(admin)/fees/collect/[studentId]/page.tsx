@@ -122,7 +122,7 @@ function TransferModal({ sourceFee, allFees, onClose, onSuccess }: {
     );
 }
 
-// ── UPI QR Modal ─────────────────────────────────────────────────────────────
+// ── UPI Payment Modal (popup-based) ──────────────────────────────────────────
 function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
     fee: any;
     studentId: string;
@@ -130,19 +130,21 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
     onSuccess: (msg: string) => void;
 }) {
     const due = fee.amount - fee.paidAmount;
-    const [loading, setLoading] = useState(true);
-    const [qrData, setQrData] = useState('');
+    const [loading, setLoading] = useState(false);
     const [orderId, setOrderId] = useState('');
     const [error, setError] = useState('');
-    const [status, setStatus] = useState<'pending' | 'success' | 'failed'>('pending');
+    const [status, setStatus] = useState<'idle' | 'waiting' | 'success' | 'failed'>('idle');
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const popupRef = useRef<Window | null>(null);
 
     useEffect(() => {
-        createQr();
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+            if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
+        };
     }, []);
 
-    async function createQr() {
+    async function openUpiPayment() {
         setLoading(true);
         setError('');
         try {
@@ -152,19 +154,29 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
                 body: JSON.stringify({ studentId, feeId: fee.id, amount: due }),
             });
             const data = await res.json();
-            if (!res.ok) { setError(data.error || 'Failed to generate QR'); setLoading(false); return; }
-            setQrData(data.upiQr);
+            if (!res.ok) { setError(data.error || 'Failed to create payment'); setLoading(false); return; }
+
+            // Open HDFC payment page in popup — parent stays on collect page
+            const popup = window.open(data.paymentLink, 'upi_payment', 'width=500,height=700,top=100,left=200');
+            popupRef.current = popup;
             setOrderId(data.orderId);
+            setStatus('waiting');
             setLoading(false);
             startPolling(data.orderId);
         } catch {
-            setError('Failed to generate QR. Please try again.');
+            setError('Failed to initiate UPI payment. Please try again.');
             setLoading(false);
         }
     }
 
     function startPolling(oid: string) {
+        const deadline = Date.now() + 15 * 60 * 1000;
         pollRef.current = setInterval(async () => {
+            if (Date.now() > deadline) {
+                clearInterval(pollRef.current!);
+                setStatus('failed');
+                return;
+            }
             try {
                 const res = await fetch('/api/hdfc/status', {
                     method: 'POST',
@@ -174,100 +186,91 @@ function UpiQrModal({ fee, studentId, onClose, onSuccess }: {
                 const data = await res.json();
                 if (data.status === 'CHARGED') {
                     clearInterval(pollRef.current!);
+                    if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
                     setStatus('success');
-                    // Auto-record via processPublicPayment
                     const recordRes = await fetch('/api/fees/collect', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ feeId: fee.id, amount: due, method: 'UPI', hdfcOrderId: oid }),
                     });
                     const recordData = await recordRes.json();
-                    if (recordData.success) {
-                        onSuccess(`UPI payment of ₹${due.toLocaleString('en-IN')} confirmed. Receipt: ${recordData.receiptNo}`);
-                    } else {
-                        onSuccess(`UPI payment confirmed by HDFC. Order: ${oid}`);
-                    }
+                    onSuccess(recordData.success
+                        ? `UPI payment of ₹${due.toLocaleString('en-IN')} confirmed. Receipt: ${recordData.receiptNo}`
+                        : `UPI payment confirmed. Order: ${oid}`
+                    );
                 } else if (['FAILED', 'CANCELLED', 'AUTHORIZATION_FAILED', 'AUTHENTICATION_FAILED'].includes(data.status)) {
                     clearInterval(pollRef.current!);
                     setStatus('failed');
                 }
-            } catch { /* keep polling */ }
+            } catch { /* keep polling on network error */ }
         }, 3000);
     }
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-            <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+            <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.25)', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ fontWeight: 800, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <QrCode size={18} color="#6366f1" /> UPI QR Payment
+                        <QrCode size={18} color="#6366f1" /> Pay Here
                     </div>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.3rem', color: '#94a3b8', lineHeight: 1 }}>×</button>
                 </div>
 
-                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '0.625rem', padding: '0.75rem', marginBottom: '1.25rem' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Amount to Pay</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#166534' }}>₹{due.toLocaleString('en-IN')}</div>
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '0.625rem', padding: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Amount</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#166534' }}>₹{due.toLocaleString('en-IN')}</div>
                 </div>
 
-                {loading && (
-                    <div style={{ padding: '2rem 0' }}>
-                        <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#6366f1', margin: '0 auto' }} />
-                        <div style={{ marginTop: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>Generating QR code...</div>
-                    </div>
-                )}
-
-                {!loading && error && (
-                    <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                        {error}
-                    </div>
-                )}
-
-                {!loading && !error && status === 'pending' && qrData && (
+                {status === 'idle' && (
                     <>
-                        {/* Render QR using an img with UPI QR endpoint or inline SVG data */}
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                            <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`}
-                                alt="UPI QR Code"
-                                width={220}
-                                height={220}
-                                style={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', color: '#64748b', fontSize: '0.82rem', marginBottom: '1rem' }}>
-                            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                            Waiting for payment... scan with any UPI app
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-                            <span>GPay</span><span>·</span><span>PhonePe</span><span>·</span><span>Paytm</span><span>·</span><span>BHIM</span>
-                        </div>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+                            Opens HDFC payment page in a popup.<br />Parent selects UPI and pays. Page auto-confirms.
+                        </p>
+                        {error && (
+                            <div style={{ padding: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                                {error}
+                            </div>
+                        )}
+                        <button onClick={openUpiPayment} disabled={loading} style={{ width: '100%', padding: '0.85rem', borderRadius: '0.625rem', border: 'none', background: loading ? '#c4b5fd' : '#6366f1', color: '#fff', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            {loading ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Opening...</> : <><QrCode size={18} /> Open UPI Payment</>}
+                        </button>
+                        <button onClick={onClose} style={{ marginTop: '0.75rem', width: '100%', padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
+                            Cancel
+                        </button>
                     </>
                 )}
 
+                {status === 'waiting' && (
+                    <div style={{ padding: '1rem 0' }}>
+                        <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: '#6366f1', margin: '0 auto' }} />
+                        <div style={{ marginTop: '1rem', fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>Waiting for payment...</div>
+                        <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.35rem' }}>Complete payment in the popup window</div>
+                        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
+                            <span>GPay</span><span>·</span><span>PhonePe</span><span>·</span><span>Paytm</span><span>·</span><span>BHIM</span>
+                        </div>
+                        <button onClick={onClose} style={{ marginTop: '1.5rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}>
+                            Cancel
+                        </button>
+                    </div>
+                )}
+
                 {status === 'success' && (
-                    <div style={{ padding: '1.5rem 0' }}>
+                    <div style={{ padding: '1rem 0' }}>
                         <CheckCircle2 size={48} color="#16a34a" style={{ margin: '0 auto' }} />
-                        <div style={{ marginTop: '0.75rem', fontWeight: 700, color: '#166534', fontSize: '1rem' }}>Payment Successful!</div>
+                        <div style={{ marginTop: '0.75rem', fontWeight: 700, color: '#166534', fontSize: '1rem' }}>Payment Confirmed!</div>
                         <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.25rem' }}>Recording receipt...</div>
                     </div>
                 )}
 
                 {status === 'failed' && (
-                    <div style={{ padding: '1.5rem 0' }}>
+                    <div style={{ padding: '1rem 0' }}>
                         <XCircle size={48} color="#dc2626" style={{ margin: '0 auto' }} />
-                        <div style={{ marginTop: '0.75rem', fontWeight: 700, color: '#dc2626', fontSize: '1rem' }}>Payment Failed</div>
+                        <div style={{ marginTop: '0.75rem', fontWeight: 700, color: '#dc2626', fontSize: '1rem' }}>Payment Failed or Cancelled</div>
                         <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.25rem' }}>Please try again.</div>
-                        <button onClick={createQr} style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}>
-                            Generate New QR
+                        <button onClick={() => { setStatus('idle'); setOrderId(''); }} style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}>
+                            Try Again
                         </button>
                     </div>
-                )}
-
-                {!loading && status === 'pending' && (
-                    <button onClick={onClose} style={{ marginTop: '1rem', width: '100%', padding: '0.7rem', borderRadius: '0.5rem', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>
-                        Cancel
-                    </button>
                 )}
             </div>
         </div>
@@ -473,7 +476,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                                                     </button>
                                                 )}
                                                 <button onClick={() => setUpiQrFee(fee)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.45rem 0.75rem', background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: '0.5rem', color: '#6d28d9', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-                                                    <QrCode size={14} /> UPI QR
+                                                    <QrCode size={14} /> Pay Here
                                                 </button>
                                                 <button onClick={() => openPayModal(fee)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'var(--primary, #2563eb)', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>
                                                     <CreditCard size={15} /> Collect
