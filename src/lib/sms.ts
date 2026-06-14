@@ -233,7 +233,7 @@ export async function sendRegistrationSms(
     const templateId = process.env.SMS_TEMPLATE_REGISTRATION ?? '';
     const message = `Dear Parent, ${studentName} has been registered at Sprout School. Admission No: ${admissionNo}. Welcome to our family! - Sprout School`;
     await sendSingleSms(
-        { phone, message, templateId, variables: { VAR1: studentName, VAR2: admissionNo } },
+        { phone, message, templateId, variables: { alphanumeric1: studentName, alphanumeric2: admissionNo } },
         'REGISTRATION',
         branchId
     );
@@ -250,7 +250,7 @@ export async function sendFeeCollectedSms(
     const amountStr = amount.toLocaleString('en-IN');
     const message = `Dear Parent, Fee payment of Rs ${amountStr} received for ${studentName}. Thank you. Regards, Sprout School`;
     await sendSingleSms(
-        { phone, message, templateId, variables: { VAR1: amountStr, VAR2: studentName } },
+        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: studentName } },
         'FEE_COLLECTED',
         branchId
     );
@@ -281,7 +281,7 @@ export async function sendFeeReminderSms(
     const amountStr = amount.toLocaleString('en-IN');
     const message = `Dear Parent, fee of Rs ${amountStr} for ${studentName} is pending. Kindly pay at earliest. Regards, Sprout School`;
     return sendSingleSms(
-        { phone, message, templateId, variables: { VAR1: parentName, VAR2: amountStr, VAR3: studentName, VAR4: admissionNo } },
+        { phone, message, templateId, variables: { numeric: amountStr, alphanumeric: studentName } },
         'FEE_REMINDER',
         branchId,
         sentBy
@@ -297,7 +297,7 @@ export async function sendNoticeSms(
     const templateId = process.env.SMS_TEMPLATE_NOTICE ?? '';
     const message = `Dear Parent, ${noticeText} - Sprout School`;
     return sendSingleSms(
-        { phone, message, templateId, variables: { VAR1: noticeText } },
+        { phone, message, templateId, variables: { alphanumeric: noticeText } },
         'NOTICE',
         branchId,
         sentBy
