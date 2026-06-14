@@ -263,7 +263,7 @@ export async function sendOtpSms(
     const templateId = process.env.SMS_TEMPLATE_OTP ?? '';
     const message = `Dear User, your OTP for Sprout School fee portal login is ${otp}. Valid for 10 minutes. -Sprout IT`;
     return sendSingleSms(
-        { phone, message, templateId, variables: { VAR1: otp }, sender: 'SPTSEC' },
+        { phone, message, templateId, variables: { numeric: otp }, sender: 'SPTSEC' },
         'OTP'
     );
 }
