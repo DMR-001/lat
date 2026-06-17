@@ -2,7 +2,6 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { ArrowLeft, Edit, FileText, Receipt } from 'lucide-react';
 import DeleteButton from '@/components/DeleteButton';
-import GeneratePaymentLink from '@/components/GeneratePaymentLink';
 
 export default async function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -28,8 +27,6 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
     });
 
     if (!student) return <div>Student not found</div>;
-
-    const totalDue = student.fees.reduce((s, f) => s + Math.max(0, f.amount - f.paidAmount), 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -134,12 +131,9 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Fee History</h3>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <GeneratePaymentLink studentId={student.id} totalDue={totalDue} />
-                        <Link href={`/fees/collect/${student.id}`} className="btn btn-primary" style={{ fontSize: '0.875rem' }}>
-                            Manage Fees
-                        </Link>
-                    </div>
+                    <Link href={`/fees/collect/${student.id}`} className="btn btn-primary" style={{ fontSize: '0.875rem' }}>
+                        Manage Fees
+                    </Link>
                 </div>
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

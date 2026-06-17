@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Receipt, User, Phone, GraduationCap, Download, Pencil, Trash2, ArrowRightLeft, QrCode, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import Toast from '@/components/Toast';
 import { editPayment, deletePayment, transferCredit } from '@/app/actions/fee';
+import GeneratePaymentLink from '@/components/GeneratePaymentLink';
 
 const Rs = '₹';
 function fmt(n: number) { return n.toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
@@ -438,6 +439,7 @@ export default function CollectFeeStudentPage({ params }: { params: Promise<{ st
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 140 }}>
                     <SummaryChip label="Total Paid" value={`${Rs}${fmt(totalPaid)}`} color="var(--success)" />
                     <SummaryChip label="Total Due" value={`${Rs}${fmt(totalDue)}`} color={totalDue > 0 ? 'var(--error)' : 'var(--success)'} />
+                    <GeneratePaymentLink studentId={studentId} totalDue={totalDue} />
                 </div>
             </div>
 
