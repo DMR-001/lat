@@ -55,7 +55,10 @@ async function sendSingleSms(
     branchId?: string | null,
     sentBy?: string | null
 ): Promise<boolean> {
-    const enabled = process.env.SMS_ENABLED === 'true';
+    const isOtp = smsType === 'OTP';
+    const enabled = isOtp
+        ? process.env.SMS_OTP_ENABLED !== 'false'  // OTP on unless explicitly disabled
+        : process.env.SMS_ENABLED === 'true';        // others off unless explicitly enabled
     const workerUrl = process.env.SMS_WORKER_URL;
     const workerSecret = process.env.SMS_WORKER_SECRET;
     const authkey = process.env.SMS_AUTHKEY;
