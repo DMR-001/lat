@@ -6,7 +6,10 @@ import Link from 'next/link';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 
-const FEE_TYPES = ['REGISTRATION', 'TUITION', 'SPORTS', 'BOOKS', 'UNIFORM', 'TRANSPORT', 'ADMISSION', 'EXAM', 'LATE', 'ANNUAL', 'APPLICATION'];
+const FEE_TYPES = [
+    { value: 'COMPLETE',  label: 'Fee' },
+    { value: 'TRANSPORT', label: 'Transport Fee' },
+];
 
 async function getFeeDetails(id: string) {
     const res = await fetch(`/api/fees/${id}`);
@@ -107,7 +110,7 @@ export default function EditFeePage() {
                         required
                         style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', fontSize: '0.9rem', background: 'white' }}
                     >
-                        {FEE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        {FEE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                 </div>
 
