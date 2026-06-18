@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import { getTransactions, TransactionRecord, TransactionFilter } from '@/app/actions/transaction';
-import { CheckCircle2, XCircle, Search, RefreshCw, Download, Copy, ChevronDown, ChevronRight, IndianRupee, ArrowUpRight, ArrowDownRight, Filter, Calendar, Clock } from 'lucide-react';
+import { getPendingPayment, processPublicPayment } from '@/app/actions/public';
+import { CheckCircle2, XCircle, Search, RefreshCw, Download, Copy, ChevronDown, ChevronRight, IndianRupee, ArrowUpRight, ArrowDownRight, Filter, Calendar, Clock, Loader2 } from 'lucide-react';
 
 type Props = {
     initialTransactions: TransactionRecord[];
@@ -23,6 +24,8 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+    const [checkingStatus, setCheckingStatus] = useState<string | null>(null); // orderId being checked
+    const [statusResults, setStatusResults] = useState<Record<string, string>>({}); // orderId -> result msg
 
     const handleFilterChange = (newFilter: TransactionFilter) => {
         setFilter(newFilter);
@@ -37,6 +40,42 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
             const data = await getTransactions(filter);
             setTransactions(data);
         });
+    };
+
+    const checkTransactionStatus = async (orderId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCheckingStatus(orderId);
+        setStatusResults(prev => ({ ...prev, [orderId]: '' }));
+        try {
+            const res = await fetch('/api/hdfc/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId }),
+            });
+            const data = await res.json();
+
+            if (data.status === 'CHARGED') {
+                // Retrieve pending payment context and record it
+                const context = await getPendingPayment(orderId);
+                if (context) {
+                    await processPublicPayment(context.studentId, context.payments, orderId);
+                    setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
+                    // Refresh transactions list
+                    startTransition(async () => {
+                        const updated = await getTransactions(filter);
+                        setTransactions(updated);
+                    });
+                } else {
+                    setStatusResults(prev => ({ ...prev, [orderId]: 'charged_no_context' }));
+                }
+            } else {
+                setStatusResults(prev => ({ ...prev, [orderId]: data.status || 'unknown' }));
+            }
+        } catch {
+            setStatusResults(prev => ({ ...prev, [orderId]: 'error' }));
+        } finally {
+            setCheckingStatus(null);
+        }
     };
 
     const copyOrderId = (orderId: string, e: React.MouseEvent) => {
@@ -441,6 +480,35 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                                 <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{formatDate(t.date)}</p>
                                             </div>
                                         </div>
+
+                                        {/* Check Status button for pending/initiated transactions with an HDFC order */}
+                                        {(t.status === 'INITIATED' || t.status === 'PENDING') && t.hdfcOrderId && (
+                                            <div style={{ marginTop: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                                <button
+                                                    onClick={(e) => checkTransactionStatus(t.hdfcOrderId!, e)}
+                                                    disabled={checkingStatus === t.hdfcOrderId}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', background: checkingStatus === t.hdfcOrderId ? '#c4b5fd' : '#7c3aed', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: checkingStatus === t.hdfcOrderId ? 'not-allowed' : 'pointer' }}
+                                                >
+                                                    {checkingStatus === t.hdfcOrderId
+                                                        ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Checking...</>
+                                                        : <><RefreshCw size={14} /> Check Payment Status</>
+                                                    }
+                                                </button>
+                                                {statusResults[t.hdfcOrderId!] && (
+                                                    <span style={{
+                                                        fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: '0.375rem',
+                                                        background: statusResults[t.hdfcOrderId!] === 'success' ? '#f0fdf4' : '#fef2f2',
+                                                        color: statusResults[t.hdfcOrderId!] === 'success' ? '#16a34a' : '#dc2626',
+                                                        border: `1px solid ${statusResults[t.hdfcOrderId!] === 'success' ? '#86efac' : '#fecaca'}`
+                                                    }}>
+                                                        {statusResults[t.hdfcOrderId!] === 'success' ? '✓ Payment recorded successfully' :
+                                                         statusResults[t.hdfcOrderId!] === 'charged_no_context' ? 'CHARGED but context missing — contact support' :
+                                                         statusResults[t.hdfcOrderId!] === 'error' ? 'Failed to check status' :
+                                                         `Status: ${statusResults[t.hdfcOrderId!]}`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
