@@ -100,8 +100,16 @@ export async function middleware(request: NextRequest) {
     }
 
     // Role-based access
-    if (path.startsWith('/management') && payload.user.role !== 'MANAGEMENT') {
-        return NextResponse.redirect(new URL('/', request.url));
+    // Admins can access /management/transactions only; full /management requires MANAGEMENT role
+    if (path.startsWith('/management')) {
+        const role = payload.user.role;
+        if (role === 'MANAGEMENT') {
+            // full access
+        } else if (role === 'ADMIN' && path.startsWith('/management/transactions')) {
+            // admin can view transactions
+        } else {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
     }
 
     return NextResponse.next();

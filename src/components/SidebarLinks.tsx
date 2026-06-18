@@ -37,6 +37,7 @@ function getLinks(role: string | undefined, isPayrollDomain: boolean): SidebarLi
         { name: 'Receipts', href: '/receipts', icon: Receipt },
         { name: 'Certificates', href: '/certificates', icon: FileText },
         { name: 'Academic Year', href: '/academic-year', icon: CalendarDays },
+        { name: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
         { name: 'Communications', href: '/communications', icon: MessageSquare },
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
