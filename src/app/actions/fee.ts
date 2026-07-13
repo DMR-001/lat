@@ -43,6 +43,16 @@ export async function assignMultipleFees(
 
     if (!student) throw new Error('Student not found');
 
+    // Check for existing unpaid fees of the same type
+    const existingTypes = await prisma.fee.findMany({
+        where: { studentId, status: { not: 'PAID' }, type: { in: fees.map(f => f.type) } },
+        select: { type: true }
+    });
+    if (existingTypes.length > 0) {
+        const dupes = existingTypes.map(e => e.type).join(', ');
+        throw new Error(`Fee already assigned and unpaid for: ${dupes}`);
+    }
+
     const data = fees.map(f => ({
         studentId,
         type: f.type,

@@ -35,6 +35,7 @@ export default function AssignFeeForm() {
     const [isPending, setIsPending]           = useState(false);
     const [error, setError]                   = useState('');
     const [success, setSuccess]               = useState(false);
+    const [existingTypes, setExistingTypes]   = useState<string[]>([]); // already assigned & unpaid
 
     useEffect(() => {
         getClasses().then(cls => { setClasses(cls); setLoadingClasses(false); });
@@ -51,12 +52,22 @@ export default function AssignFeeForm() {
         setLoadingStudents(false);
     };
 
-    const pickStudent = (s: Student) => {
+    const pickStudent = async (s: Student) => {
         setSelectedStudent(s);
         setAmounts({ COMPLETE: '', TRANSPORT: '' });
         setDueDate('');
         setError('');
+        setExistingTypes([]);
         setStep('fees');
+        // Load existing unpaid fee types for this student
+        try {
+            const res = await fetch(`/api/fees/student/${s.id}`);
+            const data = await res.json();
+            const unpaid = (data?.fees || [])
+                .filter((f: any) => f.status !== 'PAID')
+                .map((f: any) => f.type as string);
+            setExistingTypes(unpaid);
+        } catch { /* non-fatal */ }
     };
 
     const filteredStudents = students.filter(s => {
@@ -246,20 +257,25 @@ export default function AssignFeeForm() {
                             { type: 'COMPLETE',  label: 'Complete Fee' },
                             { type: 'TRANSPORT', label: 'Transport Fee' },
                         ] as const).map(f => {
-                            const active = !isNaN(parseFloat(amounts[f.type] ?? '')) && parseFloat(amounts[f.type]) > 0;
+                            const alreadyAssigned = existingTypes.includes(f.type);
+                            const active = !alreadyAssigned && !isNaN(parseFloat(amounts[f.type] ?? '')) && parseFloat(amounts[f.type]) > 0;
                             return (
-                                <div key={f.type} style={{ background: active ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${active ? '#86efac' : '#e2e8f0'}`, borderRadius: '0.5rem', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.12s' }}>
-                                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569', minWidth: 120 }}>{f.label}</label>
+                                <div key={f.type} style={{ background: alreadyAssigned ? '#f1f5f9' : active ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${alreadyAssigned ? '#cbd5e1' : active ? '#86efac' : '#e2e8f0'}`, borderRadius: '0.5rem', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.12s', opacity: alreadyAssigned ? 0.6 : 1 }}>
+                                    <div style={{ minWidth: 120 }}>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>{f.label}</div>
+                                        {alreadyAssigned && <div style={{ fontSize: '0.68rem', color: '#dc2626', fontWeight: 600, marginTop: '0.1rem' }}>Already assigned</div>}
+                                    </div>
                                     <div style={{ position: 'relative', flex: 1, maxWidth: 220 }}>
                                         <span style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>₹</span>
                                         <input
                                             type="number"
                                             min="0"
                                             step="1"
-                                            placeholder="0"
+                                            placeholder={alreadyAssigned ? 'Already assigned' : '0'}
                                             value={amounts[f.type] ?? ''}
                                             onChange={e => setAmounts(prev => ({ ...prev, [f.type]: e.target.value }))}
-                                            style={{ ...inp, paddingLeft: '1.5rem', background: 'white' }}
+                                            disabled={alreadyAssigned}
+                                            style={{ ...inp, paddingLeft: '1.5rem', background: alreadyAssigned ? '#f1f5f9' : 'white', cursor: alreadyAssigned ? 'not-allowed' : 'text' }}
                                         />
                                     </div>
                                 </div>
