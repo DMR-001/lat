@@ -85,7 +85,27 @@ export async function getSalaryByTeacherId(teacherId: string) {
 }
 
 // Generate monthly payments for all active teachers
-export async function generateMonthlyPayments(month: number, year: number) {
+export async function getActiveSalariesForGenerate() {
+    const salaries = await prisma.teacherSalary.findMany({
+        where: { isActive: true },
+        include: { teacher: { select: { id: true, firstName: true, lastName: true, employeeId: true } } },
+        orderBy: { teacher: { firstName: 'asc' } }
+    });
+    return salaries.map(s => ({
+        salaryId: s.id,
+        teacherId: s.teacherId,
+        teacherName: `${s.teacher.firstName} ${s.teacher.lastName}`,
+        employeeId: s.teacher.employeeId,
+        netSalary: s.netSalary,
+        basicSalary: s.basicSalary,
+    }));
+}
+
+export async function generateMonthlyPayments(
+    month: number,
+    year: number,
+    overrides?: Record<string, { extraLeaveDays: number; extraDeduction: number; note: string }>
+) {
     try {
         const activeSalaries = await prisma.teacherSalary.findMany({
             where: { isActive: true },
@@ -141,13 +161,24 @@ export async function generateMonthlyPayments(month: number, year: number) {
                 const penaltyDays = Math.floor(lateMarks / penaltyCount);
                 const totalDeductionDays = leaves + penaltyDays;
 
-                const perDaySalary = salary.basicSalary / 30; // Standard 30 days calculation
+                const perDaySalary = salary.basicSalary / 30;
                 const leaveDeduction = totalDeductionDays * perDaySalary;
 
-                // Calculate final amount
-                // Net Salary = (Basic + Allowances - Deductions) - Leave Deduction
-                // Note: salary.netSalary already includes fixed deductions
-                const finalAmount = Math.max(0, salary.netSalary - leaveDeduction);
+                // Apply manual overrides if provided
+                const override = overrides?.[salary.teacherId];
+                const extraDays = override?.extraLeaveDays ?? 0;
+                const extraAmt = override?.extraDeduction ?? 0;
+                const extraLeaveDeduction = extraDays * perDaySalary;
+                const totalLeaveDeduction = leaveDeduction + extraLeaveDeduction + extraAmt;
+                const totalDeductionDaysAll = totalDeductionDays + extraDays;
+
+                const finalAmount = Math.max(0, salary.netSalary - totalLeaveDeduction);
+
+                const remarkParts: string[] = [];
+                if (penaltyDays > 0) remarkParts.push(`${penaltyDays} day(s) deduction for ${lateMarks} late marks`);
+                if (extraDays > 0) remarkParts.push(`${extraDays} extra leave day(s) manually added`);
+                if (extraAmt > 0) remarkParts.push(`₹${extraAmt} extra deduction manually added`);
+                if (override?.note) remarkParts.push(override.note);
 
                 const payment = await prisma.salaryPayment.create({
                     data: {
@@ -155,11 +186,11 @@ export async function generateMonthlyPayments(month: number, year: number) {
                         month,
                         year,
                         amount: salary.netSalary,
-                        leaveDays: totalDeductionDays, // Includes late penalty days
-                        leaveDeduction: leaveDeduction,
-                        finalAmount: finalAmount,
+                        leaveDays: totalDeductionDaysAll,
+                        leaveDeduction: totalLeaveDeduction,
+                        finalAmount,
                         status: 'PENDING',
-                        remarks: penaltyDays > 0 ? `Includes ${penaltyDays} day(s) deduction for ${lateMarks} late marks` : undefined
+                        remarks: remarkParts.length > 0 ? remarkParts.join('; ') : undefined
                     },
                     include: {
                         salary: {
