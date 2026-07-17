@@ -1,6 +1,7 @@
 import { getActiveSalaries } from '@/app/actions/salary';
 import Link from 'next/link';
 import { Plus, DollarSign, Users, Calendar } from 'lucide-react';
+import EditSalaryButton from './EditSalaryButton';
 
 export default async function SalariesPage() {
     const result = await getActiveSalaries();
@@ -86,6 +87,7 @@ export default async function SalariesPage() {
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Deductions</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Net Salary</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Status</th>
+                            <th style={{ padding: '1rem', fontWeight: '500' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,6 +121,9 @@ export default async function SalariesPage() {
                                         }}>
                                             {salary.isActive ? 'Active' : 'Inactive'}
                                         </span>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <EditSalaryButton salary={salary} />
                                     </td>
                                 </tr>
                             ))

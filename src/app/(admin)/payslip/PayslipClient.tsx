@@ -54,80 +54,105 @@ function fmt(n: number) {
     return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
 }
 
-function PayslipPrint({ payment, teacher, salary, schoolName, schoolAddress, schoolPhone, logoUrl }: {
-    payment: Payment; teacher: Teacher; salary: Salary | null;
-    schoolName: string; schoolAddress: string | null; schoolPhone: string | null; logoUrl: string | null;
-}) {
-    return (
-        <div id={`payslip-${payment.id}`} style={{ display: 'none' }}>
-            <div style={{ fontFamily: 'Arial, sans-serif', padding: '2rem', maxWidth: '700px', margin: '0 auto', color: '#111' }}>
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                    {logoUrl && (
-                        <img src={logoUrl} alt="School Logo" style={{ height: '60px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-                    )}
-                    <div style={{ flex: 1, textAlign: logoUrl ? 'left' : 'center' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{schoolName}</h2>
-                        {schoolAddress && <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: '#555' }}>{schoolAddress}</p>}
-                        {schoolPhone && <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#555' }}>Ph: {schoolPhone}</p>}
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#444', fontWeight: 600 }}>Salary Slip — {MONTHS[payment.month]} {payment.year}</p>
-                    </div>
-                </div>
+function buildPayslipHtml(payment: Payment, teacher: Teacher, salary: Salary | null,
+    schoolName: string, schoolAddress: string | null, schoolPhone: string | null, logoBase64: string | null
+): string {
+    const gross = (salary?.basicSalary ?? 0) + (salary?.allowances ?? 0);
+    const totalDed = (salary?.deductions ?? 0) + payment.leaveDeduction;
+    const f = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
+    const logoHtml = logoBase64
+        ? `<img src="${logoBase64}" style="height:64px;width:auto;object-fit:contain;" />`
+        : '';
 
-                {/* Employee info */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 2rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-                    <div><span style={{ color: '#666' }}>Employee Name:</span> <strong>{teacher.firstName} {teacher.lastName}</strong></div>
-                    <div><span style={{ color: '#666' }}>Employee ID:</span> <strong>{teacher.employeeId || '—'}</strong></div>
-                    <div><span style={{ color: '#666' }}>Email:</span> {teacher.email}</div>
-                    <div><span style={{ color: '#666' }}>Subject:</span> {teacher.subject || '—'}</div>
-                    <div><span style={{ color: '#666' }}>Branch:</span> {teacher.branchName || '—'}</div>
-                    <div><span style={{ color: '#666' }}>Pay Period:</span> {MONTHS[payment.month]} {payment.year}</div>
-                </div>
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Payslip - ${MONTHS[payment.month]} ${payment.year}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px; }
+  .header { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid #111; margin-bottom: 16px; }
+  .header-text { flex: 1; }
+  .school-name { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+  .school-sub { font-size: 11px; color: #444; margin-top: 2px; }
+  .slip-title { font-size: 13px; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .divider { border: none; border-top: 1px solid #ccc; margin: 12px 0; }
+  .emp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; margin-bottom: 16px; }
+  .emp-row { display: flex; gap: 6px; }
+  .emp-label { color: #555; min-width: 110px; }
+  .emp-val { font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #111; color: #fff; padding: 7px 10px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  th:last-child, th:nth-child(2) { text-align: right; }
+  td { padding: 7px 10px; border-bottom: 1px solid #ddd; }
+  td:last-child, td:nth-child(2) { text-align: right; }
+  .subtotal td { border-top: 1.5px solid #999; font-weight: 600; background: #f5f5f5; }
+  .net-row { display: flex; justify-content: space-between; align-items: center; border: 2px solid #111; padding: 10px 14px; margin-bottom: 24px; }
+  .net-label { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .net-val { font-size: 18px; font-weight: 700; }
+  .footer { margin-top: 32px; border-top: 1px solid #ccc; padding-top: 8px; font-size: 10px; color: #888; text-align: center; }
+  @media print { .wrap { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    ${logoHtml}
+    <div class="header-text">
+      <div class="school-name">${schoolName}</div>
+      ${schoolAddress ? `<div class="school-sub">${schoolAddress}</div>` : ''}
+      ${schoolPhone ? `<div class="school-sub">Ph: ${schoolPhone}</div>` : ''}
+      <div class="slip-title">Salary Slip — ${MONTHS[payment.month]} ${payment.year}</div>
+    </div>
+  </div>
 
-                {/* Earnings & Deductions */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                    <thead>
-                        <tr style={{ background: '#f3f4f6' }}>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>Earnings</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>Amount (₹)</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>Deductions</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>Amount (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Basic Salary</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt(salary?.basicSalary ?? 0)}</td>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Fixed Deductions</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt(salary?.deductions ?? 0)}</td>
-                        </tr>
-                        <tr>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Allowances</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt(salary?.allowances ?? 0)}</td>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Leave Deduction ({payment.leaveDays} days)</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt(payment.leaveDeduction)}</td>
-                        </tr>
-                        <tr style={{ background: '#f9fafb', fontWeight: 600 }}>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Gross Earnings</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt((salary?.basicSalary ?? 0) + (salary?.allowances ?? 0))}</td>
-                            <td style={{ padding: '0.5rem', border: '1px solid #e5e7eb' }}>Total Deductions</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #e5e7eb' }}>{fmt((salary?.deductions ?? 0) + payment.leaveDeduction)}</td>
-                        </tr>
-                    </tbody>
-                </table>
+  <div class="emp-grid">
+    <div class="emp-row"><span class="emp-label">Employee Name</span><span class="emp-val">${teacher.firstName} ${teacher.lastName}</span></div>
+    <div class="emp-row"><span class="emp-label">Employee ID</span><span class="emp-val">${teacher.employeeId || '—'}</span></div>
+    <div class="emp-row"><span class="emp-label">Designation</span><span class="emp-val">${teacher.subject || '—'}</span></div>
+    <div class="emp-row"><span class="emp-label">Branch</span><span class="emp-val">${teacher.branchName || '—'}</span></div>
+    <div class="emp-row"><span class="emp-label">Email</span><span class="emp-val">${teacher.email}</span></div>
+    <div class="emp-row"><span class="emp-label">Pay Period</span><span class="emp-val">${MONTHS[payment.month]} ${payment.year}</span></div>
+    ${payment.paymentDate ? `<div class="emp-row"><span class="emp-label">Payment Date</span><span class="emp-val">${new Date(payment.paymentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>` : ''}
+    ${payment.referenceNo ? `<div class="emp-row"><span class="emp-label">Reference No</span><span class="emp-val">${payment.referenceNo}</span></div>` : ''}
+  </div>
 
-                {/* Net Pay */}
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <span style={{ fontWeight: 600, fontSize: '1rem' }}>Net Pay</span>
-                    <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#16a34a' }}>₹ {fmt(payment.finalAmount)}</span>
-                </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Earnings</th><th>Amount (₹)</th>
+        <th>Deductions</th><th>Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Basic Salary</td><td>${f(salary?.basicSalary ?? 0)}</td>
+        <td>Fixed Deductions</td><td>${f(salary?.deductions ?? 0)}</td>
+      </tr>
+      <tr>
+        <td>Allowances</td><td>${f(salary?.allowances ?? 0)}</td>
+        <td>Leave Deduction (${payment.leaveDays} day${payment.leaveDays !== 1 ? 's' : ''})</td><td>${f(payment.leaveDeduction)}</td>
+      </tr>
+      <tr class="subtotal">
+        <td>Gross Earnings</td><td>${f(gross)}</td>
+        <td>Total Deductions</td><td>${f(totalDed)}</td>
+      </tr>
+    </tbody>
+  </table>
 
-                <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
-                    This is a computer-generated payslip and does not require a signature.
-                </div>
-            </div>
-        </div>
-    );
+  <div class="net-row">
+    <span class="net-label">Net Pay for ${MONTHS[payment.month]} ${payment.year}</span>
+    <span class="net-val">₹ ${f(payment.finalAmount)}</span>
+  </div>
+
+  ${payment.remarks ? `<p style="font-size:12px;color:#555;margin-bottom:16px;"><strong>Remarks:</strong> ${payment.remarks}</p>` : ''}
+
+  <div class="footer">This is a computer-generated payslip and does not require a signature. | ${schoolName}</div>
+</div>
+</body>
+</html>`;
 }
 
 export default function PayslipClient({ teacher, salary, payments, schoolName, schoolAddress, schoolPhone, logoUrl }: Props) {
@@ -135,16 +160,28 @@ export default function PayslipClient({ teacher, salary, payments, schoolName, s
         payments.find(p => p.status === 'PAID')?.id ?? payments[0]?.id ?? null
     );
 
-    const handlePrint = (payment: Payment) => {
-        const el = document.getElementById(`payslip-${payment.id}`);
-        if (!el) return;
+    const handlePrint = async (payment: Payment) => {
+        // Convert logo to base64 so it loads correctly in the print popup
+        let logoBase64: string | null = null;
+        if (logoUrl) {
+            try {
+                const res = await fetch(logoUrl);
+                const blob = await res.blob();
+                logoBase64 = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(blob);
+                });
+            } catch { /* skip logo if fetch fails */ }
+        }
+
+        const html = buildPayslipHtml(payment, teacher, salary, schoolName, schoolAddress, schoolPhone, logoBase64);
         const win = window.open('', '_blank');
         if (!win) return;
-        win.document.write(`<html><head><title>Payslip ${MONTHS[payment.month]} ${payment.year}</title><style>body{margin:0}@media print{body{margin:0}}</style></head><body>${el.innerHTML}</body></html>`);
+        win.document.write(html);
         win.document.close();
         win.focus();
-        win.print();
-        win.close();
+        setTimeout(() => { win.print(); }, 500);
     };
 
     return (
@@ -247,8 +284,6 @@ export default function PayslipClient({ teacher, salary, payments, schoolName, s
                                     </div>
                                 )}
 
-                                {/* Hidden print template */}
-                                <PayslipPrint payment={p} teacher={teacher} salary={salary} schoolName={schoolName} schoolAddress={schoolAddress} schoolPhone={schoolPhone} logoUrl={logoUrl} />
                             </div>
                         );
                     })}

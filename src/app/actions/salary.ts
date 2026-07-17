@@ -278,6 +278,52 @@ export async function bulkMarkAsPaid(
     }
 }
 
+// Update active salary structure for a teacher
+export async function updateSalaryStructure(salaryId: string, data: {
+    basicSalary: number;
+    allowances: number;
+    deductions: number;
+}) {
+    try {
+        const netSalary = data.basicSalary + data.allowances - data.deductions;
+        const salary = await prisma.teacherSalary.update({
+            where: { id: salaryId },
+            data: { ...data, netSalary },
+            include: { teacher: true }
+        });
+        await logAction('SALARY_STRUCTURE_UPDATED', 'SALARY',
+            `Updated salary for ${salary.teacher.firstName} ${salary.teacher.lastName}: Basic ₹${data.basicSalary}, Net ₹${netSalary}`,
+            { salaryId, teacherId: salary.teacherId, basicSalary: data.basicSalary, allowances: data.allowances, deductions: data.deductions, netSalary }
+        );
+        revalidatePath('/management/salaries');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Delete a salary payment (only PENDING ones)
+export async function deletePayment(paymentId: string) {
+    try {
+        const payment = await prisma.salaryPayment.findUnique({
+            where: { id: paymentId },
+            include: { salary: { include: { teacher: true } } }
+        });
+        if (!payment) return { success: false, error: 'Payment not found' };
+        if (payment.status === 'PAID') return { success: false, error: 'Cannot delete a paid payslip' };
+
+        await prisma.salaryPayment.delete({ where: { id: paymentId } });
+        await logAction('SALARY_PAYMENT_DELETED', 'SALARY',
+            `Deleted pending payslip for ${payment.salary.teacher.firstName} ${payment.salary.teacher.lastName} — ${payment.month}/${payment.year}`,
+            { paymentId, teacherId: payment.salary.teacherId }
+        );
+        revalidatePath('/management/salaries');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
 // Get payment statistics
 export async function getPaymentStats(month?: number, year?: number) {
     try {

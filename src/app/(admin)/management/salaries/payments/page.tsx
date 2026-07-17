@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPayments, bulkMarkAsPaid, getPaymentStats } from '@/app/actions/salary';
+import { getPayments, bulkMarkAsPaid, getPaymentStats, deletePayment } from '@/app/actions/salary';
 import Link from 'next/link';
-import { ArrowLeft, Check, Filter } from 'lucide-react';
+import { ArrowLeft, Check, Filter, Trash2 } from 'lucide-react';
 
 const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -15,6 +15,7 @@ export default function PaymentsPage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const currentDate = new Date();
     const [filters, setFilters] = useState({
@@ -80,6 +81,15 @@ export default function PaymentsPage() {
     const selectedTotal = payments
         .filter(p => selectedIds.includes(p.id))
         .reduce((sum, p) => sum + p.amount, 0);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Delete this payslip? This cannot be undone.')) return;
+        setDeletingId(id);
+        await deletePayment(id);
+        await loadPayments();
+        await loadStats();
+        setDeletingId(null);
+    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -222,6 +232,7 @@ export default function PaymentsPage() {
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Net Payout</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Status</th>
                             <th style={{ padding: '1rem', fontWeight: '500' }}>Date</th>
+                            <th style={{ padding: '1rem', fontWeight: '500' }}></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -278,6 +289,18 @@ export default function PaymentsPage() {
                                     </td>
                                     <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
                                         {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : '-'}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        {payment.status === 'PENDING' && (
+                                            <button
+                                                onClick={() => handleDelete(payment.id)}
+                                                disabled={deletingId === payment.id}
+                                                title="Delete payslip"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))
