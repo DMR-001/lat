@@ -482,7 +482,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                         </div>
 
                                         {/* Check Status button for pending/initiated transactions with an HDFC order */}
-                                        {(t.status === 'INITIATED' || t.status === 'PENDING') && t.hdfcOrderId && (
+                                        {(t.status === 'INITIATED' || t.status === 'PENDING' || t.status === 'FAILED' || t.hdfcStatus === 'PROCESSING_ERROR') && t.hdfcOrderId && (
                                             <div style={{ marginTop: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                                 <button
                                                     onClick={(e) => checkTransactionStatus(t.hdfcOrderId!, e)}
