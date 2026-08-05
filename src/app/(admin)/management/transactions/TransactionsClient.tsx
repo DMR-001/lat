@@ -24,8 +24,9 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
-    const [checkingStatus, setCheckingStatus] = useState<string | null>(null); // orderId being checked
-    const [statusResults, setStatusResults] = useState<Record<string, string>>({}); // orderId -> result msg
+    const [checkingStatus, setCheckingStatus] = useState<string | null>(null);
+    const [statusResults, setStatusResults] = useState<Record<string, string>>({});
+    const [recoveredPayments, setRecoveredPayments] = useState<Record<string, { id: string; receiptNo: string | null }[]>>({});
 
     const handleFilterChange = (newFilter: TransactionFilter) => {
         setFilter(newFilter);
@@ -57,22 +58,24 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
             if (data.status === 'CHARGED') {
                 // Try server-side PendingPayment context — allowAny=true recovers FAILED/EXPIRED records too
                 const context = await getPendingPayment(orderId, true);
+                let result = null;
                 if (context) {
-                    await processPublicPayment(context.studentId, context.payments, orderId);
-                    setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
+                    result = await processPublicPayment(context.studentId, context.payments, orderId);
                 } else if (fallback?.studentId && fallback?.feeId) {
-                    // Fallback: use the transaction record's own student + fee + amount
                     const hdfcAmt = data.amount ?? 0;
                     const amount = hdfcAmt > 1000 ? hdfcAmt / 100 : (hdfcAmt || fallback.amount);
-                    await processPublicPayment(fallback.studentId, [{ feeId: fallback.feeId, amount }], orderId);
+                    result = await processPublicPayment(fallback.studentId, [{ feeId: fallback.feeId, amount }], orderId);
+                }
+                if (result?.success) {
                     setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
+                    setRecoveredPayments(prev => ({ ...prev, [orderId]: result.payments.map((p: any) => ({ id: p.id, receiptNo: p.receiptNo })) }));
+                    startTransition(async () => {
+                        const updated = await getTransactions(filter);
+                        setTransactions(updated);
+                    });
                 } else {
                     setStatusResults(prev => ({ ...prev, [orderId]: 'charged_no_context' }));
                 }
-                startTransition(async () => {
-                    const updated = await getTransactions(filter);
-                    setTransactions(updated);
-                });
             } else {
                 setStatusResults(prev => ({ ...prev, [orderId]: data.status || 'unknown' }));
             }
@@ -500,17 +503,27 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                                     }
                                                 </button>
                                                 {statusResults[t.hdfcOrderId!] && (
-                                                    <span style={{
-                                                        fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: '0.375rem',
-                                                        background: statusResults[t.hdfcOrderId!] === 'success' ? '#f0fdf4' : '#fef2f2',
-                                                        color: statusResults[t.hdfcOrderId!] === 'success' ? '#16a34a' : '#dc2626',
-                                                        border: `1px solid ${statusResults[t.hdfcOrderId!] === 'success' ? '#86efac' : '#fecaca'}`
-                                                    }}>
-                                                        {statusResults[t.hdfcOrderId!] === 'success' ? '✓ Payment recorded successfully' :
-                                                         statusResults[t.hdfcOrderId!] === 'charged_no_context' ? 'CHARGED but context missing — contact support' :
-                                                         statusResults[t.hdfcOrderId!] === 'error' ? 'Failed to check status' :
-                                                         `Status: ${statusResults[t.hdfcOrderId!]}`}
-                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span style={{
+                                                            fontSize: '0.82rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: '0.375rem',
+                                                            background: statusResults[t.hdfcOrderId!] === 'success' ? '#f0fdf4' : '#fef2f2',
+                                                            color: statusResults[t.hdfcOrderId!] === 'success' ? '#16a34a' : '#dc2626',
+                                                            border: `1px solid ${statusResults[t.hdfcOrderId!] === 'success' ? '#86efac' : '#fecaca'}`
+                                                        }}>
+                                                            {statusResults[t.hdfcOrderId!] === 'success' ? '✓ Payment recorded' :
+                                                             statusResults[t.hdfcOrderId!] === 'charged_no_context' ? 'CHARGED but no context — refresh page and retry' :
+                                                             statusResults[t.hdfcOrderId!] === 'error' ? 'Failed to check status' :
+                                                             `Status: ${statusResults[t.hdfcOrderId!]}`}
+                                                        </span>
+                                                        {statusResults[t.hdfcOrderId!] === 'success' && recoveredPayments[t.hdfcOrderId!]?.map(p => (
+                                                            p.receiptNo && (
+                                                                <a key={p.id} href={`/api/receipts/${p.id}/download`} target="_blank"
+                                                                    style={{ fontSize: '0.82rem', fontWeight: 700, color: '#2563eb', textDecoration: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.375rem', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                                                                    ↓ Receipt {p.receiptNo}
+                                                                </a>
+                                                            )
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
