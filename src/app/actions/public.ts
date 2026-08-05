@@ -310,20 +310,24 @@ export async function recordFailedPayment(
 }
 
 // Get pending payment context from server-side backup (fallback for localStorage)
-export async function getPendingPayment(orderId: string) {
+// allowAny=true skips status check — used by admin recovery to look up FAILED/EXPIRED records
+export async function getPendingPayment(orderId: string, allowAny = false) {
     if (!orderId) return null;
-    
+
     try {
         const pending = await prisma.pendingPayment.findUnique({
             where: { orderId },
         });
 
-        if (!pending || pending.status !== 'PENDING') {
+        if (!pending) return null;
+
+        // Normal flow: only return PENDING records
+        if (!allowAny && pending.status !== 'PENDING') {
             return null;
         }
 
-        // Check if expired
-        if (new Date() > pending.expiresAt) {
+        // Normal flow: check expiry
+        if (!allowAny && new Date() > pending.expiresAt) {
             await prisma.pendingPayment.update({
                 where: { orderId },
                 data: { status: 'EXPIRED' },

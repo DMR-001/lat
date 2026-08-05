@@ -55,8 +55,8 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
             const data = await res.json();
 
             if (data.status === 'CHARGED') {
-                // Try server-side PendingPayment context first
-                const context = await getPendingPayment(orderId);
+                // Try server-side PendingPayment context — allowAny=true recovers FAILED/EXPIRED records too
+                const context = await getPendingPayment(orderId, true);
                 if (context) {
                     await processPublicPayment(context.studentId, context.payments, orderId);
                     setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
