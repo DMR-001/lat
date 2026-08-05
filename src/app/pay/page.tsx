@@ -409,10 +409,9 @@ export default function PublicPaymentPage() {
 
             // 3. Cross-validate: HDFC charged amount must match server-stored amount
             const serverContext = await getPendingPayment(orderId);
-            const hdfcAmountRaw = statusData.amount ?? 0;
-            // HDFC returns amount in paise (smallest unit) — convert to rupees for comparison
-            const hdfcAmount = hdfcAmountRaw > 1000 ? hdfcAmountRaw / 100 : hdfcAmountRaw;
-            console.log('[HDFC_RETURN] Amount check — HDFC raw:', hdfcAmountRaw, 'converted:', hdfcAmount, 'server:', serverContext?.amount);
+            // HDFC SDK returns amount in rupees (same unit the order was created with)
+            const hdfcAmount = statusData.amount ?? 0;
+            console.log('[HDFC_RETURN] Amount check — HDFC:', hdfcAmount, 'server:', serverContext?.amount);
             if (serverContext && Math.abs(hdfcAmount - serverContext.amount) > 2) {
                 console.error('[HDFC_RETURN] Amount mismatch — HDFC:', hdfcAmount, 'Server:', serverContext.amount);
                 recordFailedPayment(orderId, 'AMOUNT_MISMATCH', hdfcAmount, studentId).catch(() => null);
