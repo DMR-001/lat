@@ -105,15 +105,15 @@ export async function getStudentFeesPublic(studentId: string) {
 }
 
 export async function processPublicPayment(studentId: string, payments: { feeId: string; amount: number }[], hdfcOrderId?: string) {
-    // Duplicate order guard — if this HDFC order was already recorded, return existing payments
+    // Duplicate order guard — only block if a SUCCESS payment already exists for this order
     if (hdfcOrderId) {
         const existing = await prisma.payment.findFirst({
-            where: { hdfcOrderId },
+            where: { hdfcOrderId, status: 'SUCCESS' },
             include: { fee: { select: { type: true } } }
         });
         if (existing) {
             const all = await prisma.payment.findMany({
-                where: { hdfcOrderId },
+                where: { hdfcOrderId, status: 'SUCCESS' },
                 include: { fee: { select: { type: true } } }
             });
             return { success: true, payments: all };
@@ -171,52 +171,51 @@ export async function processPublicPayment(studentId: string, payments: { feeId:
         };
         const shortType = getFeeTypeShortForm(fee.type);
 
-        // 2. Get Sequence
         const currentYear = new Date().getFullYear();
-        const lastPayment = await prisma.payment.findFirst({
-            where: { status: 'SUCCESS' },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        let nextNumber = 1;
-        if (lastPayment && lastPayment.receiptNo) {
-            const match = lastPayment.receiptNo.match(/(\d+)$/);
-            if (match) {
-                nextNumber = parseInt(match[1]) + 1;
-            }
-        }
-
-        const paddedNumber = nextNumber.toString().padStart(4, '0');
-        const receiptNo = `${branchCode}/PL/${shortType}/${currentYear}/${paddedNumber}`;
-
         const newPaidAmount = fee.paidAmount + paymentItem.amount;
-        // Allow for small floating point discrepancies or overpayment logic if desired,
-        // but strictly status depends on if paid >= due.
-        const isFullyPaid = newPaidAmount >= fee.amount - 0.01; // tolerance
+        const isFullyPaid = newPaidAmount >= fee.amount - 0.01;
         const newStatus = isFullyPaid ? 'PAID' : 'PENDING';
 
-        const [payment] = await prisma.$transaction([
-            prisma.payment.create({
-                data: {
-                    amount: paymentItem.amount,
-                    date: new Date(),
-                    method: 'ONLINE',
-                    status: 'SUCCESS',
-                    hdfcStatus: 'CHARGED',
-                    feeId: fee.id,
-                    receiptNo: receiptNo,
-                    branchId: branchId,
-                    hdfcOrderId: hdfcOrderId || null,
-                }
-            }),
-            prisma.fee.update({
-                where: { id: fee.id },
-                data: {
-                    paidAmount: newPaidAmount,
-                    status: newStatus
-                }
-            })
-        ]);
+        // Retry receipt creation up to 5 times on unique constraint collision
+        let payment: any = null;
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const lastPayment = await prisma.payment.findFirst({
+                where: { status: 'SUCCESS', receiptNo: { not: null } },
+                orderBy: { createdAt: 'desc' }
+            });
+            let nextNumber = 1 + attempt; // increment offset on retry
+            if (lastPayment?.receiptNo) {
+                const match = lastPayment.receiptNo.match(/(\d+)$/);
+                if (match) nextNumber = parseInt(match[1]) + 1 + attempt;
+            }
+            const receiptNo = `${branchCode}/PL/${shortType}/${currentYear}/${nextNumber.toString().padStart(4, '0')}`;
+            try {
+                const [created] = await prisma.$transaction([
+                    prisma.payment.create({
+                        data: {
+                            amount: paymentItem.amount,
+                            date: new Date(),
+                            method: 'ONLINE',
+                            status: 'SUCCESS',
+                            hdfcStatus: 'CHARGED',
+                            feeId: fee.id,
+                            receiptNo,
+                            branchId,
+                            hdfcOrderId: hdfcOrderId || null,
+                        }
+                    }),
+                    prisma.fee.update({
+                        where: { id: fee.id },
+                        data: { paidAmount: newPaidAmount, status: newStatus }
+                    })
+                ]);
+                payment = created;
+                break;
+            } catch (err: any) {
+                if (err?.code === 'P2002' && attempt < 4) continue; // retry on duplicate receiptNo
+                throw err;
+            }
+        }
 
         paymentsCreated.push({
             ...payment,
