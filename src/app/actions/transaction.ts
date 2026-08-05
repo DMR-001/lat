@@ -14,10 +14,12 @@ export type TransactionRecord = {
     createdAt: string;
     updatedAt: string;
     student: {
+        id: string;
         name: string;
         admissionNo: string;
         class: string;
     } | null;
+    feeId: string | null;
     feeType: string | null;
     branchName: string | null;
 };
@@ -58,6 +60,7 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
 
         for (const p of payments) {
             let studentInfo = p.fee?.student ? {
+                id: p.fee.student.id,
                 name: `${p.fee.student.firstName} ${p.fee.student.lastName}`,
                 admissionNo: p.fee.student.admissionNo,
                 class: `${p.fee.student.class.name}${p.fee.student.class.section ? ' - ' + p.fee.student.class.section : ''}`
@@ -76,6 +79,7 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
                         });
                         if (student && student.class) {
                             studentInfo = {
+                                id: student.id,
                                 name: `${student.firstName} ${student.lastName}`,
                                 admissionNo: student.admissionNo,
                                 class: `${student.class.name}${student.class.section ? ' - ' + student.class.section : ''}`
@@ -99,6 +103,7 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
                 createdAt: p.createdAt.toISOString(),
                 updatedAt: p.updatedAt.toISOString(),
                 student: studentInfo,
+                feeId: p.feeId || null,
                 feeType: p.fee?.type || null,
                 branchName: p.branch?.name || null
             });
@@ -144,6 +149,7 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
                     // Ignore
                 }
 
+                const ppPayments = JSON.parse(pp.payments || '[]') as { feeId: string; amount: number }[];
                 results.push({
                     id: pp.id,
                     receiptNo: null,
@@ -155,7 +161,8 @@ export async function getTransactions(filter: TransactionFilter = 'all'): Promis
                     hdfcOrderId: pp.orderId,
                     createdAt: pp.createdAt.toISOString(),
                     updatedAt: pp.updatedAt.toISOString(),
-                    student: studentInfo,
+                    student: studentInfo ? { ...studentInfo, id: pp.studentId } : null,
+                    feeId: ppPayments[0]?.feeId || null,
                     feeType: null,
                     branchName: null
                 });

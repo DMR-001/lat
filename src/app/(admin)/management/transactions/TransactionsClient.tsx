@@ -42,7 +42,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
         });
     };
 
-    const checkTransactionStatus = async (orderId: string, e: React.MouseEvent) => {
+    const checkTransactionStatus = async (orderId: string, e: React.MouseEvent, fallback?: { studentId: string; feeId: string | null; amount: number }) => {
         e.stopPropagation();
         setCheckingStatus(orderId);
         setStatusResults(prev => ({ ...prev, [orderId]: '' }));
@@ -55,19 +55,24 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
             const data = await res.json();
 
             if (data.status === 'CHARGED') {
-                // Retrieve pending payment context and record it
+                // Try server-side PendingPayment context first
                 const context = await getPendingPayment(orderId);
                 if (context) {
                     await processPublicPayment(context.studentId, context.payments, orderId);
                     setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
-                    // Refresh transactions list
-                    startTransition(async () => {
-                        const updated = await getTransactions(filter);
-                        setTransactions(updated);
-                    });
+                } else if (fallback?.studentId && fallback?.feeId) {
+                    // Fallback: use the transaction record's own student + fee + amount
+                    const hdfcAmt = data.amount ?? 0;
+                    const amount = hdfcAmt > 1000 ? hdfcAmt / 100 : (hdfcAmt || fallback.amount);
+                    await processPublicPayment(fallback.studentId, [{ feeId: fallback.feeId, amount }], orderId);
+                    setStatusResults(prev => ({ ...prev, [orderId]: 'success' }));
                 } else {
                     setStatusResults(prev => ({ ...prev, [orderId]: 'charged_no_context' }));
                 }
+                startTransition(async () => {
+                    const updated = await getTransactions(filter);
+                    setTransactions(updated);
+                });
             } else {
                 setStatusResults(prev => ({ ...prev, [orderId]: data.status || 'unknown' }));
             }
@@ -485,7 +490,7 @@ export default function TransactionsClient({ initialTransactions, stats }: Props
                                         {(t.status === 'INITIATED' || t.status === 'PENDING' || t.status === 'FAILED' || t.hdfcStatus === 'PROCESSING_ERROR') && t.hdfcOrderId && (
                                             <div style={{ marginTop: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                                 <button
-                                                    onClick={(e) => checkTransactionStatus(t.hdfcOrderId!, e)}
+                                                    onClick={(e) => checkTransactionStatus(t.hdfcOrderId!, e, { studentId: t.student?.id || '', feeId: t.feeId || null, amount: t.amount })}
                                                     disabled={checkingStatus === t.hdfcOrderId}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', background: checkingStatus === t.hdfcOrderId ? '#c4b5fd' : '#7c3aed', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: checkingStatus === t.hdfcOrderId ? 'not-allowed' : 'pointer' }}
                                                 >
